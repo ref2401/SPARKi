@@ -132,11 +132,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\sparki\main.cpp" />
-    <ClCompile Include="..\src\sparki\offline_tool.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\asset.cpp" />
+    <ClCompile Include="..\src\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\sparki\offline_tool.h" />
+    <ClInclude Include="..\src\model.h" />
+    <ClInclude Include="..\src\asset.h" />
+    <ClInclude Include="..\src\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
