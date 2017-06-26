@@ -141,6 +141,8 @@
     <ClInclude Include="..\src\model.h" />
     <ClInclude Include="..\src\asset.h" />
     <ClInclude Include="..\src\platform.h" />
+    <ClInclude Include="..\src\render.h" />
+    <ClInclude Include="..\src\render_base.h" />
     <ClInclude Include="..\src\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
