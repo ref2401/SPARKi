@@ -4,10 +4,12 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\utility.cpp" />
     <ClCompile Include="..\src\asset.cpp" />
+    <ClCompile Include="..\src\platform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\utility.h" />
     <ClInclude Include="..\src\model.h" />
     <ClInclude Include="..\src\asset.h" />
+    <ClInclude Include="..\src\platform.h" />
   </ItemGroup>
 </Project>

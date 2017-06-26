@@ -134,11 +134,13 @@
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\asset.cpp" />
+    <ClCompile Include="..\src\platform.cpp" />
     <ClCompile Include="..\src\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\model.h" />
     <ClInclude Include="..\src\asset.h" />
+    <ClInclude Include="..\src\platform.h" />
     <ClInclude Include="..\src\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
