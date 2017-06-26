@@ -3,11 +3,12 @@
 #include "model.h"
 #include "utility.h"
 
+
 // NOTE(ref2401): .geo is SPARKi internal geometry format.
 
 namespace sparki {
 
-void convert_from_fbx(const char* p_fbx_filename, const char* p_desc_filename);
+void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename);
 
 // Read mesh geometry from the specified .fbx file.
 mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename);

@@ -97,12 +97,18 @@ void setup_triangle(FbxMesh* fbx_mesh, int polygon_index, int first_vertex_index
 
 namespace sparki {
 
-void convert_from_fbx(const char* p_fbx_filename, const char* p_desc_filename)
+void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 {
 	assert(p_fbx_filename);
 	assert(p_desc_filename);
 
-	
+	try {
+		auto mesh_geometry = read_fbx(p_fbx_filename);
+		write_geo(p_desc_filename, mesh_geometry);
+	}
+	catch (...) {
+		std::throw_with_nested(std::runtime_error("Convert fbx to geo error."));
+	}
 }
 
 mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
@@ -126,7 +132,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
 		int* position_indices = fbx_mesh->GetPolygonVertices();
 		// fbx_uv_set_name
 		FbxLayer* uv_layer_obj = fbx_mesh->GetLayer(0, FbxLayerElement::EType::eUV);
-		assert(uv_layer_obj);
+		ENFORCE(uv_layer_obj, "Mesh does not contain uv vertex attribute.");
 		FbxLayerElementUV* uv_layer = uv_layer_obj->GetUVs();
 		assert(uv_layer);
 		const char* fbx_uv_set_name = uv_layer->GetName();
@@ -168,7 +174,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
 		return mesh;
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Fbx reading error. File: ", filename);
+		std::string exc_msg = EXCEPTION_MSG("Fbx reading error. ", filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
