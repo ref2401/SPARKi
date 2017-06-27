@@ -92,7 +92,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\extern\math\include\;$(ProjectDir)..\extern\ts\include\;$(FBX_SDK_DIR)include\;$(ProjectDir)..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(FBX_SDK_DIR)lib\vs2015\$(Platform)\$(Configuration)\libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxgi.lib;d3d11.lib;d3dcompiler.lib;$(FBX_SDK_DIR)lib\vs2015\$(Platform)\$(Configuration)\libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -120,7 +120,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(FBX_SDK_DIR)lib\vs2015\$(Platform)\$(Configuration)\libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxgi.lib;d3d11.lib;d3dcompiler.lib;$(FBX_SDK_DIR)lib\vs2015\$(Platform)\$(Configuration)\libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -132,18 +132,20 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\asset.cpp" />
-    <ClCompile Include="..\src\platform.cpp" />
-    <ClCompile Include="..\src\utility.cpp" />
+    <ClCompile Include="..\src\sparki\asset.cpp" />
+    <ClCompile Include="..\src\sparki\main.cpp" />
+    <ClCompile Include="..\src\sparki\platform.cpp" />
+    <ClCompile Include="..\src\sparki\rnd\render.cpp" />
+    <ClCompile Include="..\src\sparki\rnd\render_base.cpp" />
+    <ClCompile Include="..\src\sparki\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\model.h" />
-    <ClInclude Include="..\src\asset.h" />
-    <ClInclude Include="..\src\platform.h" />
-    <ClInclude Include="..\src\render.h" />
-    <ClInclude Include="..\src\render_base.h" />
-    <ClInclude Include="..\src\utility.h" />
+    <ClInclude Include="..\src\sparki\asset.h" />
+    <ClInclude Include="..\src\sparki\model.h" />
+    <ClInclude Include="..\src\sparki\platform.h" />
+    <ClInclude Include="..\src\sparki\rnd\render.h" />
+    <ClInclude Include="..\src\sparki\rnd\render_base.h" />
+    <ClInclude Include="..\src\sparki\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

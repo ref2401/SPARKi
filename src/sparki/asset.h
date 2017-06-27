@@ -1,7 +1,7 @@
 #pragma once
 
-#include "model.h"
-#include "utility.h"
+#include "sparki/model.h"
+#include "sparki/utility.h"
 
 
 // NOTE(ref2401): .geo is SPARKi internal geometry format.

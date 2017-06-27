@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utility.h"
+#include "sparki/utility.h"
 #include "math/math.h"
 #include <windows.h>
 

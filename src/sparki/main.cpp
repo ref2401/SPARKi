@@ -1,6 +1,6 @@
 #include <iostream>
-#include "platform.h"
-#include "render.h"
+#include "sparki/platform.h"
+#include "sparki/rnd/render.h"
 
 
 int main() 
@@ -19,6 +19,7 @@ int main()
 		};
 
 		platform platform(wnd_desc);
+		renderer renderer(platform.hwnd(), wnd_desc.viewport_size);
 
 		// before the main loop phase:
 		platform.show_window();
@@ -27,6 +28,8 @@ int main()
 		while (true) {
 			if (platform.pump_sys_messages()) 
 				break;
+
+			renderer.draw_frame();
 		}
 
 
