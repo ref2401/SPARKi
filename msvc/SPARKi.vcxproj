@@ -133,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\sparki\asset.cpp" />
+    <ClCompile Include="..\src\sparki\engine.cpp" />
     <ClCompile Include="..\src\sparki\main.cpp" />
     <ClCompile Include="..\src\sparki\platform.cpp" />
     <ClCompile Include="..\src\sparki\rnd\render.cpp" />
@@ -141,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\asset.h" />
+    <ClInclude Include="..\src\sparki\engine.h" />
     <ClInclude Include="..\src\sparki\model.h" />
     <ClInclude Include="..\src\sparki\platform.h" />
     <ClInclude Include="..\src\sparki\rnd\render.h" />

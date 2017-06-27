@@ -14,7 +14,7 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 	assert(viewport_size > 0);
 
 	init_device(p_hwnd, viewport_size);
-	update_window_rtv_and_viewport(viewport_size);
+	resize_viewport(viewport_size);
 }
 
 renderer::~renderer() noexcept
@@ -72,25 +72,25 @@ void renderer::draw_frame()
 void renderer::resize_viewport(const uint2& size)
 {
 	assert(size > 0);
-	if (approx_equal(float(size.x), viewport_.Width)
-		&& approx_equal(float(size.y), viewport_.Height)) return;
 
-	p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
-	p_tex_window_rtv_.dispose();
+	const float w = float(size.x);
+	const float h = float(size.y);
 
-	DXGI_SWAP_CHAIN_DESC d;
-	HRESULT hr = p_swap_chain_->GetDesc(&d);
-	assert(hr == S_OK);
-	hr = p_swap_chain_->ResizeBuffers(d.BufferCount, size.x, size.y, d.BufferDesc.Format, d.Flags);
-	assert(hr == S_OK);
+	if (approx_equal(w, viewport_.Width) && approx_equal(h, viewport_.Height)) return;
 
-	update_window_rtv_and_viewport(size);
-}
+	// resize swap chain's buffers
+	if (p_tex_window_rtv_) {
+		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
+		p_tex_window_rtv_.dispose();
 
-void renderer::update_window_rtv_and_viewport(const uint2& viewport_size)
-{
+		//DXGI_SWAP_CHAIN_DESC d;
+		//HRESULT hr = p_swap_chain_->GetDesc(&d);
+		//assert(hr == S_OK);
+		//hr = p_swap_chain_->ResizeBuffers(d.BufferCount, size.x, size.y, d.BufferDesc.Format, d.Flags);
+		//assert(hr == S_OK);
+	}
+
 	// update window rtv
-	p_tex_window_rtv_.dispose();
 	com_ptr<ID3D11Texture2D> tex_back_buffer;
 	HRESULT hr = p_swap_chain_->GetBuffer(0, __uuidof(ID3D11Texture2D),
 		reinterpret_cast<void**>(&tex_back_buffer.p_handle));
@@ -102,8 +102,8 @@ void renderer::update_window_rtv_and_viewport(const uint2& viewport_size)
 	// update viewport
 	viewport_.TopLeftX = 0;
 	viewport_.TopLeftY = 0;
-	viewport_.Width = float(viewport_size.x);
-	viewport_.Height = float(viewport_size.y);
+	viewport_.Width = float(size.x);
+	viewport_.Height = float(size.y);
 	viewport_.MinDepth = 0.0;
 	viewport_.MaxDepth = 1.0f;
 }

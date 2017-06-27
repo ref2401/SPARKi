@@ -24,7 +24,6 @@ private:
 
 	void init_device(HWND hwnd, const uint2& viewport_size);
 
-	void update_window_rtv_and_viewport(const uint2& viewport_size);
 
 	// device stuff:
 	com_ptr<ID3D11Device>			p_device_;

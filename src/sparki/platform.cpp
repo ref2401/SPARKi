@@ -185,7 +185,7 @@ void platform::init_window(const window_desc& desc)
 	assert(p_hwnd_);
 }
 
-bool platform::process_sys_messages(renderer& renderer)
+bool platform::process_sys_messages(engine& engine)
 {
 	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
 	if (sys_messages_.empty()) return false;
@@ -200,7 +200,7 @@ bool platform::process_sys_messages(renderer& renderer)
 
 			case sys_message::type::viewport_resize: 
 			{
-				renderer.resize_viewport(msg.uint2);
+				engine.resize_viewport(msg.uint2);
 				break;
 			}
 		}

@@ -16,17 +16,17 @@ void sparki_main()
 	};
 
 	platform platform(wnd_desc);
-	renderer renderer(platform.hwnd(), wnd_desc.viewport_size);
+	engine engine(platform.hwnd(), wnd_desc.viewport_size);
 
 	// before the main loop phase:
 	platform.show_window();
 
 	// the main loop:
 	while (true) {
-		if (platform.process_sys_messages(renderer))
+		if (platform.process_sys_messages(engine))
 			break;
 
-		renderer.draw_frame();
+		engine.draw_frame();
 	}
 }
 

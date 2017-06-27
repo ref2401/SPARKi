@@ -7,6 +7,7 @@
 - git submodule
 - mkdir bin/..
 - copy fbxsdk.dll
+- renderer::resize_viewport() Do I have to resize swap chain's buffers manually?
 
 # Bibliography
 - [Physically-Based Shading at Disney](https://disney-animation.s3.amazonaws.com/library/s2012_pbs_disney_brdf_notes_v2.pdf)
