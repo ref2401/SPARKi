@@ -1,6 +1,5 @@
 #include <iostream>
 #include "sparki/platform.h"
-#include "sparki/rnd/render.h"
 #include "ts/task_system.h"
 
 
@@ -24,7 +23,7 @@ void sparki_main()
 
 	// the main loop:
 	while (true) {
-		if (platform.pump_sys_messages())
+		if (platform.process_sys_messages(renderer))
 			break;
 
 		renderer.draw_frame();
@@ -40,21 +39,19 @@ int main()
 		/* queue_size */				64,
 		/* queue_immediate_size */		8
 	};
-	
-	bool leave_console_open = false;
 
 	try {
-		ts::launch_task_system(ts_desc, sparki_main);
+		auto report = ts::launch_task_system(ts_desc, sparki_main);
+
+		std::cout << "----- Task System Report ----- " << std::endl
+			<< "task executed: " << report.task_count << std::endl
+			<< "immediate task executed: " << report.task_immediate_count << std::endl;
 	}
 	catch (const std::exception& e) {
-		leave_console_open = true;
-
 		const std::string msg = sparki::exception_message(e);
 		std::cout << "----- Exception -----" << std::endl << msg << std::endl;
 	}
 
-	if (leave_console_open)
-		std::cin.get();
-
+	std::cin.get();
 	return 0;
 }

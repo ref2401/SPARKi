@@ -1,6 +1,8 @@
 #pragma once
 
+#include <vector>
 #include "sparki/utility.h"
+#include "sparki/rnd/render.h"
 #include "math/math.h"
 #include <windows.h>
 
@@ -32,13 +34,28 @@ public:
 		return p_hwnd_;
 	}
 
+	void enqueue_window_resize();
+
 	// Processes all the system messages that are in the message queue at the moment.
 	// Returns true if the application has to terminate.
-	bool pump_sys_messages() noexcept;
+	bool process_sys_messages(renderer& renderer);
 
 	void show_window() noexcept;
 
 private:
+
+	// The struct stores any system message's data.
+	// type tells what kind of message occured. 
+	// Which fields contain data depends on type of a sys message.
+	struct sys_message final {
+		enum class type : unsigned char {
+			none,
+			viewport_resize
+		};
+
+		type type;
+		uint2 uint2;
+	};
 
 	static constexpr char* window_class_name = "sparki_window_class";
 
@@ -46,7 +63,8 @@ private:
 	void init_window(const window_desc& window_desc);
 
 
-	HWND p_hwnd_;
+	std::vector<sys_message>	sys_messages_;
+	HWND						p_hwnd_;
 };
 
 

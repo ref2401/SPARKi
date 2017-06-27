@@ -5,14 +5,53 @@
 
 namespace {
 
-LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
+// The global is set by sparki::platform's ctor and reset to null by sparki::platform's dctor.
+// It meant to be used only in window_proc.
+sparki::platform* gp_platform = nullptr;
+
+struct sys_message final {
+	enum class type : unsigned char {
+		none,
+		window_resize
+	};
+
+	type type;
+	uint2 uint2;
+};
+
+// Retrieves and dispatches all the system messages that are in the message queue at the moment.
+// Returns true if the application has to terminate.
+bool pump_sys_messages() noexcept
 {
-	//if (g_app == nullptr)
-	//	return DefWindowProc(hwnd, message, w_param, l_param);
+	MSG msg;
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+		if (msg.message == WM_QUIT) return true;
+
+		TranslateMessage(&msg);
+		DispatchMessageA(&msg);
+	}
+
+	return false;
+}
+
+// Returns viewport size of the specified window.
+inline uint2 viewport_size(HWND p_hwnd)
+{
+	assert(p_hwnd);
+
+	RECT rect;
+	GetClientRect(p_hwnd, &rect);
+	return uint2(rect.right - rect.left, rect.bottom - rect.top);
+}
+
+LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l_param)
+{
+	if (!gp_platform)
+		return DefWindowProc(p_hwnd, message, w_param, l_param);
 
 	switch (message) {
 		default:
-			return DefWindowProc(hwnd, message, w_param, l_param);
+			return DefWindowProc(p_hwnd, message, w_param, l_param);
 
 		case WM_LBUTTONDOWN:
 		case WM_LBUTTONUP:
@@ -67,6 +106,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_p
 
 		case WM_SIZE:
 		{
+			gp_platform->enqueue_window_resize();
 			return 0;
 		}
 	}
@@ -82,17 +122,30 @@ namespace sparki {
 platform::platform(const window_desc& window_desc)
 {
 	assert(is_valid_window_desc(window_desc));
+	sys_messages_.reserve(256);
 	init_window(window_desc);
+
+	gp_platform = this;
 }
 
 platform::~platform() noexcept
 {
+	gp_platform = nullptr;
+
 	if (IsWindow(p_hwnd_))
 		DestroyWindow(p_hwnd_);
 	p_hwnd_ = nullptr;
 
 	// window class
 	UnregisterClass(platform::window_class_name, GetModuleHandle(nullptr));
+}
+
+void platform::enqueue_window_resize()
+{
+	sys_message msg;
+	msg.type = sys_message::type::viewport_resize;
+	msg.uint2 = viewport_size(p_hwnd_);
+	sys_messages_.push_back(msg);
 }
 
 void platform::init_window(const window_desc& desc)
@@ -132,16 +185,28 @@ void platform::init_window(const window_desc& desc)
 	assert(p_hwnd_);
 }
 
-bool platform::pump_sys_messages() noexcept
+bool platform::process_sys_messages(renderer& renderer)
 {
-	MSG msg;
-	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-		if (msg.message == WM_QUIT) return true;
+	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
+	if (sys_messages_.empty()) return false;
 
-		TranslateMessage(&msg);
-		DispatchMessageA(&msg);
+	for (const auto& msg : sys_messages_) {
+		switch (msg.type) {
+			default: 
+			{
+				assert(false);
+				break;
+			}
+
+			case sys_message::type::viewport_resize: 
+			{
+				renderer.resize_viewport(msg.uint2);
+				break;
+			}
+		}
 	}
 
+	sys_messages_.clear();
 	return false;
 }
 

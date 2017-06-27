@@ -28,8 +28,10 @@ private:
 
 	// device stuff:
 	com_ptr<ID3D11Device>			p_device_;
-	com_ptr<ID3D11Debug>			p_debug_;
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
+#ifdef SPARKI_DEBUG
+	com_ptr<ID3D11Debug>			p_debug_;
+#endif
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;

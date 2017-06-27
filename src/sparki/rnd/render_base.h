@@ -10,6 +10,13 @@
 using namespace math;
 
 
+#if !defined(NDEBUG)
+	#define SPARKI_DEBUG 1
+#elif
+	#define SPARKI_RELEASE 1
+#endif // !defined(NDEBUG)
+
+
 namespace sparki {
 
 // Unique_com_ptr is a smart pointer that owns and manages a COM object through a pointer 
@@ -146,7 +153,5 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 {
 	return com_ptr.p_handle != nullptr;
 }
-
-void resize_swap_chain_buffers(IDXGISwapChain* p_swap_chain, const uint2& size);
 
 } // namespace sparki

@@ -19,6 +19,9 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 
 renderer::~renderer() noexcept
 {
+#ifdef SPARKI_DEBUG
+	p_debug_->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+#endif
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -51,8 +54,10 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 	assert(hr == S_OK);
 	ENFORCE(actual_feature_level == expected_feature_level, "Failed to create a device with feature level: D3D_FEATURE_LEVEL_11_0");
 
+#ifdef SPARKI_DEBUG
 	hr = p_device_->QueryInterface<ID3D11Debug>(&p_debug_.p_handle);
 	assert(hr == S_OK);
+#endif
 }
 
 void renderer::draw_frame()
@@ -71,12 +76,13 @@ void renderer::resize_viewport(const uint2& size)
 		&& approx_equal(float(size.y), viewport_.Height)) return;
 
 	p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
+	p_tex_window_rtv_.dispose();
 
 	DXGI_SWAP_CHAIN_DESC d;
 	HRESULT hr = p_swap_chain_->GetDesc(&d);
 	assert(hr == S_OK);
 	hr = p_swap_chain_->ResizeBuffers(d.BufferCount, size.x, size.y, d.BufferDesc.Format, d.Flags);
-	assert(hr = S_OK);
+	assert(hr == S_OK);
 
 	update_window_rtv_and_viewport(size);
 }
