@@ -97,6 +97,16 @@ void setup_triangle(FbxMesh* fbx_mesh, int polygon_index, int first_vertex_index
 
 namespace sparki {
 
+// ----- hlsl_shader_desc -----
+
+hlsl_shader_desc::hlsl_shader_desc(const char* p_filename, bool tesselation_stage)
+	: source_code(read_hlsl(p_filename)),
+	source_filename(p_filename),
+	tesselation_stage(tesselation_stage)
+{}
+
+// ----- funcs -----
+
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 {
 	assert(p_fbx_filename);
@@ -208,10 +218,10 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* filename)
 	}
 }
 
-std::string read_hlsl(const char* filename)
+std::string read_hlsl(const char* p_filename)
 {
-	std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(filename, "rb"), &std::fclose);
-	ENFORCE(file, "Failed to open file ", filename);
+	std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "rb"), &std::fclose);
+	ENFORCE(file, "Failed to open file ", p_filename);
 
 	// byte count
 	std::fseek(file.get(), 0, SEEK_END);
@@ -233,14 +243,14 @@ std::string read_hlsl(const char* filename)
 	return str;
 }
 
-void write_geo(const char* filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
+void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
 {
-	assert(filename);
+	assert(p_filename);
 	assert((mesh.vertices.size() > 0) && (mesh.indices.size() > 0));
 
 	try {
-		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(filename, "wb"), &std::fclose);
-		ENFORCE(file, "Failed to create/open the file ", filename);
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "wb"), &std::fclose);
+		ENFORCE(file, "Failed to create/open the file ", p_filename);
 
 		// header
 		// rex/geometry.h model_geometry_file_header
@@ -254,7 +264,7 @@ void write_geo(const char* filename, const mesh_geometry<vertex_attribs::p_n_uv_
 		std::fwrite(mesh.indices.data(), byte_count(mesh.indices), 1, file.get());
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Write geometry file error. File: ", filename);
+		std::string exc_msg = EXCEPTION_MSG("Write geometry file error. File: ", p_filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }

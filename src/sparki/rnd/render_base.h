@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/math.h"
+#include "sparki/asset/asset.h"
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcommon.h>
@@ -29,16 +29,16 @@ struct com_ptr final {
 
 	com_ptr() noexcept = default;
 
-	explicit com_ptr(T* p_handle) noexcept
-		: p_handle(p_handle)
+	explicit com_ptr(T* ptr) noexcept
+		: ptr(ptr)
 	{}
 
 	com_ptr(nullptr_t) noexcept {}
 
 	com_ptr(com_ptr&& com_ptr) noexcept
-		: p_handle(com_ptr.p_handle)
+		: ptr(com_ptr.ptr)
 	{
-		com_ptr.p_handle = nullptr;
+		com_ptr.ptr = nullptr;
 	}
 
 	com_ptr& operator=(com_ptr&& com_ptr) noexcept
@@ -46,8 +46,8 @@ struct com_ptr final {
 		if (this == &com_ptr) return *this;
 
 		dispose();
-		p_handle = com_ptr.p_handle;
-		com_ptr.p_handle = nullptr;
+		ptr = com_ptr.ptr;
+		com_ptr.ptr = nullptr;
 		return *this;
 	}
 
@@ -57,10 +57,10 @@ struct com_ptr final {
 	}
 
 
-	com_ptr& operator=(T* p_handle) noexcept
+	com_ptr& operator=(T* ptr) noexcept
 	{
 		dispose();
-		this->p_handle = p_handle;
+		this->ptr = ptr;
 		return *this;
 	}
 
@@ -72,22 +72,22 @@ struct com_ptr final {
 
 	T& operator*() const noexcept
 	{
-		return *p_handle;
+		return *ptr;
 	}
 
 	T* operator->() const noexcept
 	{
-		return p_handle;
+		return ptr;
 	}
 
 	operator bool() const noexcept
 	{
-		return (p_handle != nullptr);
+		return (ptr != nullptr);
 	}
 
 	operator T*() const noexcept
 	{
-		return p_handle;
+		return ptr;
 	}
 
 
@@ -95,25 +95,25 @@ struct com_ptr final {
 	void dispose() noexcept;
 
 	// Releases the ownership of the managed COM object and returns a pointer to it.
-	// Does not call p_handle->Release(). p_handle == nullptr after that. 
+	// Does not call ptr->Release(). ptr == nullptr after that. 
 	T* release_ownership() noexcept
 	{
-		T* tmp = p_handle;
-		p_handle = nullptr;
+		T* tmp = ptr;
+		ptr = nullptr;
 		return tmp;
 	}
 
 	// Pointer to the managed COM object.
-	T* p_handle = nullptr;
+	T* ptr = nullptr;
 };
 
 template<typename T>
 void com_ptr<T>::dispose() noexcept
 {
-	T* temp = p_handle;
+	T* temp = ptr;
 	if (temp == nullptr) return;
 
-	p_handle = nullptr;
+	ptr = nullptr;
 	temp->Release();
 }
 
@@ -121,37 +121,40 @@ void com_ptr<T>::dispose() noexcept
 template<typename T>
 inline bool operator==(const com_ptr<T>& l, const com_ptr<T>& r) noexcept
 {
-	return l.p_handle == r.p_handle;
+	return l.ptr == r.ptr;
 }
 
 template<typename T>
 inline bool operator==(const com_ptr<T>& com_ptr, nullptr_t) noexcept
 {
-	return com_ptr.p_handle == nullptr;
+	return com_ptr.ptr == nullptr;
 }
 
 template<typename T>
 inline bool operator==(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 {
-	return com_ptr.p_handle == nullptr;
+	return com_ptr.ptr == nullptr;
 }
 
 template<typename T>
 inline bool operator!=(const com_ptr<T>& l, const com_ptr<T>& r) noexcept
 {
-	return l.p_handle != r.p_handle;
+	return l.ptr != r.ptr;
 }
 
 template<typename T>
 inline bool operator!=(const com_ptr<T>& com_ptr, nullptr_t) noexcept
 {
-	return com_ptr.p_handle != nullptr;
+	return com_ptr.ptr != nullptr;
 }
 
 template<typename T>
 inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 {
-	return com_ptr.p_handle != nullptr;
+	return com_ptr.ptr != nullptr;
 }
+
+com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename, 
+	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
 
 } // namespace sparki

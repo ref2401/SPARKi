@@ -8,8 +8,6 @@ void sparki_main()
 {
 	using namespace sparki;
 
-	std::string str = read_hlsl("../../data/gen_cube_envmap.hlsl");
-
 	// init phase:
 	const window_desc wnd_desc = {
 		/* title */			"SPARKi",

@@ -5,6 +5,36 @@
 
 namespace sparki {
 
+struct hlsl_shader final {
+
+	hlsl_shader() noexcept = default;
+
+	hlsl_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	hlsl_shader(hlsl_shader&& s) noexcept = default;
+	hlsl_shader& operator=(hlsl_shader&& s) noexcept = default;
+
+
+	com_ptr<ID3D11VertexShader> p_vertex_shader;
+	com_ptr<ID3DBlob>			p_vertex_shader_bytecode;
+	com_ptr<ID3D11HullShader>	p_hull_shader;
+	com_ptr<ID3DBlob>			p_hull_shader_bytecode;
+	com_ptr<ID3D11DomainShader> p_domain_shader;
+	com_ptr<ID3DBlob>			p_domain_shader_bytecode;
+	com_ptr<ID3D11PixelShader>	p_pixel_shader;
+	com_ptr<ID3DBlob>			p_pixel_shader_bytecode;
+
+private:
+
+	void init_vertex_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_hull_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_domain_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+};
+
 class renderer final {
 public:
 
@@ -23,6 +53,8 @@ public:
 private:
 
 	void init_device(HWND hwnd, const uint2& viewport_size);
+
+	void load_assets();
 
 
 	// device stuff:
