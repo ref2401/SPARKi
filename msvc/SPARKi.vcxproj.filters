@@ -4,6 +4,9 @@
     <Filter Include="rnd">
       <UniqueIdentifier>{363ed827-f630-4030-8b98-070ee999c8ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="asset">
+      <UniqueIdentifier>{8678327c-3199-4cc7-ae69-e92595a933c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\sparki\rnd\render.cpp">
@@ -12,11 +15,13 @@
     <ClCompile Include="..\src\sparki\rnd\render_base.cpp">
       <Filter>rnd</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\asset.cpp" />
     <ClCompile Include="..\src\sparki\main.cpp" />
     <ClCompile Include="..\src\sparki\platform.cpp" />
     <ClCompile Include="..\src\sparki\utility.cpp" />
-    <ClCompile Include="..\src\sparki\engine.cpp" />
+    <ClCompile Include="..\src\sparki\game.cpp" />
+    <ClCompile Include="..\src\sparki\asset\asset.cpp">
+      <Filter>asset</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\rnd\render.h">
@@ -25,10 +30,14 @@
     <ClInclude Include="..\src\sparki\rnd\render_base.h">
       <Filter>rnd</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\asset.h" />
-    <ClInclude Include="..\src\sparki\model.h" />
     <ClInclude Include="..\src\sparki\platform.h" />
     <ClInclude Include="..\src\sparki\utility.h" />
-    <ClInclude Include="..\src\sparki\engine.h" />
+    <ClInclude Include="..\src\sparki\game.h" />
+    <ClInclude Include="..\src\sparki\asset\asset.h">
+      <Filter>asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\asset\model.h">
+      <Filter>asset</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

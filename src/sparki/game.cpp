@@ -1,24 +1,25 @@
-#include "sparki/engine.h"
+#include "sparki/game.h"
 
 
 
 namespace sparki {
 
-// ----- engine -----
+// ----- game -----
 
-engine::engine(HWND p_hwnd, const uint2& viewport_size)
+game::game(HWND p_hwnd, const uint2& viewport_size)
 	: renderer_(p_hwnd, viewport_size),
 	viewport_is_visible_(true)
 {
 
 }
-void engine::draw_frame()
+
+void game::draw_frame()
 {
 	if (viewport_is_visible_)
 		renderer_.draw_frame();
 }
 
-void engine::resize_viewport(const uint2& size)
+void game::resize_viewport(const uint2& size)
 {
 	if (size.x == 0 || size.y == 0) {
 		viewport_is_visible_ = false;

@@ -1,11 +1,14 @@
 #include <iostream>
 #include "sparki/platform.h"
+#include "sparki/asset/asset.h"
 #include "ts/task_system.h"
 
 
 void sparki_main()
 {
 	using namespace sparki;
+
+	std::string str = read_hlsl("../../data/gen_cube_envmap.hlsl");
 
 	// init phase:
 	const window_desc wnd_desc = {
@@ -16,17 +19,16 @@ void sparki_main()
 	};
 
 	platform platform(wnd_desc);
-	engine engine(platform.hwnd(), wnd_desc.viewport_size);
+	game game(platform.hwnd(), wnd_desc.viewport_size);
 
 	// before the main loop phase:
 	platform.show_window();
 
 	// the main loop:
 	while (true) {
-		if (platform.process_sys_messages(engine))
-			break;
+		if (platform.process_sys_messages(game)) break;
 
-		engine.draw_frame();
+		game.draw_frame();
 	}
 }
 

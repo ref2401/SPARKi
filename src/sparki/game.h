@@ -5,13 +5,13 @@
 
 namespace sparki {
 
-class engine final {
+class game final {
 public:
 
-	engine(HWND p_hwnd, const uint2& viewport_size);
+	game(HWND p_hwnd, const uint2& viewport_size);
 
-	engine(engine&&) = delete;
-	engine& operator=(engine&&) = delete;
+	game(game&&) = delete;
+	game& operator=(game&&) = delete;
 
 
 	void draw_frame();

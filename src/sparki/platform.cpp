@@ -9,15 +9,6 @@ namespace {
 // It meant to be used only in window_proc.
 sparki::platform* gp_platform = nullptr;
 
-struct sys_message final {
-	enum class type : unsigned char {
-		none,
-		window_resize
-	};
-
-	type type;
-	uint2 uint2;
-};
 
 // Retrieves and dispatches all the system messages that are in the message queue at the moment.
 // Returns true if the application has to terminate.
@@ -185,7 +176,7 @@ void platform::init_window(const window_desc& desc)
 	assert(p_hwnd_);
 }
 
-bool platform::process_sys_messages(engine& engine)
+bool platform::process_sys_messages(game& game)
 {
 	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
 	if (sys_messages_.empty()) return false;
@@ -200,7 +191,7 @@ bool platform::process_sys_messages(engine& engine)
 
 			case sys_message::type::viewport_resize: 
 			{
-				engine.resize_viewport(msg.uint2);
+				game.resize_viewport(msg.uint2);
 				break;
 			}
 		}

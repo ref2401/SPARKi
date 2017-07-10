@@ -1,4 +1,4 @@
-#include "sparki/asset.h"
+#include "sparki/asset/asset.h"
 
 #include <cassert>
 #include <cstdio>
@@ -188,7 +188,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* filename)
 
 	try {
 		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(filename, "rb"), &std::fclose);
-		ENFORCE(file, "Failed to open the file ", filename);
+		ENFORCE(file, "Failed to open file ", filename);
 
 		// header
 		uint64_t vertex_count = 0;
@@ -206,6 +206,31 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* filename)
 		std::string exc_msg = EXCEPTION_MSG("Load model geometry error. File: ", filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
+}
+
+std::string read_hlsl(const char* filename)
+{
+	std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(filename, "rb"), &std::fclose);
+	ENFORCE(file, "Failed to open file ", filename);
+
+	// byte count
+	std::fseek(file.get(), 0, SEEK_END);
+	const size_t byte_count = std::ftell(file.get());
+	std::rewind(file.get());
+	if (byte_count == 0) return {};
+
+	// read the file's contents
+	std::string str;
+	str.reserve(byte_count);
+
+	char buffer[1024];
+	while (std::feof(file.get()) == 0) {
+		// ab - actual number of bytes read.
+		const size_t ab = std::fread(buffer, sizeof(char), std::extent<decltype(buffer)>::value, file.get());
+		str.append(buffer, ab);
+	}
+
+	return str;
 }
 
 void write_geo(const char* filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
