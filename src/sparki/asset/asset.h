@@ -8,9 +8,24 @@
 
 namespace sparki {
 
+struct hlsl_compute_desc final {
+
+	static constexpr char* compute_shader_entry_point = "cs_main";
+	static constexpr char* compute_shader_model = "cs_5_0";
+
+	hlsl_compute_desc() = default;
+
+	explicit hlsl_compute_desc(const char* p_filename);
+
+
+	std::string source_code;
+	std::string source_filename;
+	// The D3DCOMPILE constants specify how the compiler compiles the HLSL code.
+	uint32_t compile_flags = 0;
+};
+
 // hlsl_shader_desc struct stores all required and optional params
 // which are used in hlsl shader creation process.
-// 
 struct hlsl_shader_desc final {
 
 	static constexpr char* vertex_shader_entry_point = "vs_main";
@@ -28,15 +43,10 @@ struct hlsl_shader_desc final {
 	explicit hlsl_shader_desc(const char* filename, bool tesselation_stage = false);
 
 
-	// Hlsl source code.
 	std::string source_code;
-
-	// Hlsl source code filename. Use in error messages.
 	std::string source_filename;
-
 	// The D3DCOMPILE constants specify how the compiler compiles the HLSL code.
 	uint32_t compile_flags = 0;
-
 	// True indicates that there are hull & domain shaders.
 	bool tesselation_stage = false;
 };

@@ -97,6 +97,13 @@ void setup_triangle(FbxMesh* fbx_mesh, int polygon_index, int first_vertex_index
 
 namespace sparki {
 
+// ----- hlsl_compute_desc -----
+
+hlsl_compute_desc::hlsl_compute_desc(const char* p_filename)
+	: source_code(read_hlsl(p_filename)),
+	source_filename(p_filename)
+{}
+
 // ----- hlsl_shader_desc -----
 
 hlsl_shader_desc::hlsl_shader_desc(const char* p_filename, bool tesselation_stage)

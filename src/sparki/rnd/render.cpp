@@ -7,11 +7,38 @@
 
 namespace sparki {
 
+// ----- hlsl_compute -----
+
+hlsl_compute::hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc)
+{
+	assert(p_device);
+	assert(desc.source_code.length() > 0);
+
+	try {
+		p_compute_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
+			desc.compile_flags,
+			hlsl_compute_desc::compute_shader_entry_point,
+			hlsl_compute_desc::compute_shader_model);
+
+		HRESULT hr = p_device->CreateComputeShader(
+			p_compute_shader_bytecode->GetBufferPointer(),
+			p_compute_shader_bytecode->GetBufferSize(),
+			nullptr, &p_compute_shader.ptr);
+
+		ENFORCE(hr == S_OK, std::to_string(hr));
+	}
+	catch (...) {
+		std::string exc_msg = EXCEPTION_MSG("Compute shader creation error.");
+		std::throw_with_nested(std::runtime_error(exc_msg));
+	}
+}
+
 // ----- hlsl_shader -----
 
 hlsl_shader::hlsl_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
 {
 	assert(p_device);
+	assert(desc.source_code.length() > 0);
 
 	init_vertex_shader(p_device, desc);
 	init_pixel_shader(p_device, desc);
@@ -173,10 +200,12 @@ void renderer::draw_frame()
 void renderer::load_assets()
 {
 	hlsl_shader_desc simple_shader_desc;
+	hlsl_compute_desc compute_desc;
 
 	std::atomic_size_t wait_counter;
-	ts::task_desc task_load_hlsl = ts::task_desc([&simple_shader_desc] {
+	ts::task_desc task_load_hlsl = ts::task_desc([&simple_shader_desc, &compute_desc] {
 		simple_shader_desc = hlsl_shader_desc("../../data/gen_cube_envmap.hlsl");
+		compute_desc = hlsl_compute_desc("../../data/gaussian_filter.compute.hlsl");
 	});
 
 	ts::run(task_load_hlsl, wait_counter);
@@ -185,6 +214,7 @@ void renderer::load_assets()
 
 	ts::wait_for(wait_counter);
 	hlsl_shader s(p_device_, simple_shader_desc);
+	hlsl_compute c(p_device_, compute_desc);
 }
 
 void renderer::resize_viewport(const uint2& size)

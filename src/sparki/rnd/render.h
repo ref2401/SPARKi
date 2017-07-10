@@ -5,6 +5,20 @@
 
 namespace sparki {
 
+struct hlsl_compute final {
+
+	hlsl_compute() noexcept = default;
+
+	hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc);
+
+	hlsl_compute(hlsl_compute&& s) noexcept = default;
+	hlsl_compute& operator=(hlsl_compute&& s) noexcept = default;
+
+
+	com_ptr<ID3D11ComputeShader>	p_compute_shader;
+	com_ptr<ID3DBlob>				p_compute_shader_bytecode;
+};
+
 struct hlsl_shader final {
 
 	hlsl_shader() noexcept = default;
