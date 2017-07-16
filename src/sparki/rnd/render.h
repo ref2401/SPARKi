@@ -66,9 +66,11 @@ public:
 
 private:
 
-	void init_device(HWND hwnd, const uint2& viewport_size);
+	void init_assets();
 
-	void load_assets();
+	void init_tex_cube();
+
+	void init_device(HWND hwnd, const uint2& viewport_size);
 
 
 	// device stuff:
@@ -82,6 +84,12 @@ private:
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
 	// other
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
+	// rendering stuff
+	com_ptr<ID3D11Texture2D>			p_tex_cubemap_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_cubemap_srv_;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_cubemap_uav_;
+	hlsl_compute						gen_cubemap_compute_;
+	hlsl_shader							rnd_cubemap_shader_;
 };
 
 } // namespace sparki

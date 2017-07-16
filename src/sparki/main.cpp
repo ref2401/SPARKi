@@ -32,6 +32,7 @@ void sparki_main()
 
 int main() 
 {
+	bool keep_console_shown = false;
 	const ts::task_system_desc ts_desc = {
 		/* thread_count */				2,
 		/* fiber_count */				16,
@@ -42,16 +43,19 @@ int main()
 
 	try {
 		auto report = ts::launch_task_system(ts_desc, sparki_main);
-
 		std::cout << "----- Task System Report ----- " << std::endl
 			<< "task executed: " << report.task_count << std::endl
 			<< "immediate task executed: " << report.task_immediate_count << std::endl;
 	}
 	catch (const std::exception& e) {
+		keep_console_shown = true;
+
 		const std::string msg = sparki::exception_message(e);
 		std::cout << "----- Exception -----" << std::endl << msg << std::endl;
 	}
 
-	std::cin.get();
+	if (keep_console_shown)
+		std::cin.get();
+
 	return 0;
 }

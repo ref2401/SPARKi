@@ -28,7 +28,7 @@ hlsl_compute::hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc
 		ENFORCE(hr == S_OK, std::to_string(hr));
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Compute shader creation error.");
+		const std::string exc_msg = EXCEPTION_MSG("Compute shader creation error.");
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -65,7 +65,7 @@ void hlsl_shader::init_vertex_shader(ID3D11Device* p_device, const hlsl_shader_d
 		ENFORCE(hr == S_OK, std::to_string(hr));
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Vertex shader creation error.");
+		const std::string exc_msg = EXCEPTION_MSG("Vertex shader creation error.");
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -86,7 +86,7 @@ void hlsl_shader::init_hull_shader(ID3D11Device* p_device, const hlsl_shader_des
 		ENFORCE(hr == S_OK, std::to_string(hr));
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Hull shader creation error.");
+		const std::string exc_msg = EXCEPTION_MSG("Hull shader creation error.");
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -107,7 +107,7 @@ void hlsl_shader::init_domain_shader(ID3D11Device* p_device, const hlsl_shader_d
 		ENFORCE(hr == S_OK, std::to_string(hr));
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Domain shader creation error.");
+		const std::string exc_msg = EXCEPTION_MSG("Domain shader creation error.");
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -128,7 +128,7 @@ void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_de
 		ENFORCE(hr == S_OK, std::to_string(hr));
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Pixel shader creation error.");
+		const std::string exc_msg = EXCEPTION_MSG("Pixel shader creation error.");
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -142,7 +142,7 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 
 	init_device(p_hwnd, viewport_size);
 	resize_viewport(viewport_size);
-	load_assets();
+	init_assets();
 }
 
 renderer::~renderer() noexcept
@@ -150,6 +150,34 @@ renderer::~renderer() noexcept
 #ifdef SPARKI_DEBUG
 	p_debug_->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 #endif
+}
+
+void renderer::init_assets()
+{
+	hlsl_compute_desc gen_cubemap_compute_desc;
+	hlsl_shader_desc rnd_cubemap_shader_desc;
+
+	auto load_hlsl = [&gen_cubemap_compute_desc, &rnd_cubemap_shader_desc] {
+		gen_cubemap_compute_desc = hlsl_compute_desc("../../data/shaders/equirectangular_to_cube.compute.hlsl");
+		rnd_cubemap_shader_desc = hlsl_shader_desc("../../data/shaders/rnd_cubemap.hlsl");
+	};
+	std::atomic_size_t wait_counter;
+	ts::run(load_hlsl, wait_counter);
+
+	init_tex_cube();
+
+	ts::wait_for(wait_counter);
+	gen_cubemap_compute_ = hlsl_compute(p_device_, gen_cubemap_compute_desc);
+	rnd_cubemap_shader_ = hlsl_shader(p_device_, rnd_cubemap_shader_desc);
+
+	p_ctx_->CSSetShader(gen_cubemap_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_cubemap_uav_.ptr, nullptr);
+#ifdef SPARKI_DEBUG
+	p_debug_->ValidateContextForDispatch(p_ctx_);
+#endif
+	p_ctx_->Dispatch(2, 512, 6);
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	p_ctx_->CSSetUnorderedAccessViews(0, 0, nullptr, nullptr);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -188,6 +216,27 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 #endif
 }
 
+void renderer::init_tex_cube()
+{
+	D3D11_TEXTURE2D_DESC td = {};
+	td.Width = td.Height = 1024;
+	td.MipLevels = 1;
+	td.ArraySize = 6;
+	td.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	td.SampleDesc.Count = 1;
+	td.SampleDesc.Quality = 0;
+	td.Usage = D3D11_USAGE_DEFAULT;
+	td.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	td.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	HRESULT hr = p_device_->CreateTexture2D(&td, nullptr, &p_tex_cubemap_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_cubemap_, nullptr, &p_tex_cubemap_srv_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateUnorderedAccessView(p_tex_cubemap_, nullptr, &p_tex_cubemap_uav_.ptr);
+	assert(hr == S_OK);
+}
+
 void renderer::draw_frame()
 {
 	p_ctx_->RSSetViewports(1, &viewport_);
@@ -195,26 +244,6 @@ void renderer::draw_frame()
 	p_ctx_->ClearRenderTargetView(p_tex_window_rtv_, &float4::unit_xyzw.x);
 
 	p_swap_chain_->Present(0, 0);
-}
-
-void renderer::load_assets()
-{
-	hlsl_shader_desc simple_shader_desc;
-	hlsl_compute_desc compute_desc;
-
-	std::atomic_size_t wait_counter;
-	ts::task_desc task_load_hlsl = ts::task_desc([&simple_shader_desc, &compute_desc] {
-		simple_shader_desc = hlsl_shader_desc("../../data/gen_cube_envmap.hlsl");
-		compute_desc = hlsl_compute_desc("../../data/gaussian_filter.compute.hlsl");
-	});
-
-	ts::run(task_load_hlsl, wait_counter);
-
-	// run images & geometry loading tasks
-
-	ts::wait_for(wait_counter);
-	hlsl_shader s(p_device_, simple_shader_desc);
-	hlsl_compute c(p_device_, compute_desc);
 }
 
 void renderer::resize_viewport(const uint2& size)
