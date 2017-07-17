@@ -7,132 +7,6 @@
 
 namespace sparki {
 
-// ----- hlsl_compute -----
-
-hlsl_compute::hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc)
-{
-	assert(p_device);
-	assert(desc.source_code.length() > 0);
-
-	try {
-		p_compute_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
-			desc.compile_flags,
-			hlsl_compute_desc::compute_shader_entry_point,
-			hlsl_compute_desc::compute_shader_model);
-
-		HRESULT hr = p_device->CreateComputeShader(
-			p_compute_shader_bytecode->GetBufferPointer(),
-			p_compute_shader_bytecode->GetBufferSize(),
-			nullptr, &p_compute_shader.ptr);
-
-		ENFORCE(hr == S_OK, std::to_string(hr));
-	}
-	catch (...) {
-		const std::string exc_msg = EXCEPTION_MSG("Compute shader creation error.");
-		std::throw_with_nested(std::runtime_error(exc_msg));
-	}
-}
-
-// ----- hlsl_shader -----
-
-hlsl_shader::hlsl_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
-{
-	assert(p_device);
-	assert(desc.source_code.length() > 0);
-
-	init_vertex_shader(p_device, desc);
-	init_pixel_shader(p_device, desc);
-
-	if (desc.tesselation_stage) {
-		init_hull_shader(p_device, desc);
-		init_domain_shader(p_device, desc);
-	}
-}
-
-void hlsl_shader::init_vertex_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
-{
-	try {
-		p_vertex_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
-			desc.compile_flags,
-			hlsl_shader_desc::vertex_shader_entry_point,
-			hlsl_shader_desc::vertex_shader_model);
-
-		HRESULT hr = p_device->CreateVertexShader(
-			p_vertex_shader_bytecode->GetBufferPointer(),
-			p_vertex_shader_bytecode->GetBufferSize(),
-			nullptr, &p_vertex_shader.ptr);
-
-		ENFORCE(hr == S_OK, std::to_string(hr));
-	}
-	catch (...) {
-		const std::string exc_msg = EXCEPTION_MSG("Vertex shader creation error.");
-		std::throw_with_nested(std::runtime_error(exc_msg));
-	}
-}
-
-void hlsl_shader::init_hull_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
-{
-	try {
-		p_hull_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
-			desc.compile_flags,
-			hlsl_shader_desc::hull_shader_entry_point, 
-			hlsl_shader_desc::hull_shader_model);
-
-		HRESULT hr = p_device->CreateHullShader(
-			p_hull_shader_bytecode->GetBufferPointer(),
-			p_hull_shader_bytecode->GetBufferSize(),
-			nullptr, &p_hull_shader.ptr);
-
-		ENFORCE(hr == S_OK, std::to_string(hr));
-	}
-	catch (...) {
-		const std::string exc_msg = EXCEPTION_MSG("Hull shader creation error.");
-		std::throw_with_nested(std::runtime_error(exc_msg));
-	}
-}
-
-void hlsl_shader::init_domain_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
-{
-	try {
-		p_domain_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
-			desc.compile_flags,
-			hlsl_shader_desc::domain_shader_entry_point,
-			hlsl_shader_desc::domain_shader_model);
-
-		HRESULT hr = p_device->CreateDomainShader(
-			p_domain_shader_bytecode->GetBufferPointer(),
-			p_domain_shader_bytecode->GetBufferSize(),
-			nullptr, &p_domain_shader.ptr);
-
-		ENFORCE(hr == S_OK, std::to_string(hr));
-	}
-	catch (...) {
-		const std::string exc_msg = EXCEPTION_MSG("Domain shader creation error.");
-		std::throw_with_nested(std::runtime_error(exc_msg));
-	}
-}
-
-void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc)
-{
-	try {
-		p_pixel_shader_bytecode = compile_shader(desc.source_code, desc.source_filename,
-			desc.compile_flags,
-			hlsl_shader_desc::pixel_shader_entry_point,
-			hlsl_shader_desc::pixel_shader_model);
-
-		HRESULT hr = p_device->CreatePixelShader(
-			p_pixel_shader_bytecode->GetBufferPointer(),
-			p_pixel_shader_bytecode->GetBufferSize(),
-			nullptr, &p_pixel_shader.ptr);
-
-		ENFORCE(hr == S_OK, std::to_string(hr));
-	}
-	catch (...) {
-		const std::string exc_msg = EXCEPTION_MSG("Pixel shader creation error.");
-		std::throw_with_nested(std::runtime_error(exc_msg));
-	}
-}
-
 // ----- renderer -----
 
 renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
@@ -154,6 +28,11 @@ renderer::~renderer() noexcept
 
 void renderer::init_assets()
 {
+	// ts:: load cubemap pass assets: hlsl, tex
+	// ts:: load equrectangular to cubemap pass stuff.
+	// create cubemap pass
+	// create equrectangular to cubemap pass
+
 	hlsl_compute_desc gen_cubemap_compute_desc;
 	hlsl_shader_desc rnd_cubemap_shader_desc;
 
@@ -165,6 +44,24 @@ void renderer::init_assets()
 	ts::run(load_hlsl, wait_counter);
 
 	init_tex_cube();
+	p_cb_vertex_shader_ = constant_buffer(p_device_, sizeof(float4x4));
+	D3D11_RASTERIZER_DESC rs_desc = {};
+	rs_desc.FillMode = D3D11_FILL_SOLID;
+	rs_desc.CullMode = D3D11_CULL_FRONT;
+	rs_desc.FrontCounterClockwise = true;
+	HRESULT hr = p_device_->CreateRasterizerState(&rs_desc, &p_rastr_state_.ptr);
+	assert(hr == S_OK);
+	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
+	ds_desc.DepthEnable = false;
+	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	assert(hr == S_OK);
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_state_.ptr);
+	assert(hr == S_OK);
 
 	ts::wait_for(wait_counter);
 	gen_cubemap_compute_ = hlsl_compute(p_device_, gen_cubemap_compute_desc);
@@ -173,11 +70,13 @@ void renderer::init_assets()
 	p_ctx_->CSSetShader(gen_cubemap_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_cubemap_uav_.ptr, nullptr);
 #ifdef SPARKI_DEBUG
-	p_debug_->ValidateContextForDispatch(p_ctx_);
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
 #endif
 	p_ctx_->Dispatch(2, 512, 6);
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
-	p_ctx_->CSSetUnorderedAccessViews(0, 0, nullptr, nullptr);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -237,11 +136,38 @@ void renderer::init_tex_cube()
 	assert(hr == S_OK);
 }
 
-void renderer::draw_frame()
+void renderer::draw_frame(frame& frame)
 {
+	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
+	const float4x4 proj_view_matrix = frame.projection_matrix * view_matrix;
+
+	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, &proj_view_matrix.m00, 0, 0);
+
 	p_ctx_->RSSetViewports(1, &viewport_);
 	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
 	p_ctx_->ClearRenderTargetView(p_tex_window_rtv_, &float4::unit_xyzw.x);
+
+	// input layout
+	p_ctx_->IASetInputLayout(nullptr);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	// rastr & output merger
+	p_ctx_->RSSetState(p_rastr_state_);
+	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
+	// shaders
+	p_ctx_->VSSetShader(rnd_cubemap_shader_.p_vertex_shader, nullptr, 0);
+	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
+	p_ctx_->PSSetShader(rnd_cubemap_shader_.p_pixel_shader, nullptr, 0);
+	p_ctx_->PSSetShaderResources(0, 1, &p_tex_cubemap_srv_.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &p_sampler_state_.ptr);
+
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	p_ctx_->Draw(renderer::cube_index_count, 0);
 
 	p_swap_chain_->Present(0, 0);
 }

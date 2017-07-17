@@ -5,48 +5,11 @@
 
 namespace sparki {
 
-struct hlsl_compute final {
-
-	hlsl_compute() noexcept = default;
-
-	hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc);
-
-	hlsl_compute(hlsl_compute&& s) noexcept = default;
-	hlsl_compute& operator=(hlsl_compute&& s) noexcept = default;
-
-
-	com_ptr<ID3D11ComputeShader>	p_compute_shader;
-	com_ptr<ID3DBlob>				p_compute_shader_bytecode;
-};
-
-struct hlsl_shader final {
-
-	hlsl_shader() noexcept = default;
-
-	hlsl_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
-
-	hlsl_shader(hlsl_shader&& s) noexcept = default;
-	hlsl_shader& operator=(hlsl_shader&& s) noexcept = default;
-
-
-	com_ptr<ID3D11VertexShader> p_vertex_shader;
-	com_ptr<ID3DBlob>			p_vertex_shader_bytecode;
-	com_ptr<ID3D11HullShader>	p_hull_shader;
-	com_ptr<ID3DBlob>			p_hull_shader_bytecode;
-	com_ptr<ID3D11DomainShader> p_domain_shader;
-	com_ptr<ID3DBlob>			p_domain_shader_bytecode;
-	com_ptr<ID3D11PixelShader>	p_pixel_shader;
-	com_ptr<ID3DBlob>			p_pixel_shader_bytecode;
-
-private:
-
-	void init_vertex_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
-
-	void init_hull_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
-
-	void init_domain_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
-
-	void init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+struct frame final {
+	math::float4x4	projection_matrix;
+	float3 camera_position;
+	float3 camera_target;
+	float3 camera_up;
 };
 
 class renderer final {
@@ -60,11 +23,14 @@ public:
 	~renderer() noexcept;
 
 
-	void draw_frame();
+	void draw_frame(frame& frame);
 
 	void resize_viewport(const uint2& size);
 
 private:
+
+	static constexpr UINT cube_index_count = 14;
+
 
 	void init_assets();
 
@@ -84,12 +50,17 @@ private:
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
 	// other
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
-	// rendering stuff
+	// temporary stuff
+	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
+	com_ptr<ID3D11RasterizerState>		p_rastr_state_;
+	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Texture2D>			p_tex_cubemap_;
+	com_ptr<ID3D11SamplerState>			p_sampler_state_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_cubemap_srv_;
 	com_ptr<ID3D11UnorderedAccessView>	p_tex_cubemap_uav_;
 	hlsl_compute						gen_cubemap_compute_;
 	hlsl_shader							rnd_cubemap_shader_;
 };
+
 
 } // namespace sparki

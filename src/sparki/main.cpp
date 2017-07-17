@@ -26,7 +26,7 @@ void sparki_main()
 	while (true) {
 		if (platform.process_sys_messages(game)) break;
 
-		game.draw_frame();
+		game.draw_frame(1.0f);
 	}
 }
 

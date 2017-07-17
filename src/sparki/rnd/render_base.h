@@ -92,7 +92,14 @@ struct com_ptr final {
 
 
 	// Releases the managed COM object if such is present.
-	void dispose() noexcept;
+	void dispose() noexcept
+	{
+		T* temp = ptr;
+		if (temp == nullptr) return;
+
+		ptr = nullptr;
+		temp->Release();
+	}
 
 	// Releases the ownership of the managed COM object and returns a pointer to it.
 	// Does not call ptr->Release(). ptr == nullptr after that. 
@@ -107,15 +114,49 @@ struct com_ptr final {
 	T* ptr = nullptr;
 };
 
-template<typename T>
-void com_ptr<T>::dispose() noexcept
-{
-	T* temp = ptr;
-	if (temp == nullptr) return;
+struct hlsl_compute final {
 
-	ptr = nullptr;
-	temp->Release();
-}
+	hlsl_compute() noexcept = default;
+
+	hlsl_compute(ID3D11Device* p_device, const hlsl_compute_desc& desc);
+
+	hlsl_compute(hlsl_compute&& s) noexcept = default;
+	hlsl_compute& operator=(hlsl_compute&& s) noexcept = default;
+
+
+	com_ptr<ID3D11ComputeShader>	p_compute_shader;
+	com_ptr<ID3DBlob>				p_compute_shader_bytecode;
+};
+
+struct hlsl_shader final {
+
+	hlsl_shader() noexcept = default;
+
+	hlsl_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	hlsl_shader(hlsl_shader&& s) noexcept = default;
+	hlsl_shader& operator=(hlsl_shader&& s) noexcept = default;
+
+
+	com_ptr<ID3D11VertexShader> p_vertex_shader;
+	com_ptr<ID3DBlob>			p_vertex_shader_bytecode;
+	com_ptr<ID3D11HullShader>	p_hull_shader;
+	com_ptr<ID3DBlob>			p_hull_shader_bytecode;
+	com_ptr<ID3D11DomainShader> p_domain_shader;
+	com_ptr<ID3DBlob>			p_domain_shader_bytecode;
+	com_ptr<ID3D11PixelShader>	p_pixel_shader;
+	com_ptr<ID3DBlob>			p_pixel_shader_bytecode;
+
+private:
+
+	void init_vertex_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_hull_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_domain_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+
+	void init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
+};
 
 
 template<typename T>
@@ -156,5 +197,8 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename, 
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
+
+// Creates an unitialized a constant buffer object.
+com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count);
 
 } // namespace sparki
