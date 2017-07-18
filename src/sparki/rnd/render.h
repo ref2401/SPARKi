@@ -36,7 +36,7 @@ private:
 
 	void init_tex_cube();
 
-	void init_device(HWND hwnd, const uint2& viewport_size);
+	void init_device(HWND p_hwnd, const uint2& viewport_size);
 
 
 	// device stuff:

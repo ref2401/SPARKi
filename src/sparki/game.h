@@ -1,22 +1,34 @@
 #pragma once
 
+#include "sparki/platform/input.h"
 #include "sparki/rnd/render.h"
 
 
 namespace sparki {
 
-// Position and orientation of a viewer (camera).
-struct viewpoint final {
+// Position and orientation of a camera (viewer).
+struct camera_transform final {
+	camera_transform() noexcept = default;
 
-	viewpoint() noexcept = default;
-
-	viewpoint(const float3& p, const float3& t, const float3 up = float3::unit_y)
+	camera_transform(const float3& p, const float3& t, const float3 up = float3::unit_y)
 		: position(p), target(t), up(up)
 	{}
 
 	float3 position = -float3::unit_z;
 	float3 target = float3::zero;
 	float3 up = float3::unit_y;
+};
+
+// Tracks camera's current and previous transforms.
+// Also stores mouse input and appropriate roll angles which.
+// Mouse input messages are converted into roll angles (game::on_mouse_move).
+// Roll angles are converted into camera_transform (game::update).
+// camera_transform is used to set frame's camera properties.
+struct camera final {
+	camera_transform	transform_curr_;
+	camera_transform	transform_prev_;
+	float2				roll_angles;
+	float2				mouse_position_prev;
 };
 
 class game final {
@@ -30,9 +42,13 @@ public:
 
 	void draw_frame(float interpolation_factor);
 
-	void resize_viewport(const uint2& size);
-
 	void update();
+
+	void on_mouse_click();
+
+	void on_mouse_move();
+
+	void on_resize_viewport(const uint2& size);
 
 private:
 
@@ -40,26 +56,20 @@ private:
 	static constexpr float projection_near = 0.1f;
 	static constexpr float projection_far = 1000.0f;
 
+	camera		camera_;
 	frame		frame_;
 	renderer	renderer_;
-	viewpoint	viewpoint_curr_;
-	viewpoint	viewpoint_prev_;
 	bool		viewport_is_visible_;
 };
 
 
-inline viewpoint lerp(const viewpoint& l, const viewpoint& r, float factor) noexcept
+inline camera_transform lerp_camera_transform(const camera& c, float factor) noexcept
 {
-	return viewpoint(
-		lerp(l.position, r.position, factor),
-		lerp(l.target, r.target, factor),
-		lerp(l.up, r.up, factor)
+	return camera_transform(
+		lerp(c.transform_curr_.position, c.transform_prev_.position, factor),
+		lerp(c.transform_curr_.target, c.transform_prev_.target, factor),
+		lerp(c.transform_curr_.up, c.transform_prev_.up, factor)
 	);
-}
-
-inline float4x4 view_matrix(const viewpoint& vp) noexcept
-{
-	return view_matrix(vp.position, vp.target, vp.up);
 }
 
 } // namespace sparki

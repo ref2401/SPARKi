@@ -1,14 +1,33 @@
-#include "sparki/platform.h"
+#include "sparki/platform/platform.h"
 
 #include <cassert>
 
 
 namespace {
 
+using namespace sparki;
+
 // The global is set by sparki::platform's ctor and reset to null by sparki::platform's dctor.
 // It meant to be used only in window_proc.
-sparki::platform* gp_platform = nullptr;
+platform* gp_platform = nullptr;
 
+
+sparki::mouse_buttons mouse_buttons(WPARAM w_param) noexcept
+{
+	auto buttons = mouse_buttons::none;
+
+	int btn_state = GET_KEYSTATE_WPARAM(w_param);
+	if ((btn_state & MK_LBUTTON) == MK_LBUTTON) buttons |= mouse_buttons::left;
+	if ((btn_state & MK_MBUTTON) == MK_MBUTTON) buttons |= mouse_buttons::middle;
+	if ((btn_state & MK_RBUTTON) == MK_RBUTTON) buttons |= mouse_buttons::right;
+
+	return buttons;
+}
+
+inline uint2 point_2d(LPARAM l_param) noexcept
+{
+	return uint2(LOWORD(l_param), HIWORD(l_param));
+}
 
 // Retrieves and dispatches all the system messages that are in the message queue at the moment.
 // Returns true if the application has to terminate.
@@ -40,9 +59,13 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 	if (!gp_platform)
 		return DefWindowProc(p_hwnd, message, w_param, l_param);
 
+	assert(p_hwnd == gp_platform->p_hwnd());
+
 	switch (message) {
 		default:
 			return DefWindowProc(p_hwnd, message, w_param, l_param);
+
+// ----- mouse -----
 
 		case WM_LBUTTONDOWN:
 		case WM_LBUTTONUP:
@@ -51,8 +74,39 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 		case WM_RBUTTONDOWN:
 		case WM_RBUTTONUP:
 		{
+			assert(!gp_platform->mouse().is_out);
+			gp_platform->enqueue_mouse_button(mouse_buttons(w_param));
 			return 0;
 		}
+
+		case WM_MOUSEMOVE:
+		{
+			if (p_hwnd != GetFocus())
+				return DefWindowProc(p_hwnd, message, w_param, l_param);
+
+			// p0 is relative to the top-left window corner
+			// p is relative to the bottom-left window corner
+			const uint2 p0 = point_2d(l_param);
+			const uint2 vp = viewport_size(p_hwnd);
+			const uint2 p(p0.x, vp.y - p0.y - 1);
+
+			if (gp_platform->mouse().is_out)
+				gp_platform->enqueue_mouse_enter(mouse_buttons(w_param), p);
+			else 
+				gp_platform->enqueue_mouse_move(p);
+
+			TRACKMOUSEEVENT tme { sizeof(TRACKMOUSEEVENT), TME_LEAVE, p_hwnd, 0 };
+			TrackMouseEvent(&tme);
+			return 0;
+		}
+
+		case WM_MOUSELEAVE:
+		{
+			gp_platform->enqueue_mouse_leave();
+			return 0;
+		}
+		
+// ----- keyboard -----
 
 		case WM_KEYDOWN:
 		{
@@ -63,31 +117,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 		{
 			return 0;
 		}
-
-		//case WM_MOUSEMOVE:
-		//{
-		//	if (!g_app->window().focused())
-		//		return DefWindowProc(hwnd, message, w_param, l_param);
-
-		//	uint2 p = get_point(l_param);
-
-		//	if (g_app->mouse().is_out()) {
-		//		g_app->enqueue_mouse_enter_message(get_mouse_buttons(w_param), p);
-		//	}
-		//	else {
-		//		g_app->enqueue_mouse_move_message(p);
-		//	}
-
-		//	TRACKMOUSEEVENT tme{ sizeof(TRACKMOUSEEVENT), TME_LEAVE, g_app->window().hwnd(), 0 };
-		//	TrackMouseEvent(&tme);
-		//	return 0;
-		//}
-
-		case WM_MOUSELEAVE:
-		{
-			return 0;
-		}
-
 
 		case WM_DESTROY:
 		{
@@ -129,14 +158,6 @@ platform::~platform() noexcept
 
 	// window class
 	UnregisterClass(platform::window_class_name, GetModuleHandle(nullptr));
-}
-
-void platform::enqueue_window_resize()
-{
-	sys_message msg;
-	msg.type = sys_message::type::viewport_resize;
-	msg.uint2 = viewport_size(p_hwnd_);
-	sys_messages_.push_back(msg);
 }
 
 void platform::init_window(const window_desc& desc)
@@ -189,9 +210,37 @@ bool platform::process_sys_messages(game& game)
 				break;
 			}
 
+			case sys_message::type::mouse_button:
+			{
+				mouse_.buttons = msg.mouse_buttons;
+				game.on_mouse_click();
+				break;
+			}
+
+			case sys_message::type::mouse_enter:
+			{
+				mouse_.is_out = false;
+				mouse_.buttons = msg.mouse_buttons;
+				mouse_.position = msg.uint2;
+				break;
+			}
+
+			case sys_message::type::mouse_leave:
+			{
+				mouse_.is_out = true;
+				break;
+			}
+
+			case sys_message::type::mouse_move:
+			{
+				mouse_.position = msg.uint2;
+				game.on_mouse_move();
+				break;
+			}
+
 			case sys_message::type::viewport_resize: 
 			{
-				game.resize_viewport(msg.uint2);
+				game.on_resize_viewport(msg.uint2);
 				break;
 			}
 		}
@@ -206,6 +255,46 @@ void platform::show_window() noexcept
 	ShowWindow(p_hwnd_, SW_SHOW);
 	SetForegroundWindow(p_hwnd_);
 	SetFocus(p_hwnd_);
+}
+
+void platform::enqueue_mouse_button(const mouse_buttons& mb)
+{
+	sys_message msg;
+	msg.type = sys_message::type::mouse_button;
+	msg.mouse_buttons = mb;
+	sys_messages_.push_back(msg);
+}
+
+void platform::enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p)
+{
+	sys_message msg;
+	msg.type = sys_message::type::mouse_enter;
+	msg.mouse_buttons = mb;
+	msg.uint2 = p;
+	sys_messages_.push_back(msg);
+}
+
+void platform::enqueue_mouse_leave()
+{
+	sys_message msg;
+	msg.type = sys_message::type::mouse_leave;
+	sys_messages_.push_back(msg);
+}
+
+void platform::enqueue_mouse_move(const uint2& p)
+{
+	sys_message msg;
+	msg.type = sys_message::type::mouse_move;
+	msg.uint2 = p;
+	sys_messages_.push_back(msg);
+}
+
+void platform::enqueue_window_resize()
+{
+	sys_message msg;
+	msg.type = sys_message::type::viewport_resize;
+	msg.uint2 = viewport_size(p_hwnd_);
+	sys_messages_.push_back(msg);
 }
 
 // ----- funcs -----

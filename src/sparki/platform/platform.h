@@ -13,9 +13,9 @@ namespace sparki {
 
 struct window_desc final {
 	std::string title;
-	uint2 position;
-	uint2 viewport_size;
-	bool fullscreen;
+	uint2		position;
+	uint2		viewport_size;
+	bool		fullscreen;
 };
 
 class platform final {
@@ -29,18 +29,33 @@ public:
 	~platform() noexcept;
 
 
-	HWND hwnd() noexcept
+	HWND p_hwnd() noexcept
 	{
 		return p_hwnd_;
 	}
 
-	void enqueue_window_resize();
+	const mouse& mouse() const noexcept
+	{
+		return mouse_;
+	}
 
 	// Processes all the system messages that are in the message queue at the moment.
 	// Returns true if the application has to terminate.
 	bool process_sys_messages(game& game);
 
 	void show_window() noexcept;
+
+
+	void enqueue_mouse_button(const mouse_buttons& mb);
+
+	void enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p);
+
+	void enqueue_mouse_leave();
+
+	void enqueue_mouse_move(const uint2& p);
+
+	void enqueue_window_resize();
+
 
 private:
 
@@ -50,11 +65,16 @@ private:
 	struct sys_message final {
 		enum class type : unsigned char {
 			none,
+			mouse_button,
+			mouse_enter,
+			mouse_leave,
+			mouse_move,
 			viewport_resize
 		};
 
-		type type;
-		uint2 uint2;
+		type			type;
+		mouse_buttons	mouse_buttons;
+		uint2			uint2;
 	};
 
 	static constexpr char* window_class_name = "sparki_window_class";
@@ -64,6 +84,7 @@ private:
 
 
 	std::vector<sys_message>	sys_messages_;
+	sparki::mouse				mouse_;
 	HWND						p_hwnd_;
 };
 

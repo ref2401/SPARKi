@@ -1,6 +1,6 @@
 #include <iostream>
-#include "sparki/platform.h"
 #include "sparki/asset/asset.h"
+#include "sparki/platform/platform.h"
 #include "ts/task_system.h"
 
 
@@ -17,7 +17,7 @@ void sparki_main()
 	};
 
 	platform platform(wnd_desc);
-	game game(platform.hwnd(), wnd_desc.viewport_size);
+	game game(platform.p_hwnd(), wnd_desc.viewport_size);
 
 	// before the main loop phase:
 	platform.show_window();
