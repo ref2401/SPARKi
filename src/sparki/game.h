@@ -25,8 +25,8 @@ struct camera_transform final {
 // Roll angles are converted into camera_transform (game::update).
 // camera_transform is used to set frame's camera properties.
 struct camera final {
-	camera_transform	transform_curr_;
-	camera_transform	transform_prev_;
+	camera_transform	transform_curr;
+	camera_transform	transform_prev;
 	float2				roll_angles;
 	float2				mouse_position_prev;
 };
@@ -34,7 +34,8 @@ struct camera final {
 class game final {
 public:
 
-	game(HWND p_hwnd, const uint2& viewport_size);
+	game(HWND p_hwnd, const uint2& viewport_size,
+		const mouse& mouse);
 
 	game(game&&) = delete;
 	game& operator=(game&&) = delete;
@@ -56,19 +57,32 @@ private:
 	static constexpr float projection_near = 0.1f;
 	static constexpr float projection_far = 1000.0f;
 
-	camera		camera_;
-	frame		frame_;
-	renderer	renderer_;
-	bool		viewport_is_visible_;
+	camera			camera_;
+	frame			frame_;
+	const mouse&	mouse_;
+	renderer		renderer_;
+	bool			viewport_is_visible_;
 };
 
+
+// Returns the distance bitween position and target of the specifie camera_transform.
+inline float distance(const camera_transform& t) noexcept
+{
+	return len(t.target - t.position);
+}
+
+// Direction in which the specified camera_transform points to.
+inline float3 forward(const camera_transform& t) noexcept
+{
+	return normalize(t.target - t.position);
+}
 
 inline camera_transform lerp_camera_transform(const camera& c, float factor) noexcept
 {
 	return camera_transform(
-		lerp(c.transform_curr_.position, c.transform_prev_.position, factor),
-		lerp(c.transform_curr_.target, c.transform_prev_.target, factor),
-		lerp(c.transform_curr_.up, c.transform_prev_.up, factor)
+		lerp(c.transform_curr.position, c.transform_prev.position, factor),
+		lerp(c.transform_curr.target, c.transform_prev.target, factor),
+		lerp(c.transform_curr.up, c.transform_prev.up, factor)
 	);
 }
 

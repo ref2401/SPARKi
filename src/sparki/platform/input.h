@@ -26,6 +26,7 @@ struct mouse final {
 	bool is_out = true;
 };
 
+
 constexpr mouse_buttons operator|(mouse_buttons l, mouse_buttons r) noexcept
 {
 	using ut = std::underlying_type<mouse_buttons>::type;
@@ -64,6 +65,24 @@ inline mouse_buttons operator~(mouse_buttons mb) noexcept
 		res |= mouse_buttons::right;
 
 	return res;
+}
+
+// true if left mouse button has been pressed.
+inline bool left_down(const mouse& m) noexcept
+{
+	return (m.buttons & mouse_buttons::left) == mouse_buttons::left;
+}
+
+// true if middle mouse button has been pressed.
+inline bool middle_down(const mouse& m) noexcept
+{
+	return (m.buttons & mouse_buttons::middle) == mouse_buttons::middle;
+}
+
+// true if right mouse button has been pressed.
+inline bool right_down(const mouse& m) noexcept
+{
+	return (m.buttons & mouse_buttons::right) == mouse_buttons::right;
 }
 
 } // namespace sparki

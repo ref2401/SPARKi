@@ -17,7 +17,7 @@ void sparki_main()
 	};
 
 	platform platform(wnd_desc);
-	game game(platform.p_hwnd(), wnd_desc.viewport_size);
+	game game(platform.p_hwnd(), wnd_desc.viewport_size, platform.mouse());
 
 	// before the main loop phase:
 	platform.show_window();
@@ -26,6 +26,7 @@ void sparki_main()
 	while (true) {
 		if (platform.process_sys_messages(game)) break;
 
+		game.update();
 		game.draw_frame(1.0f);
 	}
 }
