@@ -8,6 +8,7 @@ static const float3 cube_vertices[8] = {
 
 static const uint cube_indices[14] = { 3, 2, 6, 7, 4, 2, 0, 3, 1, 6, 5, 4, 1, 0 };
 
+
 cbuffer cb_vertex_shader : register(b0) {
 	float4x4 g_pvm_matrix : packoffset(c0);
 };
