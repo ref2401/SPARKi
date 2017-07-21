@@ -15,9 +15,6 @@
     <ClCompile Include="..\src\sparki\rnd\render.cpp">
       <Filter>rnd</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\rnd\render_base.cpp">
-      <Filter>rnd</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\sparki\main.cpp" />
     <ClCompile Include="..\src\sparki\utility.cpp" />
     <ClCompile Include="..\src\sparki\game.cpp" />
@@ -30,12 +27,15 @@
     <ClCompile Include="..\src\sparki\platform\input.cpp">
       <Filter>platform</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sparki\rnd\rnd_base.cpp">
+      <Filter>rnd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sparki\rnd\rnd_converter.cpp">
+      <Filter>rnd</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\rnd\render.h">
-      <Filter>rnd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\sparki\rnd\render_base.h">
       <Filter>rnd</Filter>
     </ClInclude>
     <ClInclude Include="..\src\sparki\utility.h" />
@@ -51,6 +51,12 @@
     </ClInclude>
     <ClInclude Include="..\src\sparki\platform\input.h">
       <Filter>platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\rnd\rnd_base.h">
+      <Filter>rnd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\rnd\rnd_converter.h">
+      <Filter>rnd</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

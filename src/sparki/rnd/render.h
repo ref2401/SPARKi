@@ -1,7 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "render_base.h"
+#include "sparki/rnd/rnd_base.h"
+#include "sparki/rnd/rnd_converter.h"
 
 
 namespace sparki {
@@ -79,9 +80,6 @@ private:
 	// other
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
 	// temporary stuff
-	com_ptr<ID3D11Texture2D>			p_tex_equirect_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_equirect_srv_;
-	hlsl_compute						gen_cubemap_compute_;
 };
 
 

@@ -137,49 +137,8 @@ void renderer::init_assets()
 	// create cubemap pass
 	// create equrectangular to cubemap pass
 
-	hlsl_compute_desc gen_cubemap_compute_desc;
-	image_2d img_equirect;
-
-	auto load_assets = [&gen_cubemap_compute_desc, &img_equirect] {
-		gen_cubemap_compute_desc = hlsl_compute_desc("../../data/shaders/equirectangular_to_cube.compute.hlsl");
-		img_equirect = image_2d("../../data/WinterForest_Ref.hdr", 4);
-	};
-	std::atomic_size_t wc;
-	ts::run(load_assets, wc);
-
-	ts::wait_for(wc);
-	gen_cubemap_compute_ = hlsl_compute(p_device_, gen_cubemap_compute_desc);
-
-	D3D11_TEXTURE2D_DESC ed = {};
-	ed.Width = UINT(img_equirect.size.x);
-	ed.Height = UINT(img_equirect.size.y);
-	ed.MipLevels = 1;
-	ed.ArraySize = 1;
-	ed.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	ed.SampleDesc.Count = 1;
-	ed.SampleDesc.Quality = 0;
-	ed.Usage = D3D11_USAGE_IMMUTABLE;
-	ed.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	D3D11_SUBRESOURCE_DATA e_data = {};
-	e_data.pSysMem = img_equirect.p_data;
-	e_data.SysMemPitch = UINT(img_equirect.size.x * byte_count(img_equirect.pixel_format));
-	HRESULT hr = p_device_->CreateTexture2D(&ed, &e_data, &p_tex_equirect_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_equirect_, nullptr, &p_tex_equirect_srv_.ptr);
-	assert(hr == S_OK);
-
-	p_ctx_->CSSetShader(gen_cubemap_compute_.p_compute_shader, nullptr, 0);
-	p_ctx_->CSSetShaderResources(0, 1, &p_tex_equirect_srv_.ptr);
-	ID3D11UnorderedAccessView* uav_list[1] = { p_skybox_pass_->p_tex_skybox_uav() };
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
-#ifdef SPARKI_DEBUG
-	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
-	assert(hr == S_OK);
-#endif
-	p_ctx_->Dispatch(2, 512, 6);
-	p_ctx_->CSSetShader(nullptr, nullptr, 0);
-	uav_list[0] = nullptr;
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+	equirect_to_skybox_converter c(p_device_);
+	c.convert(p_device_, p_ctx_, p_debug_, "../../data/WinterForest_Ref.hdr", p_skybox_pass_->p_tex_skybox_uav());
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)

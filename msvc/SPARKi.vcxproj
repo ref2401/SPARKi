@@ -138,7 +138,8 @@
     <ClCompile Include="..\src\sparki\platform\input.cpp" />
     <ClCompile Include="..\src\sparki\platform\platform.cpp" />
     <ClCompile Include="..\src\sparki\rnd\render.cpp" />
-    <ClCompile Include="..\src\sparki\rnd\render_base.cpp" />
+    <ClCompile Include="..\src\sparki\rnd\rnd_base.cpp" />
+    <ClCompile Include="..\src\sparki\rnd\rnd_converter.cpp" />
     <ClCompile Include="..\src\sparki\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -148,7 +149,8 @@
     <ClInclude Include="..\src\sparki\platform\input.h" />
     <ClInclude Include="..\src\sparki\platform\platform.h" />
     <ClInclude Include="..\src\sparki\rnd\render.h" />
-    <ClInclude Include="..\src\sparki\rnd\render_base.h" />
+    <ClInclude Include="..\src\sparki\rnd\rnd_base.h" />
+    <ClInclude Include="..\src\sparki\rnd\rnd_converter.h" />
     <ClInclude Include="..\src\sparki\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
