@@ -87,6 +87,9 @@ struct image_2d final {
 };
 
 
+// Returns the number of bytes occupied by one pixel of the specified format.
+size_t byte_count(const pixel_format& fmt) noexcept;
+
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename);
 
 // Reads mesh geometry from the specified .fbx file.

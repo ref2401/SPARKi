@@ -29,26 +29,28 @@ renderer::~renderer() noexcept
 void renderer::init_assets()
 {
 	// ts:: load cubemap pass assets: hlsl, tex
-	// ts:: load equrectangular to cubemap pass stuff.
+	// ts:: load equirectangular to cubemap pass stuff.
 	// create cubemap pass
 	// create equrectangular to cubemap pass
 
 	hlsl_compute_desc gen_cubemap_compute_desc;
 	hlsl_shader_desc rnd_cubemap_shader_desc;
+	image_2d img_equirect;
 
-	auto load_hlsl = [&gen_cubemap_compute_desc, &rnd_cubemap_shader_desc] {
+	auto load_assets = [&gen_cubemap_compute_desc, &rnd_cubemap_shader_desc, &img_equirect] {
 		gen_cubemap_compute_desc = hlsl_compute_desc("../../data/shaders/equirectangular_to_cube.compute.hlsl");
 		rnd_cubemap_shader_desc = hlsl_shader_desc("../../data/shaders/rnd_cubemap.hlsl");
+		img_equirect = image_2d("../../data/WinterForest_Ref.hdr", 4);
 	};
 	std::atomic_size_t wait_counter;
-	ts::run(load_hlsl, wait_counter);
+	ts::run(load_assets, wait_counter);
 
 	init_tex_cube();
 	p_cb_vertex_shader_ = constant_buffer(p_device_, sizeof(float4x4));
 	D3D11_RASTERIZER_DESC rs_desc = {};
 	rs_desc.FillMode = D3D11_FILL_SOLID;
-	rs_desc.CullMode = D3D11_CULL_FRONT;
-	rs_desc.FrontCounterClockwise = true;
+	rs_desc.CullMode = D3D11_CULL_BACK;
+	rs_desc.FrontCounterClockwise = false;
 	HRESULT hr = p_device_->CreateRasterizerState(&rs_desc, &p_rastr_state_.ptr);
 	assert(hr == S_OK);
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
@@ -67,8 +69,27 @@ void renderer::init_assets()
 	gen_cubemap_compute_ = hlsl_compute(p_device_, gen_cubemap_compute_desc);
 	rnd_cubemap_shader_ = hlsl_shader(p_device_, rnd_cubemap_shader_desc);
 
+	D3D11_TEXTURE2D_DESC ed = {};
+	ed.Width = UINT(img_equirect.size.x);
+	ed.Height = UINT(img_equirect.size.y);
+	ed.MipLevels = 1;
+	ed.ArraySize = 1;
+	ed.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	ed.SampleDesc.Count = 1;
+	ed.SampleDesc.Quality = 0;
+	ed.Usage = D3D11_USAGE_IMMUTABLE;
+	ed.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	D3D11_SUBRESOURCE_DATA e_data = {};
+	e_data.pSysMem = img_equirect.p_data;
+	e_data.SysMemPitch = UINT(img_equirect.size.x * byte_count(img_equirect.pixel_format));
+	hr = p_device_->CreateTexture2D(&ed, &e_data, &p_tex_equirect_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_equirect_, nullptr, &p_tex_equirect_srv_.ptr);
+	assert(hr == S_OK);
+
 	p_ctx_->CSSetShader(gen_cubemap_compute_.p_compute_shader, nullptr, 0);
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_cubemap_uav_.ptr, nullptr);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_equirect_srv_.ptr);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_skybox_uav_.ptr, nullptr);
 #ifdef SPARKI_DEBUG
 	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
@@ -128,11 +149,11 @@ void renderer::init_tex_cube()
 	td.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	td.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-	HRESULT hr = p_device_->CreateTexture2D(&td, nullptr, &p_tex_cubemap_.ptr);
+	HRESULT hr = p_device_->CreateTexture2D(&td, nullptr, &p_tex_skybox_.ptr);
 	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_cubemap_, nullptr, &p_tex_cubemap_srv_.ptr);
+	hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
-	hr = p_device_->CreateUnorderedAccessView(p_tex_cubemap_, nullptr, &p_tex_cubemap_uav_.ptr);
+	hr = p_device_->CreateUnorderedAccessView(p_tex_skybox_, nullptr, &p_tex_skybox_uav_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -159,7 +180,7 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->VSSetShader(rnd_cubemap_shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(rnd_cubemap_shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetShaderResources(0, 1, &p_tex_cubemap_srv_.ptr);
+	p_ctx_->PSSetShaderResources(0, 1, &p_tex_skybox_srv_.ptr);
 	p_ctx_->PSSetSamplers(0, 1, &p_sampler_state_.ptr);
 
 #ifdef SPARKI_DEBUG

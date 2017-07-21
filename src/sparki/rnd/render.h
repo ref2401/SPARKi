@@ -54,10 +54,12 @@ private:
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
 	com_ptr<ID3D11RasterizerState>		p_rastr_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
-	com_ptr<ID3D11Texture2D>			p_tex_cubemap_;
+	com_ptr<ID3D11Texture2D>			p_tex_equirect_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_equirect_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_skybox_;
 	com_ptr<ID3D11SamplerState>			p_sampler_state_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_cubemap_srv_;
-	com_ptr<ID3D11UnorderedAccessView>	p_tex_cubemap_uav_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_skybox_srv_;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_skybox_uav_;
 	hlsl_compute						gen_cubemap_compute_;
 	hlsl_shader							rnd_cubemap_shader_;
 };
