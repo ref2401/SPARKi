@@ -8,6 +8,20 @@
 
 namespace sparki {
 
+// Describes pixel's channels and their size. 
+enum class pixel_format :unsigned char {
+	none = 0,
+
+	rgb_32f,
+	rgba_32f,
+
+	red_8,
+	rg_8,
+	rgb_8,
+	rgba_8
+};
+
+
 struct hlsl_compute_desc final {
 
 	static constexpr char* compute_shader_entry_point = "cs_main";
@@ -49,6 +63,27 @@ struct hlsl_shader_desc final {
 	uint32_t compile_flags = 0;
 	// True indicates that there are hull & domain shaders.
 	bool tesselation_stage = false;
+};
+
+struct image_2d final {
+	image_2d() noexcept = default;
+
+	image_2d(const char* p_filename, uint8_t channel_count = 0, bool flip_vertically = false);
+
+	image_2d(image_2d&& image) noexcept;
+	image_2d& operator=(image_2d&& image) noexcept;
+
+	~image_2d() noexcept;
+
+
+	void dispose() noexcept;
+
+	// Pointer to the underlying buffer serving as pixel storage.
+	void* p_data = nullptr;
+	// Size of the image in pixels.
+	math::uint2 size;
+	// Pixel format of this image.
+	pixel_format pixel_format = pixel_format::none;
 };
 
 

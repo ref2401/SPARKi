@@ -89,7 +89,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\extern\math\include\;$(ProjectDir)..\extern\ts\include\;$(FBX_SDK_DIR)include\;$(ProjectDir)..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\extern\;$(ProjectDir)..\extern\math\include\;$(ProjectDir)..\extern\ts\include\;$(FBX_SDK_DIR)include\;$(ProjectDir)..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>dxgi.lib;d3d11.lib;d3dcompiler.lib;$(FBX_SDK_DIR)lib\vs2015\$(Platform)\$(Configuration)\libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -115,7 +115,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\extern\math\include\;$(ProjectDir)..\extern\ts\include\;$(FBX_SDK_DIR)include\;$(ProjectDir)..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\extern\;$(ProjectDir)..\extern\math\include\;$(ProjectDir)..\extern\ts\include\;$(FBX_SDK_DIR)include\;$(ProjectDir)..\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
