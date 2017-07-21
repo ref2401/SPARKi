@@ -49,8 +49,8 @@ void renderer::init_assets()
 	p_cb_vertex_shader_ = constant_buffer(p_device_, sizeof(float4x4));
 	D3D11_RASTERIZER_DESC rs_desc = {};
 	rs_desc.FillMode = D3D11_FILL_SOLID;
-	rs_desc.CullMode = D3D11_CULL_BACK;
-	rs_desc.FrontCounterClockwise = false;
+	rs_desc.CullMode = D3D11_CULL_FRONT;
+	rs_desc.FrontCounterClockwise = true;
 	HRESULT hr = p_device_->CreateRasterizerState(&rs_desc, &p_rastr_state_.ptr);
 	assert(hr == S_OK);
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
@@ -160,7 +160,7 @@ void renderer::init_tex_cube()
 void renderer::draw_frame(frame& frame)
 {
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
-	const float4x4 proj_view_matrix = frame.projection_matrix * view_matrix;
+	const float4x4 proj_view_matrix = frame.projection_matrix * view_matrix * translation_matrix(frame.camera_position);
 
 	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, &proj_view_matrix.m00, 0, 0);
 

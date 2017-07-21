@@ -27,32 +27,32 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 		const float3 u_mask = masks[0];
 		const float3 v_mask = masks[1];
 
-		return normalize(u_mask * lerp(cube_vertices[1], cube_vertices[5], u_factor)
-			+ v_mask * lerp(cube_vertices[1], cube_vertices[2], v_factor));
+		return normalize(u_mask * lerp(cube_vertices[5], cube_vertices[1], u_factor)
+			+ v_mask * lerp(cube_vertices[5], cube_vertices[6], v_factor));
 	}
 	// X-
 	else if (dt_id.z == 1) {
 		const float3 u_mask = masks[0];
 		const float3 v_mask = masks[1];
 
-		return normalize(u_mask * lerp(cube_vertices[4], cube_vertices[0], u_factor)
-			+ v_mask * lerp(cube_vertices[4], cube_vertices[7], v_factor));
+		return normalize(u_mask * lerp(cube_vertices[0], cube_vertices[4], u_factor)
+			+ v_mask * lerp(cube_vertices[0], cube_vertices[3], v_factor));
 	}
 	// Y+
 	else if (dt_id.z == 2) {
 		const float3 u_mask = masks[2];
 		const float3 v_mask = masks[3];
 
-		return normalize(u_mask * lerp(cube_vertices[3], cube_vertices[2], u_factor)
-			+ v_mask * lerp(cube_vertices[3], cube_vertices[7], v_factor));
+		return normalize(u_mask * lerp(cube_vertices[0], cube_vertices[1], u_factor)
+			+ v_mask * lerp(cube_vertices[0], cube_vertices[4], v_factor));
 	}
 	// Y-
 	else if (dt_id.z == 3) {
 		const float3 u_mask = masks[2];
 		const float3 v_mask = masks[3];
 
-		return normalize(u_mask * lerp(cube_vertices[0], cube_vertices[1], u_factor)
-			+ v_mask * lerp(cube_vertices[0], cube_vertices[4], v_factor));
+		return normalize(u_mask * lerp(cube_vertices[7], cube_vertices[6], u_factor)
+			+ v_mask * lerp(cube_vertices[7], cube_vertices[3], v_factor));
 	}
 	// Z+
 	else if (dt_id.z == 4) {
@@ -67,8 +67,8 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 		const float3 u_mask = masks[4];
 		const float3 v_mask = masks[5];
 
-		return normalize(u_mask * lerp(cube_vertices[0], cube_vertices[1], u_factor)
-			+ v_mask * lerp(cube_vertices[0], cube_vertices[3], v_factor));
+		return normalize(u_mask * lerp(cube_vertices[1], cube_vertices[0], u_factor)
+			+ v_mask * lerp(cube_vertices[1], cube_vertices[2], v_factor));
 	}
 
 	return (float3)0;
