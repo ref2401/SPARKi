@@ -15,7 +15,7 @@ skybox_pass::skybox_pass(ID3D11Device* p_device)
 
 	hlsl_shader_desc shader_desc;
 	auto load_assets = [&shader_desc] {
-		shader_desc = hlsl_shader_desc("../../data/shaders/rnd_cubemap.hlsl");
+		shader_desc = hlsl_shader_desc("../../data/shaders/rnd_skybox.hlsl");
 	};
 
 	std::atomic_size_t wc;

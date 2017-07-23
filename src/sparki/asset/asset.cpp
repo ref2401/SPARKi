@@ -133,34 +133,34 @@ image_2d::image_2d(const char* p_filename, uint8_t channel_count, bool flip_vert
 
 	const bool is_hdr = stbi_is_hdr(p_filename);
 	if (is_hdr)
-		p_data = stbi_loadf(p_filename, &width, &height, &actual_channel_count, channel_count);
+		p_data_ = stbi_loadf(p_filename, &width, &height, &actual_channel_count, channel_count);
 	else
-		p_data = stbi_load(p_filename, &width, &height, &actual_channel_count, channel_count);
+		p_data_ = stbi_load(p_filename, &width, &height, &actual_channel_count, channel_count);
 
-	if (!p_data) {
+	if (!p_data_) {
 		const char* p_stb_error = stbi_failure_reason();
 		throw std::runtime_error(EXCEPTION_MSG("Loading ", p_filename, " image error. ", p_stb_error));
 	}
 
-	size.x = width;
-	size.y = height;
+	size_.x = width;
+	size_.y = height;
 	uint8_t cc = (channel_count) ? channel_count : uint8_t(actual_channel_count);
 	switch (cc) {
-		case 1: pixel_format = pixel_format::red_8; break;
-		case 2: pixel_format = pixel_format::rg_8; break;
-		case 3: pixel_format = (is_hdr) ? (pixel_format::rgb_32f) : (pixel_format::rgb_8); break;
-		case 4: pixel_format = (is_hdr) ? (pixel_format::rgba_32f) : (pixel_format::rgba_8); break;
+		case 1: pixel_format_ = pixel_format::red_8; break;
+		case 2: pixel_format_ = pixel_format::rg_8; break;
+		case 3: pixel_format_ = (is_hdr) ? (pixel_format::rgb_32f) : (pixel_format::rgb_8); break;
+		case 4: pixel_format_ = (is_hdr) ? (pixel_format::rgba_32f) : (pixel_format::rgba_8); break;
 	}
 }
 
 image_2d::image_2d(image_2d&& image) noexcept
-	: p_data(image.p_data),
-	size(image.size),
-	pixel_format(image.pixel_format)
+	: p_data_(image.p_data_),
+	size_(image.size_),
+	pixel_format_(image.pixel_format_)
 {
-	image.p_data = nullptr;
-	image.size = math::uint2::zero;
-	image.pixel_format = pixel_format::none;
+	image.p_data_ = nullptr;
+	image.size_ = math::uint2::zero;
+	image.pixel_format_ = pixel_format::none;
 }
 
 image_2d::~image_2d() noexcept
@@ -174,25 +174,25 @@ image_2d& image_2d::operator=(image_2d&& image) noexcept
 
 	dispose();
 
-	p_data = image.p_data;
-	size = image.size;
-	pixel_format = image.pixel_format;
+	p_data_ = image.p_data_;
+	size_ = image.size_;
+	pixel_format_ = image.pixel_format_;
 
-	image.p_data = nullptr;
-	image.size = math::uint2::zero;
-	image.pixel_format = pixel_format::none;
+	image.p_data_ = nullptr;
+	image.size_ = math::uint2::zero;
+	image.pixel_format_ = pixel_format::none;
 
 	return *this;
 }
 
 void image_2d::dispose() noexcept
 {
-	if (!p_data) return;
+	if (!p_data_) return;
 
-	stbi_image_free(p_data);
-	p_data = nullptr;
-	size = math::uint2::zero;
-	pixel_format = pixel_format::none;
+	stbi_image_free(p_data_);
+	p_data_ = nullptr;
+	size_ = math::uint2::zero;
+	pixel_format_ = pixel_format::none;
 }
 
 // ----- funcs -----

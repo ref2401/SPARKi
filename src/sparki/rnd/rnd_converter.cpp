@@ -30,8 +30,8 @@ void equirect_to_skybox_converter::convert(ID3D11Device* p_device, ID3D11DeviceC
 	const image_2d img = image_2d(p_source_filename, 4);
 
 	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = UINT(img.size.x);
-	desc.Height = UINT(img.size.y);
+	desc.Width = UINT(img.width());
+	desc.Height = UINT(img.height());
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
 	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -40,8 +40,8 @@ void equirect_to_skybox_converter::convert(ID3D11Device* p_device, ID3D11DeviceC
 	desc.Usage = D3D11_USAGE_IMMUTABLE;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	D3D11_SUBRESOURCE_DATA data = {};
-	data.pSysMem = img.p_data;
-	data.SysMemPitch = UINT(img.size.x * byte_count(img.pixel_format));
+	data.pSysMem = img.p_data();
+	data.SysMemPitch = UINT(img.width() * byte_count(img.pixel_format()));
 	HRESULT hr = p_device->CreateTexture2D(&desc, &data, &p_tex_equirect.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateShaderResourceView(p_tex_equirect, nullptr, &p_tex_equirect_srv.ptr);

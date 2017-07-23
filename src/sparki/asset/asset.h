@@ -21,7 +21,6 @@ enum class pixel_format :unsigned char {
 	rgba_8
 };
 
-
 struct hlsl_compute_desc final {
 
 	static constexpr char* compute_shader_entry_point = "cs_main";
@@ -65,7 +64,9 @@ struct hlsl_shader_desc final {
 	bool tesselation_stage = false;
 };
 
-struct image_2d final {
+class image_2d final {
+public:
+
 	image_2d() noexcept = default;
 
 	image_2d(const char* p_filename, uint8_t channel_count = 0, bool flip_vertically = false);
@@ -76,14 +77,50 @@ struct image_2d final {
 	~image_2d() noexcept;
 
 
+
 	void dispose() noexcept;
 
 	// Pointer to the underlying buffer serving as pixel storage.
-	void* p_data = nullptr;
-	// Size of the image in pixels.
-	math::uint2 size;
+	const void* p_data() const noexcept
+	{
+		return p_data_;
+	}
+
+	// ditto
+	void* p_data() noexcept
+	{
+		return p_data_;
+	}
+
 	// Pixel format of this image.
-	pixel_format pixel_format = pixel_format::none;
+	pixel_format pixel_format() const noexcept
+	{
+		return pixel_format_;
+	}
+
+	// Size of the image in pixels.
+	math::uint2 size() const noexcept
+	{
+		return size_;
+	}
+
+	// Width of the image in pixels.
+	math::uint2::component_type width() const noexcept
+	{
+		return size_.x;
+	}
+
+	// Height of the image in pixels.
+	math::uint2::component_type height() const noexcept
+	{
+		return size_.y;
+	}
+
+private:
+
+	void*					p_data_ = nullptr;
+	math::uint2				size_;
+	sparki::pixel_format	pixel_format_ = pixel_format::none;
 };
 
 
