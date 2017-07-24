@@ -196,13 +196,16 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 	return com_ptr.ptr != nullptr;
 }
 
-DXGI_FORMAT dxgi_format(sparki::pixel_format& fmt) noexcept;
+DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept;
 
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
 
 // Creates an unitialized a constant buffer object.
-com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count);
+com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count);
+
+com_ptr<ID3D11Texture2D> make_texture2d(ID3D11Device* p_device, const texture_data& td, 
+	D3D11_USAGE usage, UINT bind_flags);
 
 // Maps the specified texture for reading and copies data from GPU to CPU.
 texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex);

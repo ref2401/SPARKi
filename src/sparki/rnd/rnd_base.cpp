@@ -134,7 +134,7 @@ void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_de
 
 // ----- funcs -----
 
-DXGI_FORMAT dxgi_format(sparki::pixel_format& fmt) noexcept
+DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept
 {
 	assert(fmt != sparki::pixel_format::rgb_8);
 
@@ -177,8 +177,9 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 	return p_bytecode;
 }
 
-com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count)
+com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count)
 {
+	assert(p_device);
 	assert(byte_count > 0);
 
 	D3D11_BUFFER_DESC desc = {};
@@ -187,7 +188,7 @@ com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count)
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	com_ptr<ID3D11Buffer> buffer;
-	HRESULT hr = device->CreateBuffer(&desc, nullptr, &buffer.ptr);
+	HRESULT hr = p_device->CreateBuffer(&desc, nullptr, &buffer.ptr);
 	assert(hr == S_OK);
 
 	return buffer;
@@ -204,6 +205,44 @@ sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
 		case DXGI_FORMAT_R8G8_UNORM:			return sparki::pixel_format::rg_8;
 		case DXGI_FORMAT_R8G8B8A8_UNORM:		return sparki::pixel_format::rgba_8;
 	}
+}
+
+com_ptr<ID3D11Texture2D> make_texture2d(ID3D11Device* p_device, const texture_data& td, 
+	D3D11_USAGE usage, UINT bind_flags)
+{
+	assert(p_device);
+	assert(is_valid_texture_data(td));
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = td.size.x;
+	desc.Height = td.size.y;
+	desc.MipLevels = 1;
+	desc.ArraySize = td.size.z;
+	desc.Format = dxgi_format(td.format);
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bind_flags;
+	if (td.size.z == 6) desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	
+	assert(td.size.z == 6); // the other case have not been implemented yet.
+
+	auto b = td.buffer.begin();
+	auto e = td.buffer.end();
+
+	const size_t bc = square(td.size) * byte_count(td.format);
+	D3D11_SUBRESOURCE_DATA data_list[6];
+	for (size_t i = 0; i < td.size.z; ++i) {
+		data_list[i].pSysMem = td.buffer.data() + i * bc;
+		data_list[i].SysMemPitch = td.size.x * byte_count(td.format);
+		data_list[i].SysMemSlicePitch = 0;
+	}
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device->CreateTexture2D(&desc, data_list, &p_tex.ptr);
+	assert(hr == S_OK);
+	return p_tex;
 }
 
 texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex)

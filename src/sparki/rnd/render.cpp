@@ -59,22 +59,9 @@ void skybox_pass::init_skybox_texture(ID3D11Device* p_device)
 {
 	assert(p_device);
 
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = desc.Height = 1024;
-	desc.MipLevels = 1;
-	desc.ArraySize = 6;
-	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-
-	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex_skybox_.ptr);
-	assert(hr == S_OK);
-	hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
-	assert(hr == S_OK);
-	hr = p_device->CreateUnorderedAccessView(p_tex_skybox_, nullptr, &p_tex_skybox_uav_.ptr);
+	const texture_data td = read_tex("../../data/winter_forest.tex");
+	p_tex_skybox_ = make_texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -119,9 +106,9 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 	assert(viewport_size > 0);
 
 	init_device(p_hwnd, viewport_size);
+	init_assets();
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
 	resize_viewport(viewport_size);
-	init_assets();
 }
 
 renderer::~renderer() noexcept

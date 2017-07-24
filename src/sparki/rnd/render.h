@@ -24,11 +24,6 @@ public:
 	skybox_pass& operator=(skybox_pass&&) = delete;
 
 
-	ID3D11UnorderedAccessView* p_tex_skybox_uav() noexcept
-	{
-		return p_tex_skybox_uav_;
-	}
-
 	void perform(ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,
 		const float4x4& pv_matrix, const float3& position);
 
@@ -45,7 +40,6 @@ private:
 	com_ptr<ID3D11SamplerState>			p_sampler_;
 	com_ptr<ID3D11Texture2D>			p_tex_skybox_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_skybox_srv_;
-	com_ptr<ID3D11UnorderedAccessView>	p_tex_skybox_uav_;
 };
 
 class renderer final {
