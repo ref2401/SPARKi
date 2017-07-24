@@ -4,6 +4,7 @@
 
 
 namespace sparki {
+namespace rnd {
 
 // ----- hlsl_compute -----
 
@@ -133,6 +134,21 @@ void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_de
 
 // ----- funcs -----
 
+DXGI_FORMAT dxgi_format(sparki::pixel_format& fmt) noexcept
+{
+	assert(fmt != sparki::pixel_format::rgb_8);
+
+	switch (fmt) {
+		default: 
+		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
+		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
+		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
+		case sparki::pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
+		case sparki::pixel_format::rg_8:		return DXGI_FORMAT_R8G8_UNORM;
+		case sparki::pixel_format::rgba_8:		return DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
+}
+
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model)
 {
@@ -177,4 +193,43 @@ com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count)
 	return buffer;
 }
 
+sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
+{
+	switch (fmt) {
+		default:								return sparki::pixel_format::none;
+		
+		case DXGI_FORMAT_R32G32B32_FLOAT:		return sparki::pixel_format::rgb_32f;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return sparki::pixel_format::rgba_32f;
+		case DXGI_FORMAT_R8_UNORM:				return sparki::pixel_format::red_8;
+		case DXGI_FORMAT_R8G8_UNORM:			return sparki::pixel_format::rg_8;
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return sparki::pixel_format::rgba_8;
+	}
+}
+
+texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex)
+{
+	assert(p_ctx);
+	assert(p_tex);
+
+	D3D11_TEXTURE2D_DESC desc;
+	p_tex->GetDesc(&desc);
+	assert(desc.MipLevels == 1); // not implemented
+
+	texture_data td(uint3(desc.Width, desc.Height, 6), rnd::pixel_format(desc.Format));
+
+	for (UINT i = 0; i < desc.ArraySize; ++i) {
+		D3D11_MAPPED_SUBRESOURCE map;
+		HRESULT hr = p_ctx->Map(p_tex, i, D3D11_MAP_READ, 0, &map);
+		assert(hr == S_OK);
+		assert(size_t(map.DepthPitch) == square(td.size) * byte_count(td.format));
+
+		void* p = td.buffer.data() + i * map.DepthPitch;
+		std::memcpy(p, map.pData, map.DepthPitch);
+		p_ctx->Unmap(p_tex, i);
+	}
+
+	return td;
+}
+
+} // namespace rnd
 } // namespace sparki

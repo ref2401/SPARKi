@@ -18,6 +18,7 @@ using namespace math;
 
 
 namespace sparki {
+namespace rnd {
 
 // Unique_com_ptr is a smart pointer that owns and manages a COM object through a pointer 
 // and disposes of that object when the Unique_com_ptr goes out of scope.
@@ -195,10 +196,18 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 	return com_ptr.ptr != nullptr;
 }
 
-com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename, 
+DXGI_FORMAT dxgi_format(sparki::pixel_format& fmt) noexcept;
+
+com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
 
 // Creates an unitialized a constant buffer object.
 com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* device, size_t byte_count);
 
+// Maps the specified texture for reading and copies data from GPU to CPU.
+texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex);
+
+sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept;
+
+} // namespace rnd
 } // namespace sparki

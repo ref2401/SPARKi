@@ -4,7 +4,8 @@
 #include "sparki/asset/model.h"
 
 
-// NOTE(ref2401): .geo is SPARKi internal geometry format.
+// .geo is SPARKi internal geometry format.
+// .tex is SPARKi internal texture format.
 
 namespace sparki {
 
@@ -80,7 +81,7 @@ public:
 
 	void dispose() noexcept;
 
-	// Pointer to the underlying buffer serving as pixel storage.
+	// Pointer to the underlying data serving as pixel storage.
 	const void* p_data() const noexcept
 	{
 		return p_data_;
@@ -123,11 +124,25 @@ private:
 	sparki::pixel_format	pixel_format_ = pixel_format::none;
 };
 
+struct texture_data final {
+
+	texture_data() noexcept = default;
+
+	texture_data(math::uint3 size, pixel_format format);
+
+
+	math::uint3				size;
+	pixel_format			format = pixel_format::none;
+	std::vector<uint8_t>	buffer;
+};
+
 
 // Returns the number of bytes occupied by one pixel of the specified format.
 size_t byte_count(const pixel_format& fmt) noexcept;
 
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename);
+
+bool is_valid_texture_data(const texture_data& td) noexcept;
 
 // Reads mesh geometry from the specified .fbx file.
 mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* p_filename);
@@ -138,7 +153,13 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* p_filename);
 // Reads hlsl shader source code from the specified .hlsl file.
 std::string read_hlsl(const char* p_filename);
 
+// Reads texture data from the specified .tex file.
+texture_data read_tex(const char* p_filename);
+
 // Writes mesh geometry in the specified .geo file.
 void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh);
+
+// Writes texture into the specified .tex file.
+void write_tex(const char* p_filename, const texture_data& td);
 
 } // namespace sparki

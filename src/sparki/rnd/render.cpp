@@ -6,6 +6,7 @@
 
 
 namespace sparki {
+namespace rnd {
 
 // ----- skybox_pass -----
 
@@ -138,7 +139,8 @@ void renderer::init_assets()
 	// create equrectangular to cubemap pass
 
 	equirect_to_skybox_converter c(p_device_);
-	c.convert(p_device_, p_ctx_, p_debug_, "../../data/WinterForest_Ref.hdr", p_skybox_pass_->p_tex_skybox_uav());
+	c.convert("../../data/WinterForest_Ref.hdr", "../../data/winter_forest.tex",
+		p_device_, p_ctx_, p_debug_, 1024);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -164,9 +166,9 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
 		D3D11_CREATE_DEVICE_DEBUG, &expected_feature_level, 1, D3D11_SDK_VERSION, &swap_chain_desc,
-		&p_swap_chain_.ptr, 
-		&p_device_.ptr, 
-		&actual_feature_level, 
+		&p_swap_chain_.ptr,
+		&p_device_.ptr,
+		&actual_feature_level,
 		&p_ctx_.ptr);
 	assert(hr == S_OK);
 	ENFORCE(actual_feature_level == expected_feature_level, "Failed to create a device with feature level: D3D_FEATURE_LEVEL_11_0");
@@ -230,4 +232,5 @@ void renderer::resize_viewport(const uint2& size)
 	viewport_.MaxDepth = 1.0f;
 }
 
+} // namespace rnd
 } // namespace sparki

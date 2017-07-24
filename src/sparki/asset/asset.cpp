@@ -195,6 +195,18 @@ void image_2d::dispose() noexcept
 	pixel_format_ = pixel_format::none;
 }
 
+// ----- texture_data -----
+
+texture_data::texture_data(math::uint3 size, pixel_format format)
+	: size(size), format(format)
+{
+	assert(size > 0);
+	assert(format != pixel_format::none);
+
+	const size_t c = volume(size) * byte_count(format);
+	buffer.resize(c);
+}
+
 // ----- funcs -----
 
 size_t byte_count(const pixel_format& fmt) noexcept
@@ -223,6 +235,13 @@ void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 	catch (...) {
 		std::throw_with_nested(std::runtime_error("Convert fbx to geo error."));
 	}
+}
+
+bool is_valid_texture_data(const texture_data& td) noexcept
+{
+	return (td.size > 0)
+		&& (td.format != pixel_format::none)
+		&& (td.buffer.size() == volume(td.size) * byte_count(td.format));
 }
 
 mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
@@ -296,13 +315,13 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
 #pragma warning(push)
 #pragma warning(disable:4996) // C4996 'fopen': This function or variable may be unsafe.
 
-mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* filename)
+mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* p_filename)
 {
-	assert(filename);
+	assert(p_filename);
 
 	try {
-		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(filename, "rb"), &std::fclose);
-		ENFORCE(file, "Failed to open file ", filename);
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "rb"), &std::fclose);
+		ENFORCE(file, "Failed to open file ", p_filename);
 
 		// header
 		uint64_t vertex_count = 0;
@@ -317,7 +336,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* filename)
 		return mesh;
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Load model geometry error. File: ", filename);
+		std::string exc_msg = EXCEPTION_MSG("Load model geometry error. File: ", p_filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }
@@ -347,6 +366,31 @@ std::string read_hlsl(const char* p_filename)
 	return str;
 }
 
+texture_data read_tex(const char* p_filename)
+{
+	assert(p_filename);
+
+	try {
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "rb"), &std::fclose);
+		ENFORCE(file, "Failed to open file ", p_filename);
+
+		// header
+		math::uint3 size;
+		pixel_format format = pixel_format::none;
+		std::fread(&size.x, sizeof(math::uint3), 1, file.get());
+		std::fread(&format, sizeof(pixel_format), 1, file.get());
+		// texture data
+		texture_data td(size, format);
+		std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
+
+		return td;
+	}
+	catch (...) {
+		std::string exc_msg = EXCEPTION_MSG("Load model geometry error. File: ", p_filename);
+		std::throw_with_nested(std::runtime_error(exc_msg));
+	}
+}
+
 void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
 {
 	assert(p_filename);
@@ -369,6 +413,27 @@ void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_u
 	}
 	catch (...) {
 		std::string exc_msg = EXCEPTION_MSG("Write geometry file error. File: ", p_filename);
+		std::throw_with_nested(std::runtime_error(exc_msg));
+	}
+}
+
+void write_tex(const char* p_filename, const texture_data& td)
+{
+	assert(p_filename);
+	assert(is_valid_texture_data(td));
+
+	try {
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "wb"), &std::fclose);
+		ENFORCE(file, "Failed to create/open the file ", p_filename);
+
+		// header
+		std::fwrite(&td.size.x, sizeof(math::uint3), 1, file.get());
+		std::fwrite(&td.format, sizeof(pixel_format), 1, file.get());
+		// texture data
+		std::fwrite(td.buffer.data(), byte_count(td.buffer), 1, file.get());
+	}
+	catch (...) {
+		std::string exc_msg = EXCEPTION_MSG("Write texture file error. File: ", p_filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }

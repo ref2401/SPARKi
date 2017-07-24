@@ -58,9 +58,9 @@ private:
 	static constexpr float projection_far = 1000.0f;
 
 	camera			camera_;
-	frame			frame_;
+	rnd::frame		frame_;
 	const mouse&	mouse_;
-	renderer		renderer_;
+	rnd::renderer	renderer_;
 	bool			viewport_is_visible_;
 };
 
