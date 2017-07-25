@@ -1,4 +1,4 @@
-#include "sparki/rnd/rnd_converter.h"
+#include "sparki/rnd/rnd_tool.h"
 
 #include <cassert>
 
@@ -71,6 +71,14 @@ equirect_to_skybox_converter::equirect_to_skybox_converter(ID3D11Device* p_devic
 
 	hlsl_compute_desc compute_desc("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	compute_shader_ = hlsl_compute(p_device, compute_desc);
+
+	D3D11_SAMPLER_DESC smp = {};
+	smp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	smp.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	smp.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	smp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	HRESULT hr = p_device->CreateSamplerState(&smp, &p_sampler_.ptr);
+	assert(hr == S_OK);
 }
 
 void equirect_to_skybox_converter::convert(const char* p_source_filename, const char* p_dest_filename, 
@@ -98,6 +106,7 @@ void equirect_to_skybox_converter::convert(const char* p_source_filename, const 
 	// set compute pipeline & dispatch work
 	p_ctx->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
 	p_ctx->CSSetShaderResources(0, 1, &p_tex_equirect_srv.ptr);
+	p_ctx->CSSetSamplers(0, 1, &p_sampler_.ptr);
 	p_ctx->CSSetUnorderedAccessViews(0, 1, &p_tex_skybox_uav.ptr, nullptr);
 
 #ifdef SPARKI_DEBUG
@@ -127,6 +136,20 @@ void equirect_to_skybox_converter::convert(const char* p_source_filename, const 
 
 	const texture_data td = make_texture_data(p_ctx, p_tex_tmp);
 	write_tex(p_dest_filename, td);
+}
+
+// ----- prefilter_envmap_technique -----
+
+prefilter_envmap_technique::prefilter_envmap_technique(ID3D11Device* p_device)
+{
+	assert(p_device);
+	hlsl_compute_desc compute_desc("../../data/shaders/prefilter_envmap.compute.hlsl");
+	compute_shader_ = hlsl_compute(p_device, compute_desc);
+}
+
+void prefilter_envmap_technique::perform()
+{
+
 }
 
 } // namespace rnd

@@ -159,12 +159,12 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 		source_code.c_str(),
 		source_code.size(),
 		source_filename.c_str(),
-		nullptr,					// defines
-		nullptr,					// includes
+		nullptr,							// defines
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,	// includes
 		p_entry_point_name,
 		p_shader_model,
 		compile_flags,
-		0,							// effect compilation flags
+		0,									// effect compilation flags
 		&p_bytecode.ptr,
 		&p_error_blob.ptr
 	);
@@ -235,7 +235,7 @@ com_ptr<ID3D11Texture2D> make_texture2d(ID3D11Device* p_device, const texture_da
 	D3D11_SUBRESOURCE_DATA data_list[6];
 	for (size_t i = 0; i < td.size.z; ++i) {
 		data_list[i].pSysMem = td.buffer.data() + i * bc;
-		data_list[i].SysMemPitch = td.size.x * byte_count(td.format);
+		data_list[i].SysMemPitch = UINT(td.size.x * byte_count(td.format));
 		data_list[i].SysMemSlicePitch = 0;
 	}
 

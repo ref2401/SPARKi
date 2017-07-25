@@ -20,6 +20,23 @@ public:
 
 private:
 
+	hlsl_compute				compute_shader_;
+	com_ptr<ID3D11SamplerState> p_sampler_;
+};
+
+class prefilter_envmap_technique final {
+public:
+
+	explicit prefilter_envmap_technique(ID3D11Device* p_device);
+
+	prefilter_envmap_technique(prefilter_envmap_technique&&) = delete;
+	prefilter_envmap_technique& operator=(prefilter_envmap_technique&&) = delete;
+
+
+	void perform();
+
+private:
+
 	hlsl_compute compute_shader_;
 };
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sparki/platform/input.h"
-#include "sparki/rnd/render.h"
+#include "sparki/rnd/rnd.h"
 
 
 namespace sparki {

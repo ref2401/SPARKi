@@ -1,4 +1,4 @@
-#include "sparki/rnd/render.h"
+#include "sparki/rnd/rnd.h"
 
 #include <cassert>
 #include "sparki/utility.h"
@@ -125,9 +125,11 @@ void renderer::init_assets()
 	// create cubemap pass
 	// create equrectangular to cubemap pass
 
-	equirect_to_skybox_converter c(p_device_);
-	c.convert("../../data/WinterForest_Ref.hdr", "../../data/winter_forest.tex",
-		p_device_, p_ctx_, p_debug_, 1024);
+	//equirect_to_skybox_converter c(p_device_);
+	//c.convert("../../data/WinterForest_Ref.hdr", "../../data/winter_forest.tex",
+	//	p_device_, p_ctx_, p_debug_, 1024);
+
+	prefilter_envmap_technique pet(p_device_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
