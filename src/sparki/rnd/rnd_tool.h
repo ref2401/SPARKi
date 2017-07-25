@@ -6,38 +6,32 @@
 namespace sparki {
 namespace rnd {
 
-class equirect_to_skybox_converter final {
+class ibl_texture_builder final {
 public:
 
-	explicit equirect_to_skybox_converter(ID3D11Device* p_device);
+	ibl_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,
+		const hlsl_compute_desc& hlsl_equirect_to_skybox,
+		const hlsl_compute_desc& hlsl_prefilter_envmap);
 
-	equirect_to_skybox_converter(equirect_to_skybox_converter&&) = delete;
-	equirect_to_skybox_converter& operator=(equirect_to_skybox_converter&&) = delete;
+	ibl_texture_builder(ibl_texture_builder&&) = delete;
+	ibl_texture_builder& operator=(ibl_texture_builder&&) = delete;
 
 
-	void convert(const char* p_source_filename, const char* p_dest_filename, 
-		ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug, UINT side_size);
+	void perform(const char* p_hdr_filename, 
+		const char* p_skybox_filename, UINT skybox_side_size,
+		const char* p_envmap_filename, UINT envmap_side_size);
 
 private:
 
-	hlsl_compute				compute_shader_;
+	void convert_equirect_to_skybox(ID3D11ShaderResourceView* p_tex_equirect_srv,
+		ID3D11UnorderedAccessView* p_tex_skybox_uav, UINT skybox_side_size);
+
+	ID3D11Device*				p_device_;
+	ID3D11DeviceContext*		p_ctx_;
+	ID3D11Debug*				p_debug_;
+	hlsl_compute				equirect_to_skybox_compute_shader_;
+	hlsl_compute				prefilter_envmap_compute_shader_;
 	com_ptr<ID3D11SamplerState> p_sampler_;
-};
-
-class prefilter_envmap_technique final {
-public:
-
-	explicit prefilter_envmap_technique(ID3D11Device* p_device);
-
-	prefilter_envmap_technique(prefilter_envmap_technique&&) = delete;
-	prefilter_envmap_technique& operator=(prefilter_envmap_technique&&) = delete;
-
-
-	void perform();
-
-private:
-
-	hlsl_compute compute_shader_;
 };
 
 } // namespace rnd

@@ -59,7 +59,7 @@ void skybox_pass::init_skybox_texture(ID3D11Device* p_device)
 {
 	assert(p_device);
 
-	const texture_data td = read_tex("../../data/winter_forest.tex");
+	const texture_data td = read_tex("../../data/winter_forest_skybox.tex");
 	p_tex_skybox_ = make_texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
@@ -107,7 +107,6 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 
 	init_device(p_hwnd, viewport_size);
 	init_assets();
-	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
 	resize_viewport(viewport_size);
 }
 
@@ -124,12 +123,15 @@ void renderer::init_assets()
 	// ts:: load equirectangular to cubemap pass stuff.
 	// create cubemap pass
 	// create equrectangular to cubemap pass
+	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
+	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
 
-	//equirect_to_skybox_converter c(p_device_);
-	//c.convert("../../data/WinterForest_Ref.hdr", "../../data/winter_forest.tex",
-	//	p_device_, p_ctx_, p_debug_, 1024);
+	ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
+	b.perform("../../data/WinterForest_Ref.hdr", 
+		"../../data/winter_forest_skybox.tex", 1024,
+		"../../data/winter_forest_envmap.tex", 256);
 
-	prefilter_envmap_technique pet(p_device_);
+	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -196,11 +198,11 @@ void renderer::resize_viewport(const uint2& size)
 		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
 		p_tex_window_rtv_.dispose();
 
-		//DXGI_SWAP_CHAIN_DESC d;
-		//HRESULT hr = p_swap_chain_->GetDesc(&d);
-		//assert(hr == S_OK);
-		//hr = p_swap_chain_->ResizeBuffers(d.BufferCount, size.x, size.y, d.BufferDesc.Format, d.Flags);
-		//assert(hr == S_OK);
+		DXGI_SWAP_CHAIN_DESC d;
+		HRESULT hr = p_swap_chain_->GetDesc(&d);
+		assert(hr == S_OK);
+		hr = p_swap_chain_->ResizeBuffers(d.BufferCount, size.x, size.y, d.BufferDesc.Format, d.Flags);
+		assert(hr == S_OK);
 	}
 
 	// update window rtv
