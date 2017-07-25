@@ -6,7 +6,7 @@ cbuffer cb_compute_shader : register(b0) {
 	float g_roughness : packoffset(c0);
 };
 
-Texture2D<float4>			g_tex_skybox : register(t0);
+TextureCube<float4>			g_tex_skybox : register(t0);
 SamplerState				g_sampler : register(s0);
 RWTexture2DArray<float4>	g_tex_cubemap : register(u0);
 

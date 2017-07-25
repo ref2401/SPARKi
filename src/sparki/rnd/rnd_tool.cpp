@@ -37,6 +37,7 @@ com_ptr<ID3D11Texture2D> load_equirect_texture(ID3D11Device* p_device, const cha
 	return p_tex;
 }
 
+
 com_ptr<ID3D11Texture2D> make_skybox_texture(ID3D11Device* p_device, UINT side_size)
 {
 	D3D11_TEXTURE2D_DESC desc = {};
@@ -47,7 +48,7 @@ com_ptr<ID3D11Texture2D> make_skybox_texture(ID3D11Device* p_device, UINT side_s
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 	com_ptr<ID3D11Texture2D> p_tex;
@@ -78,6 +79,7 @@ ibl_texture_builder::ibl_texture_builder(ID3D11Device* p_device,
 
 	equirect_to_skybox_compute_shader_ = hlsl_compute(p_device, hlsl_equirect_to_skybox);
 	prefilter_envmap_compute_shader_ = hlsl_compute(p_device, hlsl_prefilter_envmap);
+	p_cb_prefilter_envmap_ = constant_buffer(p_device, sizeof(float4));
 
 	D3D11_SAMPLER_DESC smp = {};
 	smp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -91,8 +93,6 @@ ibl_texture_builder::ibl_texture_builder(ID3D11Device* p_device,
 void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p_tex_equirect_srv,
 	ID3D11UnorderedAccessView* p_tex_skybox_uav, UINT skybox_side_size)
 {
-	HRESULT hr;
-
 	// set compute pipeline & dispatch work
 	p_ctx_->CSSetShader(equirect_to_skybox_compute_shader_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &p_tex_equirect_srv);
@@ -100,12 +100,12 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_skybox_uav, nullptr);
 
 #ifdef SPARKI_DEBUG
-	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
 #endif
 
-	const UINT gx = skybox_side_size / 512;
-	const UINT gy = skybox_side_size / 2;
+	const UINT gx = skybox_side_size / ibl_texture_builder::skybox_side_min_limit;
+	const UINT gy = skybox_side_size / (1024 / ibl_texture_builder::skybox_side_min_limit);
 	p_ctx_->Dispatch(gx, gy, 6);
 
 	// reset pipeline state
@@ -114,43 +114,106 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 }
 
+void ibl_texture_builder::filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
+	ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size)
+{
+	const float roughness = 0.5f;
+	p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
+
+	// set compute pipeline & dispatch work
+	p_ctx_->CSSetShader(prefilter_envmap_compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetConstantBuffers(0, 1, &p_cb_prefilter_envmap_.ptr);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_skybox_srv);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler_.ptr);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_envmap_uav, nullptr);
+
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	const UINT gx = envmap_side_size / ibl_texture_builder::envmap_side_min_limit;
+	const UINT gy = envmap_side_size / (1024 / ibl_texture_builder::envmap_side_min_limit);
+	p_ctx_->Dispatch(gx, gy, 6);
+
+	// reset pipeline state
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+}
+
+com_ptr<ID3D11Texture2D> ibl_texture_builder::make_cube_texture(UINT side_size,
+	D3D11_USAGE usage, UINT bing_flags)
+{
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = desc.Height = side_size;
+	desc.MipLevels = 1;
+	desc.ArraySize = 6;
+	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bing_flags;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device_->CreateTexture2D(&desc, nullptr, &p_tex.ptr);
+	assert(hr == S_OK);
+
+	return p_tex;
+}
+
 void ibl_texture_builder::perform(const char* p_hdr_filename,
 	const char* p_skybox_filename, UINT skybox_side_size,
 	const char* p_envmap_filename, UINT envmap_side_size)
 {
 	assert(p_hdr_filename);
 	assert(p_skybox_filename);
-	assert(skybox_side_size >= 512);
+	assert(skybox_side_size >= ibl_texture_builder::skybox_side_min_limit);
 	assert(p_envmap_filename);
-	assert(envmap_side_size >= 128);
+	assert(envmap_side_size >= ibl_texture_builder::envmap_side_min_limit);
 
-	// load equirectangular texture
+	// equirect texture
 	com_ptr<ID3D11Texture2D> p_tex_equirect = load_equirect_texture(p_device_, p_hdr_filename);
 	com_ptr<ID3D11ShaderResourceView> p_tex_equirect_srv;
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_equirect, nullptr, &p_tex_equirect_srv.ptr);
 	assert(hr == S_OK);
 
-	// create skybox texture
-	com_ptr<ID3D11Texture2D> p_tex_skybox = make_skybox_texture(p_device_, skybox_side_size);
+	// skybox texture
+	com_ptr<ID3D11Texture2D> p_tex_skybox = make_cube_texture(skybox_side_size, 
+		D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS);
+	com_ptr<ID3D11ShaderResourceView> p_tex_skybox_srv;
+	hr = p_device_->CreateShaderResourceView(p_tex_skybox, nullptr, &p_tex_skybox_srv.ptr);
+	assert(hr == S_OK);
 	com_ptr<ID3D11UnorderedAccessView> p_tex_skybox_uav;
 	hr = p_device_->CreateUnorderedAccessView(p_tex_skybox, nullptr, &p_tex_skybox_uav.ptr);
 	assert(hr == S_OK);
 
 	convert_equirect_to_skybox(p_tex_equirect_srv, p_tex_skybox_uav, skybox_side_size);
 
+	// envmap texture
+	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(envmap_side_size,
+		D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
+	com_ptr<ID3D11UnorderedAccessView> p_tex_envmap_uav;
+	hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, nullptr, &p_tex_envmap_uav.ptr);
+	assert(hr == S_OK);
+
+	filter_envmap(p_tex_skybox_srv, p_tex_envmap_uav, envmap_side_size);
+	
+
 	// create temporary texture (usage: staging)
 	D3D11_TEXTURE2D_DESC tmp_desc;
-	p_tex_skybox->GetDesc(&tmp_desc);
+	p_tex_envmap->GetDesc(&tmp_desc);
 	tmp_desc.Usage = D3D11_USAGE_STAGING;
 	tmp_desc.BindFlags = 0;
 	tmp_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	com_ptr<ID3D11Texture2D> p_tex_tmp;
 	hr = p_device_->CreateTexture2D(&tmp_desc, nullptr, &p_tex_tmp.ptr);
 	assert(hr == S_OK);
-	p_ctx_->CopyResource(p_tex_tmp, p_tex_skybox);
+	p_ctx_->CopyResource(p_tex_tmp, p_tex_envmap);
 
 	const texture_data td = make_texture_data(p_ctx_, p_tex_tmp);
-	write_tex(p_skybox_filename, td);
+	write_tex(p_envmap_filename, td);
 }
 
 } // namespace rnd
