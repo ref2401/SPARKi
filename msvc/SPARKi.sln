@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "extern", "extern", "{895BC8
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shaders", "shaders", "{645EEC7C-D5F0-48E3-B3DE-4663F6AC6A10}"
 	ProjectSection(SolutionItems) = preProject
-		..\data\shaders\equirectangular_to_cube.compute.hlsl = ..\data\shaders\equirectangular_to_cube.compute.hlsl
+		..\data\shaders\equirect_to_skybox.compute.hlsl = ..\data\shaders\equirect_to_skybox.compute.hlsl
 		..\data\shaders\rnd_skybox.hlsl = ..\data\shaders\rnd_skybox.hlsl
 	EndProjectSection
 EndProject

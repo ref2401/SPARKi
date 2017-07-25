@@ -69,7 +69,7 @@ equirect_to_skybox_converter::equirect_to_skybox_converter(ID3D11Device* p_devic
 {
 	assert(p_device);
 
-	hlsl_compute_desc compute_desc("../../data/shaders/equirectangular_to_cube.compute.hlsl");
+	hlsl_compute_desc compute_desc("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	compute_shader_ = hlsl_compute(p_device, compute_desc);
 }
 
@@ -81,7 +81,7 @@ void equirect_to_skybox_converter::convert(const char* p_source_filename, const 
 	assert(p_debug); // p_debug == nullptr in Release mode.
 	assert(p_source_filename);
 	assert(p_dest_filename);
-	assert(side_size > 0);
+	assert(side_size >= 512);
 
 	// load equirectangular texture
 	com_ptr<ID3D11Texture2D> p_tex_equirect = load_equirect_texture(p_device, p_source_filename);
@@ -104,7 +104,10 @@ void equirect_to_skybox_converter::convert(const char* p_source_filename, const 
 	hr = p_debug->ValidateContextForDispatch(p_ctx);
 	assert(hr == S_OK);
 #endif
-	p_ctx->Dispatch(2, 512, 6);
+
+	const UINT gx = side_size / 512;
+	const UINT gy = side_size / 2;
+	p_ctx->Dispatch(gx, gy, 6);
 
 	// reset pipeline state
 	p_ctx->CSSetShader(nullptr, nullptr, 0);
