@@ -33,7 +33,8 @@ private:
 	void filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
 		ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size);
 
-	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, D3D11_USAGE usage, UINT bing_flags);
+	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, UINT mipmap_level_count,
+		D3D11_USAGE usage, UINT bing_flags);
 
 
 	ID3D11Device*				p_device_;

@@ -60,7 +60,7 @@ void skybox_pass::init_skybox_texture(ID3D11Device* p_device)
 	assert(p_device);
 
 	const texture_data td = read_tex("../../data/winter_forest_envmap.tex");
-	p_tex_skybox_ = make_texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_skybox_ = texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
 }
