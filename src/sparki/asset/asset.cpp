@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <algorithm>
 #include <memory>
 #include "fbxsdk.h"
 #pragma warning(push)
@@ -197,19 +198,20 @@ void image_2d::dispose() noexcept
 
 // ----- texture_data -----
 
-texture_data::texture_data(math::uint3 size, pixel_format format)
-	: size(size), format(format)
+texture_data::texture_data(const math::uint3& size, uint32_t mipmap_level_count, pixel_format format)
+	: size(size), mipmap_level_count(mipmap_level_count), format(format)
 {
 	assert(size > 0);
+	assert(mipmap_level_count > 0);
 	assert(format != pixel_format::none);
 
-	const size_t c = volume(size) * byte_count(format);
+	const size_t c = byte_count(size, mipmap_level_count, format);
 	buffer.resize(c);
 }
 
 // ----- funcs -----
 
-size_t byte_count(const pixel_format& fmt) noexcept
+size_t byte_count(pixel_format fmt) noexcept
 {
 	switch (fmt) {
 		default:
@@ -221,6 +223,26 @@ size_t byte_count(const pixel_format& fmt) noexcept
 		case pixel_format::rgb_8:		return 3;
 		case pixel_format::rgba_8:		return 4;
 	}
+}
+
+size_t byte_count(const math::uint3& size, uint32_t mipmap_level_count, pixel_format fmt) noexcept
+{
+	assert(size > 0);
+	assert(mipmap_level_count > 0);
+	assert(fmt != pixel_format::none);
+
+	const size_t fmt_bytes = byte_count(fmt);
+
+	size_t array_slice_bytes = 0;
+	for (uint32_t i = 0; i < mipmap_level_count; ++i) {
+		const uint32_t wo = size.x >> i;
+		const uint32_t ho = size.y >> i;
+		assert((wo > 0) || (ho > 0)); // ensure size and mipmap_level_count compatibility
+
+		array_slice_bytes += std::max(1u, wo) * std::max(1u, ho) * fmt_bytes;
+	}
+
+	return array_slice_bytes * size.z;
 }
 
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
@@ -239,9 +261,22 @@ void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 
 bool is_valid_texture_data(const texture_data& td) noexcept
 {
-	return (td.size > 0)
-		&& (td.format != pixel_format::none)
-		&& (td.buffer.size() == volume(td.size) * byte_count(td.format));
+	bool res = (td.size > 0)
+		&& (td.mipmap_level_count > 0)
+		&& (td.format != pixel_format::none);
+
+	if (!res) return false;
+
+	// check size and mipmap_level_count compatibility
+	for (uint32_t i = 0; i < td.mipmap_level_count; ++i) {
+		const uint32_t w = td.size.x >> i;
+		const uint32_t h = td.size.y >> i;
+		
+		if (w == 0 && h == 0) return false;
+	}
+
+	// check buffers memory is large enough
+	return (byte_count(td.buffer) == byte_count(td.size, td.mipmap_level_count, td.format));
 }
 
 mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
@@ -376,11 +411,13 @@ texture_data read_tex(const char* p_filename)
 
 		// header
 		math::uint3 size;
+		uint32_t mipmap_count;
 		pixel_format format = pixel_format::none;
 		std::fread(&size.x, sizeof(math::uint3), 1, file.get());
+		std::fread(&mipmap_count, sizeof(uint32_t), 1, file.get());
 		std::fread(&format, sizeof(pixel_format), 1, file.get());
 		// texture data
-		texture_data td(size, format);
+		texture_data td(size, mipmap_count, format);
 		std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
 
 		return td;
@@ -428,6 +465,7 @@ void write_tex(const char* p_filename, const texture_data& td)
 
 		// header
 		std::fwrite(&td.size.x, sizeof(math::uint3), 1, file.get());
+		std::fwrite(&td.mipmap_level_count, sizeof(uint32_t), 1, file.get());
 		std::fwrite(&td.format, sizeof(pixel_format), 1, file.get());
 		// texture data
 		std::fwrite(td.buffer.data(), byte_count(td.buffer), 1, file.get());

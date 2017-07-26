@@ -128,17 +128,22 @@ struct texture_data final {
 
 	texture_data() noexcept = default;
 
-	texture_data(math::uint3 size, pixel_format format);
+	texture_data(const math::uint3& size, uint32_t mipmap_level_count, pixel_format format);
 
 
 	math::uint3				size;
+	uint32_t				mipmap_level_count = 0;
 	pixel_format			format = pixel_format::none;
 	std::vector<uint8_t>	buffer;
 };
 
 
 // Returns the number of bytes occupied by one pixel of the specified format.
-size_t byte_count(const pixel_format& fmt) noexcept;
+size_t byte_count(pixel_format fmt) noexcept;
+
+// Returns the number of bytes occupied by a texture of the specified size, format
+// and with the specified number of mipmap levels.
+size_t byte_count(const math::uint3& size, uint32_t mipmap_level_count, pixel_format fmt) noexcept;
 
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename);
 

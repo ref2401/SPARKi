@@ -254,7 +254,7 @@ texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_te
 	p_tex->GetDesc(&desc);
 	assert(desc.MipLevels == 1); // not implemented
 
-	texture_data td(uint3(desc.Width, desc.Height, 6), rnd::pixel_format(desc.Format));
+	texture_data td(uint3(desc.Width, desc.Height, 6), desc.MipLevels, rnd::pixel_format(desc.Format));
 
 	for (UINT i = 0; i < desc.ArraySize; ++i) {
 		D3D11_MAPPED_SUBRESOURCE map;
