@@ -117,7 +117,7 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 void ibl_texture_builder::filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
 	ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size)
 {
-	const float roughness = 0.5f;
+	const float roughness = 0.0f;
 	p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
 
 	// set compute pipeline & dispatch work
