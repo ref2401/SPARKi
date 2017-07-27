@@ -51,6 +51,7 @@ void skybox_pass::init_pipeline_state(ID3D11Device* p_device)
 	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
 	assert(hr == S_OK);
 }
@@ -131,7 +132,7 @@ void renderer::init_assets()
 	p_bbb = std::make_unique<ibl_texture_builder>(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
 	p_bbb->perform("../../data/WinterForest_Ref.hdr",
 		"../../data/winter_forest_skybox.tex", 1024,
-		"../../data/winter_forest_envmap.tex", 128);
+		"../../data/winter_forest_envmap.tex", 256);
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
 }

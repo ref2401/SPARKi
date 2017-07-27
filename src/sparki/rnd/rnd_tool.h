@@ -10,8 +10,9 @@ class ibl_texture_builder final {
 public:
 
 	static constexpr UINT skybox_side_min_limit = 512;
-	static constexpr UINT envmap_side_min_limit = 128;
-	static constexpr UINT envmap_mipmap_level_count = 7;
+	static constexpr UINT envmap_compute_group_size = 16;
+	static constexpr UINT envmap_side_min_limit = 256;
+	static constexpr UINT envmap_mipmap_level_count = 5;
 
 
 	ibl_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,
@@ -32,7 +33,7 @@ private:
 		ID3D11UnorderedAccessView* p_tex_skybox_uav, UINT skybox_side_size);
 
 	void filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
-		ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size);
+		ID3D11Texture2D* p_tex_envmap, UINT envmap_side_size, UINT mipmap_level_count);
 
 	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, UINT mipmap_level_count,
 		D3D11_USAGE usage, UINT bing_flags);

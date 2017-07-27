@@ -67,7 +67,7 @@ float3 importance_sample_ggx(float2 xi, float roughness)
 	return float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
 }
 
-[numthreads(128, 8, 1)]
+[numthreads(16, 16, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
 	uint w = 0;
@@ -94,5 +94,4 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	}
 
 	g_tex_cubemap[dt_id] = float4(filtered_rgb / total_weight, 1.0f);
-	//g_tex_cubemap[dt_id] = float4(length(dir_ws), 0, 0, 1.0);
 }

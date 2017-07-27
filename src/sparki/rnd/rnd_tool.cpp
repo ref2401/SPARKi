@@ -115,28 +115,40 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 }
 
 void ibl_texture_builder::filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
-	ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size)
+	ID3D11Texture2D* p_tex_envmap, UINT envmap_side_size, UINT mipmap_level_count)
 {
-	const float roughness = 1.0f;
-	p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
-
 	// set compute pipeline & dispatch work
 	p_ctx_->CSSetShader(prefilter_envmap_compute_shader_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetConstantBuffers(0, 1, &p_cb_prefilter_envmap_.ptr);
 	p_ctx_->CSSetShaderResources(0, 1, &p_tex_skybox_srv);
 	p_ctx_->CSSetSamplers(0, 1, &p_sampler_.ptr);
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_envmap_uav, nullptr);
+
+	// for each mipmap level
+	for (UINT m = 0; m < mipmap_level_count; ++m) {
+		const float roughness = float(m) / mipmap_level_count;
+		p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+		desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+		desc.Texture2DArray.MipSlice = m;
+		desc.Texture2DArray.FirstArraySlice = 0;
+		desc.Texture2DArray.ArraySize = 6;
+		com_ptr<ID3D11UnorderedAccessView> p_uav;
+		HRESULT hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, &desc, &p_uav.ptr);
+		assert(hr == S_OK);
+		p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_uav.ptr, nullptr);
 
 #ifdef SPARKI_DEBUG
-	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
-	assert(hr == S_OK);
+		hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+		assert(hr == S_OK);
 #endif
 
-	const UINT gx = envmap_side_size / ibl_texture_builder::envmap_side_min_limit;
-	const UINT gy = envmap_side_size / (1024 / ibl_texture_builder::envmap_side_min_limit);
-	p_ctx_->Dispatch(gx, gy, 6);
+		const UINT mipmap_size = envmap_side_size >> m;
+		const UINT g = (mipmap_size) / ibl_texture_builder::envmap_compute_group_size;
+		p_ctx_->Dispatch(g, g, 6);
+	}
 
-	// reset pipeline state
+	// reset uav binding
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
 	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
@@ -194,11 +206,7 @@ void ibl_texture_builder::perform(const char* p_hdr_filename,
 	// envmap texture
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(envmap_side_size, 
 		ibl_texture_builder::envmap_mipmap_level_count, D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
-	com_ptr<ID3D11UnorderedAccessView> p_tex_envmap_uav;
-	hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, nullptr, &p_tex_envmap_uav.ptr);
-	assert(hr == S_OK);
-
-	filter_envmap(p_tex_skybox_srv, p_tex_envmap_uav, envmap_side_size);
+	filter_envmap(p_tex_skybox_srv, p_tex_envmap, envmap_side_size, ibl_texture_builder::envmap_mipmap_level_count);
 	
 	// create temporary texture (usage: staging)
 	D3D11_TEXTURE2D_DESC tmp_desc;
