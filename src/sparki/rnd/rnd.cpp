@@ -60,7 +60,7 @@ void skybox_pass::init_skybox_texture(ID3D11Device* p_device)
 {
 	assert(p_device);
 
-	const texture_data td = read_tex("../../data/winter_forest_envmap.tex");
+	const texture_data td = read_tex("../../data/pisa_skybox.tex");
 	p_tex_skybox_ = texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
@@ -118,8 +118,6 @@ renderer::~renderer() noexcept
 #endif
 }
 
-std::unique_ptr<ibl_texture_builder> p_bbb;
-
 void renderer::init_assets()
 {
 	// ts:: load cubemap pass assets: hlsl, tex
@@ -129,12 +127,15 @@ void renderer::init_assets()
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
 
-	p_bbb = std::make_unique<ibl_texture_builder>(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
-	p_bbb->perform("../../data/WinterForest_Ref.hdr",
-		"../../data/winter_forest_skybox.tex", 1024,
-		"../../data/winter_forest_envmap.tex", 256);
+	ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
+	b.perform("../../data/pisa.hdr",
+		"../../data/pisa_skybox.tex", 1024,
+		"../../data/pisa_envmap.tex", 256);
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
+
+	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
+	bi.perform("../../data/brdf_lut.tex", 1024);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -175,10 +176,6 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 
 void renderer::draw_frame(frame& frame)
 {
-	//p_bbb->perform("../../data/WinterForest_Ref.hdr",
-	//	"../../data/winter_forest_skybox.tex", 1024,
-	//	"../../data/winter_forest_envmap.tex", 256);
-
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 

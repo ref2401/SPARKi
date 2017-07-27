@@ -251,17 +251,30 @@ com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& t
 	return p_tex;
 }
 
-texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex_staging)
+texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex)
 {
+	assert(p_device);
 	assert(p_ctx);
-	assert(p_tex_staging);
+	assert(p_tex);
 
+	// create a staging texture & fill it with p_tex data.
 	D3D11_TEXTURE2D_DESC desc;
-	p_tex_staging->GetDesc(&desc);
+	p_tex->GetDesc(&desc);
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	com_ptr<ID3D11Texture2D> p_tex_staging;
+	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex_staging.ptr);
+	assert(hr == S_OK);
+	p_ctx->CopyResource(p_tex_staging, p_tex);
 
+	// create a texture_data object
 	texture_data td(uint3(desc.Width, desc.Height, 6), desc.MipLevels, rnd::pixel_format(desc.Format));
 	uint8_t* ptr = td.buffer.data();
 
+	// for each array slice 
+	// for each mipmap level of the slice
+	// map p_tex_tmp[array_slice][mipmap_level] and copy its' contents into the texture_data object.
 	for (UINT a = 0; a < desc.ArraySize; ++a) {
 		for (UINT m = 0; m < desc.MipLevels; ++m) {
 			const UINT index = a * desc.MipLevels + m;

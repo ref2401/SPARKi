@@ -423,7 +423,7 @@ texture_data read_tex(const char* p_filename)
 		return td;
 	}
 	catch (...) {
-		std::string exc_msg = EXCEPTION_MSG("Load model geometry error. File: ", p_filename);
+		std::string exc_msg = EXCEPTION_MSG("Load texture data error. File: ", p_filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
 	}
 }

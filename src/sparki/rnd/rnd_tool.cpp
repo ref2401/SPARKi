@@ -37,32 +37,49 @@ com_ptr<ID3D11Texture2D> load_equirect_texture(ID3D11Device* p_device, const cha
 	return p_tex;
 }
 
-
-com_ptr<ID3D11Texture2D> make_skybox_texture(ID3D11Device* p_device, UINT side_size)
-{
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = desc.Height = side_size;
-	desc.MipLevels = 1;
-	desc.ArraySize = 6;
-	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-
-	com_ptr<ID3D11Texture2D> p_tex;
-	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex.ptr);
-	assert(hr == S_OK);
-
-	return p_tex;
-}
-
 } // namespace
 
 
 namespace sparki {
 namespace rnd {
+
+// ----- brdf_integrator -----
+
+brdf_integrator::brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug);
+
+	hlsl_compute_desc compute_desc("../../data/shaders/brdf_integrator.compute.hlsl");
+	compute_shader_ = hlsl_compute(p_device, compute_desc);
+}
+
+void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
+{
+	assert(p_brdf_lut_filename);
+	assert(side_size >= brdf_integrator::brdf_lut_side_min_limit);
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = desc.Height = side_size;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device_->CreateTexture2D(&desc, nullptr, &p_tex.ptr);
+	assert(hr == S_OK);
+	com_ptr<ID3D11UnorderedAccessView> p_tex_uav;
+	hr = p_device_->CreateUnorderedAccessView(p_tex, nullptr, &p_tex_uav.ptr);
+	assert(hr == S_OK);
+
+}
 
 // ----- ibl_texture_builder -----
 
@@ -208,19 +225,18 @@ void ibl_texture_builder::perform(const char* p_hdr_filename,
 		ibl_texture_builder::envmap_mipmap_level_count, D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
 	filter_envmap(p_tex_skybox_srv, p_tex_envmap, envmap_side_size, ibl_texture_builder::envmap_mipmap_level_count);
 	
-	// create temporary texture (usage: staging)
-	D3D11_TEXTURE2D_DESC tmp_desc;
-	p_tex_envmap->GetDesc(&tmp_desc);
-	tmp_desc.Usage = D3D11_USAGE_STAGING;
-	tmp_desc.BindFlags = 0;
-	tmp_desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	com_ptr<ID3D11Texture2D> p_tex_tmp;
-	hr = p_device_->CreateTexture2D(&tmp_desc, nullptr, &p_tex_tmp.ptr);
-	assert(hr == S_OK);
-	p_ctx_->CopyResource(p_tex_tmp, p_tex_envmap);
 
-	const texture_data td = make_texture_data(p_ctx_, p_tex_tmp);
-	write_tex(p_envmap_filename, td);
+	// write skybox texture to a file
+	{
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_skybox);
+		write_tex(p_skybox_filename, td);
+	}
+
+	// write envmap texture to a file
+	{
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_envmap);
+		write_tex(p_envmap_filename, td);
+	}
 }
 
 } // namespace rnd

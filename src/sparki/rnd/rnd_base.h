@@ -207,8 +207,8 @@ com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count)
 com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& td, 
 	D3D11_USAGE usage, UINT bind_flags);
 
-// Maps the specified texture for reading and copies data from GPU to CPU.
-texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex_staging);
+// Returns texture_data object which stores all the array slices of the specified texture.
+texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex);
 
 sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept;
 

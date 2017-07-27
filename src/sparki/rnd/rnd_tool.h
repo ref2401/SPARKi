@@ -6,6 +6,28 @@
 namespace sparki {
 namespace rnd {
 
+class brdf_integrator final {
+public:
+
+	static constexpr UINT brdf_lut_side_min_limit = 1024;
+
+
+	brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	brdf_integrator(brdf_integrator&&) = delete;
+	brdf_integrator& operator=(brdf_integrator&&) = delete;
+
+
+	void perform(const char* p_brdf_lut_filename, UINT side_size);
+
+private:
+
+	ID3D11Device*			p_device_;
+	ID3D11DeviceContext*	p_ctx_;
+	ID3D11Debug*			p_debug_;
+	hlsl_compute			compute_shader_;
+};
+
 class ibl_texture_builder final {
 public:
 
