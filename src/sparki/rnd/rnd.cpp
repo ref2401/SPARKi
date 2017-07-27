@@ -131,7 +131,7 @@ void renderer::init_assets()
 	p_bbb = std::make_unique<ibl_texture_builder>(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
 	p_bbb->perform("../../data/WinterForest_Ref.hdr",
 		"../../data/winter_forest_skybox.tex", 1024,
-		"../../data/winter_forest_envmap.tex", 256);
+		"../../data/winter_forest_envmap.tex", 128);
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
 }

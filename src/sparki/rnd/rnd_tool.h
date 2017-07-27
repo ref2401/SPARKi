@@ -11,6 +11,7 @@ public:
 
 	static constexpr UINT skybox_side_min_limit = 512;
 	static constexpr UINT envmap_side_min_limit = 128;
+	static constexpr UINT envmap_mipmap_level_count = 7;
 
 
 	ibl_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,

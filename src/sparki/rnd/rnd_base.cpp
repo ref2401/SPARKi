@@ -1,6 +1,7 @@
 #include "sparki/rnd/rnd_base.h"
 
 #include <cassert>
+#include <algorithm>
 
 
 namespace sparki {
@@ -269,13 +270,17 @@ texture_data make_texture_data(ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_te
 			HRESULT hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
 			assert(hr == S_OK);
 
-#ifdef SPARKI_DEBUG
+			// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
+			// that are larger than anticipated because there might be padding between rows and depth.
+			// https://msdn.microsoft.com/en-us/library/windows/desktop/ff476182(v=vs.85).aspx
 			const UINT w = desc.Width >> m;
 			const UINT h = desc.Height >> m;
-			assert(size_t(map.DepthPitch) == w * h * byte_count(td.format));
-#endif
-			std::memcpy(ptr, map.pData, map.DepthPitch);
-			ptr += map.DepthPitch;
+			const size_t bc = w * h * byte_count(td.format);
+			assert(bc > 0);
+			assert(map.DepthPitch >= bc);
+
+			std::memcpy(ptr, map.pData, bc);
+			ptr += bc;
 			p_ctx->Unmap(p_tex_staging, index);
 		}
 	}

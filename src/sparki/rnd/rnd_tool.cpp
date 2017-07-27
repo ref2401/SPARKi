@@ -117,7 +117,7 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 void ibl_texture_builder::filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv,
 	ID3D11UnorderedAccessView* p_tex_envmap_uav, UINT envmap_side_size)
 {
-	const float roughness = 0.0f;
+	const float roughness = 1.0f;
 	p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
 
 	// set compute pipeline & dispatch work
@@ -192,8 +192,8 @@ void ibl_texture_builder::perform(const char* p_hdr_filename,
 	convert_equirect_to_skybox(p_tex_equirect_srv, p_tex_skybox_uav, skybox_side_size);
 
 	// envmap texture
-	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(envmap_side_size, 6,
-		D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
+	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(envmap_side_size, 
+		ibl_texture_builder::envmap_mipmap_level_count, D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
 	com_ptr<ID3D11UnorderedAccessView> p_tex_envmap_uav;
 	hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, nullptr, &p_tex_envmap_uav.ptr);
 	assert(hr == S_OK);
