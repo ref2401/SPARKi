@@ -76,7 +76,7 @@ void light_pass::perform()
 {
 	// input layout
 	p_ctx_->IASetInputLayout(nullptr);
-	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
 	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 	// rasterizer & output merger
@@ -94,7 +94,7 @@ void light_pass::perform()
 	assert(hr == S_OK);
 #endif
 
-	p_ctx_->Draw(1, 0);
+	p_ctx_->Draw(4, 0);
 }
 
 // ----- skybox_pass -----

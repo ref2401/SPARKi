@@ -228,8 +228,6 @@ com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& t
 	desc.BindFlags = bind_flags;
 	if (td.size.z == 6) desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-	assert(td.size.z == 6); // the other cases have not been implemented yet and tested.
-
 	const size_t fmt_byte_count = byte_count(td.format);
 	const uint8_t* ptr = td.buffer.data();
 	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
@@ -271,7 +269,7 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 	p_ctx->CopyResource(p_tex_staging, p_tex);
 
 	// create a texture_data object
-	texture_data td(uint3(desc.Width, desc.Height, 6), desc.MipLevels, rnd::pixel_format(desc.Format));
+	texture_data td(uint3(desc.Width, desc.Height, desc.ArraySize), desc.MipLevels, rnd::pixel_format(desc.Format));
 	uint8_t* ptr = td.buffer.data();
 
 	// for each array slice 

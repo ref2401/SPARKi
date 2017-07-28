@@ -89,7 +89,7 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 
 	const UINT gx = side_size / brdf_integrator::brdf_lut_side_min_limit;
 	const UINT gy = side_size;
-	p_ctx_->Dispatch(gx, gy, 6);
+	p_ctx_->Dispatch(gx, gy, 1);
 
 	// reset uav binding
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);

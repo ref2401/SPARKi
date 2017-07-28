@@ -102,14 +102,13 @@ private:
 	com_ptr<ID3D11Device>			p_device_;
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
 	com_ptr<ID3D11Debug>			p_debug_;
-	std::unique_ptr<skybox_pass>	p_skybox_pass_;
-	std::unique_ptr<light_pass>		p_light_pass_;
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
-	// other
+	// render stuff
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
-	// temporary stuff
+	std::unique_ptr<skybox_pass>	p_skybox_pass_;
+	std::unique_ptr<light_pass>		p_light_pass_;
 };
 
 } // namespace rnd
