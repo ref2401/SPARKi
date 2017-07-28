@@ -15,24 +15,58 @@ struct frame final {
 	float3 camera_up;
 };
 
+class light_pass final {
+public:
+
+	light_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	light_pass(light_pass&&) = delete;
+	light_pass& operator=(light_pass&&) = delete;
+
+	
+	void perform();
+
+private:
+
+	void init_pipeline_state();
+
+	void init_textures(const texture_data& td_envmap, const texture_data& td_brdf);
+
+
+	ID3D11Device*						p_device_;
+	ID3D11DeviceContext*				p_ctx_;
+	ID3D11Debug*						p_debug_;
+	hlsl_shader							shader_;
+	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
+	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
+	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
+	com_ptr<ID3D11SamplerState>			p_sampler_;
+	com_ptr<ID3D11Texture2D>			p_tex_envmap_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_envmap_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_brdf_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_brdf_srv_;
+};
+
 class skybox_pass final {
 public:
 
-	explicit skybox_pass(ID3D11Device* p_device);
+	skybox_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
 
 	skybox_pass(skybox_pass&&) = delete;
 	skybox_pass& operator=(skybox_pass&&) = delete;
 
 
-	void perform(ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,
-		const float4x4& pv_matrix, const float3& position);
+	void perform(const float4x4& pv_matrix, const float3& position);
 
 private:
 
-	void init_pipeline_state(ID3D11Device* p_device);
+	void init_pipeline_state();
 
-	void init_skybox_texture(ID3D11Device* p_device);
+	void init_skybox_texture();
 
+	ID3D11Device*						p_device_;
+	ID3D11DeviceContext*				p_ctx_;
+	ID3D11Debug*						p_debug_;
 	hlsl_shader							shader_;
 	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
@@ -69,6 +103,7 @@ private:
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
 	com_ptr<ID3D11Debug>			p_debug_;
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
+	std::unique_ptr<light_pass>		p_light_pass_;
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;

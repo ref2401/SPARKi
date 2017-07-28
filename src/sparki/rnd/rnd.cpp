@@ -8,42 +8,47 @@
 namespace sparki {
 namespace rnd {
 
-// ----- skybox_pass -----
+// ----- light_pass -----
 
-skybox_pass::skybox_pass(ID3D11Device* p_device)
+light_pass::light_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
 {
 	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	hlsl_shader_desc shader_desc;
-	auto load_assets = [&shader_desc] {
-		shader_desc = hlsl_shader_desc("../../data/shaders/rnd_skybox.hlsl");
+	texture_data td_envmap;
+	texture_data td_brdf;
+	auto load_assets = [&td_envmap, &td_brdf] {
+		td_envmap = read_tex("../../data/pisa_envmap.tex");
+		td_brdf = read_tex("../../data/brdf_lut.tex");
 	};
 
 	std::atomic_size_t wc;
 	ts::run(load_assets, wc);
 
-	init_pipeline_state(p_device);
-	p_cb_vertex_shader_ = constant_buffer(p_device, sizeof(float4x4));
+	init_pipeline_state();
+	hlsl_shader_desc shader_desc("../../data/shaders/light_pass.hlsl");
+	shader_ = hlsl_shader(p_device_, shader_desc);
 
 	ts::wait_for(wc);
-	shader_ = hlsl_shader(p_device, shader_desc);
-	init_skybox_texture(p_device);
+	init_textures(td_envmap, td_brdf);
 }
 
-void skybox_pass::init_pipeline_state(ID3D11Device* p_device)
+void light_pass::init_pipeline_state()
 {
-	assert(p_device);
-
 	D3D11_RASTERIZER_DESC rastr_desc = {};
 	rastr_desc.FillMode = D3D11_FILL_SOLID;
-	rastr_desc.CullMode = D3D11_CULL_FRONT;
+	rastr_desc.CullMode = D3D11_CULL_BACK;
 	rastr_desc.FrontCounterClockwise = true;
-	HRESULT hr = p_device->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
+	HRESULT hr = p_device_->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
 	assert(hr == S_OK);
 
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
-	ds_desc.DepthEnable = false;
-	hr = p_device->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	ds_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	ds_desc.DepthFunc = D3D11_COMPARISON_LESS;
+	ds_desc.DepthEnable = true;
+	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
 
 	D3D11_SAMPLER_DESC sampler_desc = {};
@@ -52,51 +57,130 @@ void skybox_pass::init_pipeline_state(ID3D11Device* p_device)
 	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
+	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
 	assert(hr == S_OK);
 }
 
-void skybox_pass::init_skybox_texture(ID3D11Device* p_device)
+void light_pass::init_textures(const texture_data& td_envmap, const texture_data& td_brdf)
 {
-	assert(p_device);
+	p_tex_envmap_ = texture2d(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_envmap_, nullptr, &p_tex_envmap_srv_.ptr);
+	assert(hr == S_OK);
 
-	const texture_data td = read_tex("../../data/pisa_skybox.tex");
-	p_tex_skybox_ = texture2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
+	p_tex_brdf_ = texture2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	hr = p_device_->CreateShaderResourceView(p_tex_brdf_, nullptr, &p_tex_brdf_srv_.ptr);
 	assert(hr == S_OK);
 }
 
-void skybox_pass::perform(ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug,
-	const float4x4& pv_matrix, const float3& position)
+void light_pass::perform()
 {
-	assert(p_ctx);
-	assert(p_debug); // p_debug == nullptr in Release mode.
-
-	// update pvm matrix
-	const float4x4 pvm_matrix = pv_matrix * translation_matrix(position);
-	p_ctx->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, &pvm_matrix.m00, 0, 0);
-
 	// input layout
-	p_ctx->IASetInputLayout(nullptr);
-	p_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	p_ctx->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-	p_ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	p_ctx_->IASetInputLayout(nullptr);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 	// rasterizer & output merger
-	p_ctx->RSSetState(p_rasterizer_state_);
-	p_ctx->OMSetDepthStencilState(p_depth_stencil_state_, 0);
+	p_ctx_->RSSetState(p_rasterizer_state_);
+	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
 	// shaders
-	p_ctx->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
-	p_ctx->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
-	p_ctx->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx->PSSetShaderResources(0, 1, &p_tex_skybox_srv_.ptr);
-	p_ctx->PSSetSamplers(0, 1, &p_sampler_.ptr);
+	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
+	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
+	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
+	p_ctx_->PSSetShaderResources(0, 1, &p_tex_brdf_srv_.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
 
 #ifdef SPARKI_DEBUG
-	HRESULT hr = p_debug->ValidateContext(p_ctx);
+	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
 	assert(hr == S_OK);
 #endif
 
-	p_ctx->Draw(14, 0); // 14 - number of indices in a cube represented by a triangle strip
+	p_ctx_->Draw(1, 0);
+}
+
+// ----- skybox_pass -----
+
+skybox_pass::skybox_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	hlsl_shader_desc shader_desc;
+	auto load_assets = [&shader_desc] {
+		shader_desc = hlsl_shader_desc("../../data/shaders/skybox_pass.hlsl");
+	};
+
+	std::atomic_size_t wc;
+	ts::run(load_assets, wc);
+
+	init_pipeline_state();
+	p_cb_vertex_shader_ = constant_buffer(p_device_, sizeof(float4x4));
+
+	ts::wait_for(wc);
+	shader_ = hlsl_shader(p_device_, shader_desc);
+	init_skybox_texture();
+}
+
+void skybox_pass::init_pipeline_state()
+{
+	D3D11_RASTERIZER_DESC rastr_desc = {};
+	rastr_desc.FillMode = D3D11_FILL_SOLID;
+	rastr_desc.CullMode = D3D11_CULL_FRONT;
+	rastr_desc.FrontCounterClockwise = true;
+	HRESULT hr = p_device_->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
+	assert(hr == S_OK);
+
+	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
+	ds_desc.DepthEnable = false;
+	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	assert(hr == S_OK);
+
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
+	assert(hr == S_OK);
+}
+
+void skybox_pass::init_skybox_texture()
+{
+	const texture_data td = read_tex("../../data/pisa_skybox.tex");
+	p_tex_skybox_ = texture2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
+	assert(hr == S_OK);
+}
+
+void skybox_pass::perform(const float4x4& pv_matrix, const float3& position)
+{
+	// update pvm matrix
+	const float4x4 pvm_matrix = pv_matrix * translation_matrix(position);
+	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, &pvm_matrix.m00, 0, 0);
+
+	// input layout
+	p_ctx_->IASetInputLayout(nullptr);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	// rasterizer & output merger
+	p_ctx_->RSSetState(p_rasterizer_state_);
+	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
+	// shaders
+	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
+	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
+	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
+	p_ctx_->PSSetShaderResources(0, 1, &p_tex_skybox_srv_.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
+
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	p_ctx_->Draw(14, 0); // 14 - number of indices in a cube represented by a triangle strip
 }
 
 // ----- renderer -----
@@ -127,15 +211,16 @@ void renderer::init_assets()
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
 
-	ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
-	b.perform("../../data/pisa.hdr",
-		"../../data/pisa_skybox.tex", 1024,
-		"../../data/pisa_envmap.tex", 256);
-
-	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_);
+	//ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
+	//b.perform("../../data/pisa.hdr",
+	//	"../../data/pisa_skybox.tex", 1024,
+	//	"../../data/pisa_envmap.tex", 256);
 
 	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	bi.perform("../../data/brdf_lut.tex", 1024);
+
+	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
+	p_light_pass_ = std::make_unique<light_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -183,7 +268,8 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
 	p_ctx_->ClearRenderTargetView(p_tex_window_rtv_, &float4::unit_xyzw.x);
 
-	p_skybox_pass_->perform(p_ctx_, p_debug_, pv_matrix, frame.camera_position);
+	p_skybox_pass_->perform(pv_matrix, frame.camera_position);
+	p_light_pass_->perform();
 
 	p_swap_chain_->Present(0, 0);
 }

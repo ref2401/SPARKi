@@ -16,3 +16,11 @@ float3 tangent_to_world(float3 v, float3 oz)
 {
 	return mul(tangent_space_matrix(oz), v);
 }
+
+// Calculates tangent of an angle which cosine is given.
+// Returns infinity if cosine equals to zero.
+float tangent(float cos_angle)
+{
+	const float sin_angle = sqrt(1.0f - cos_angle * cos_angle);
+	return sin_angle / cos_angle;
+}

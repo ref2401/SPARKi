@@ -216,6 +216,7 @@ size_t byte_count(pixel_format fmt) noexcept
 	switch (fmt) {
 		default:
 		case pixel_format::none:		return 0;
+		case pixel_format::rg_32f:		return 2 * sizeof(float);
 		case pixel_format::rgb_32f:		return 3 * sizeof(float);
 		case pixel_format::rgba_32f:	return 4 * sizeof(float);
 		case pixel_format::red_8:		return 1;

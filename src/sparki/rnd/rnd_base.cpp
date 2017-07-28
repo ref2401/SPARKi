@@ -142,6 +142,7 @@ DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept
 	switch (fmt) {
 		default: 
 		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
+		case sparki::pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
 		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
 		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case sparki::pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
@@ -200,6 +201,7 @@ sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
 	switch (fmt) {
 		default:								return sparki::pixel_format::none;
 		
+		case DXGI_FORMAT_R32G32_FLOAT:			return sparki::pixel_format::rg_32f;
 		case DXGI_FORMAT_R32G32B32_FLOAT:		return sparki::pixel_format::rgb_32f;
 		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return sparki::pixel_format::rgba_32f;
 		case DXGI_FORMAT_R8_UNORM:				return sparki::pixel_format::red_8;

@@ -13,6 +13,7 @@ namespace sparki {
 enum class pixel_format :unsigned char {
 	none = 0,
 
+	rg_32f,
 	rgb_32f,
 	rgba_32f,
 

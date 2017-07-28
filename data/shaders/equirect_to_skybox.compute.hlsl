@@ -1,5 +1,5 @@
 #include "common.hlsl"
-#include "common_ibl_itegration.hlsl"
+#include "common_pbr.hlsl"
 
 static const float2 inv_atan = float2 (0.1591, 0.3183);
 

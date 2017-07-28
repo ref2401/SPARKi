@@ -1,5 +1,5 @@
 #include "common.hlsl"
-#include "common_ibl_itegration.hlsl"
+#include "common_pbr.hlsl"
 
 
 cbuffer cb_compute_shader : register(b0) {

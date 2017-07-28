@@ -79,6 +79,28 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	hr = p_device_->CreateUnorderedAccessView(p_tex, nullptr, &p_tex_uav.ptr);
 	assert(hr == S_OK);
 
+	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_uav.ptr, nullptr);
+
+#ifdef SPARKI_DEBUG
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	const UINT gx = side_size / brdf_integrator::brdf_lut_side_min_limit;
+	const UINT gy = side_size;
+	p_ctx_->Dispatch(gx, gy, 6);
+
+	// reset uav binding
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+
+	// write brdf lut to a file
+	{
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex);
+		write_tex(p_brdf_lut_filename, td);
+	}
 }
 
 // ----- ibl_texture_builder -----
@@ -125,7 +147,7 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 	const UINT gy = skybox_side_size / (1024 / ibl_texture_builder::skybox_side_min_limit);
 	p_ctx_->Dispatch(gx, gy, 6);
 
-	// reset pipeline state
+	// reset uav binding
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
 	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
