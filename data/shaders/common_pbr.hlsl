@@ -100,11 +100,24 @@ float3 importance_sample_ggx(float2 xi, float roughness)
 	return float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
 }
 
-float g_smith(float dot_nl, float dot_nv, float roughness)
+// Lambda is shadowing-masking auxiliary function.
+// Params:
+//		- rs: squared roughness. The value is used directly by the shadowing-masking aux function.
+//		- cos_angle: is used to calc tangent of the angle.
+float g_lambda(float rs, float cos_angle)
 {
-	const float a = roughness * roughness * roughness * roughness;
-	
-	return 0.0f;
-	//const float lambda_l = 
-	//float Vis = 0.5 * rcp( Vis_SmithV + Vis_SmithL );
+	const float ta = tangent(cos_angle);
+	return isinf(ta)
+		? 0.0f
+		: sqrt(1.0f + rs * ta * ta) * 0.5f - 0.5f;
+}
+
+// Compute shadowing-masking term G(n, l, v, roughness).
+// (SRC): Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs.
+float g_smith_correlated(float dot_nl, float dot_nv, float roughness)
+{
+	const float a2 = roughness * roughness * roughness * roughness;
+	const float lambda_l = g_lambda(a2, dot_nl);
+	const float lambda_v = g_lambda(a2, dot_nv);
+	return 1.0f / (1 + lambda_l + lambda_v);
 }
