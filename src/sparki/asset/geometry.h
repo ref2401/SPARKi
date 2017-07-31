@@ -7,10 +7,10 @@
 namespace sparki {
 
 // All possible combinations of vertex attributes.
-// p	- position;
-// n	- normal;
-// uv	- texture coordinates in the range [0, 1];
-// ts	- tangent space (tangnet & handedness);
+// p - position;
+// n - normal;
+// uv - texture coordinates in the range [0, 1];
+// ts - tangent space (tangnet & handedness);
 enum class vertex_attribs : unsigned char {
 	p = 0,
 	p_n_uv,
@@ -103,6 +103,18 @@ struct mesh_geometry final {
 	std::vector<vertex_t> vertices;
 	std::vector<uint32_t> indices;
 };
+
+
+void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename);
+
+// Reads mesh geometry from the specified .fbx file.
+mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* p_filename);
+
+// Reads mesh geometry from the specified .geo file.
+mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* p_filename);
+
+// Writes mesh geometry in the specified .geo file.
+void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh);
 
 } // namespace sparki
 

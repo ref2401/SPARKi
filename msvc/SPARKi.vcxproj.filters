@@ -33,14 +33,17 @@
     <ClCompile Include="..\src\sparki\rnd\rnd.cpp">
       <Filter>rnd</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sparki\asset\geometry.cpp">
+      <Filter>asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sparki\asset\image.cpp">
+      <Filter>asset</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\utility.h" />
     <ClInclude Include="..\src\sparki\game.h" />
     <ClInclude Include="..\src\sparki\asset\asset.h">
-      <Filter>asset</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\sparki\asset\model.h">
       <Filter>asset</Filter>
     </ClInclude>
     <ClInclude Include="..\src\sparki\platform\platform.h">
@@ -57,6 +60,12 @@
     </ClInclude>
     <ClInclude Include="..\src\sparki\rnd\rnd.h">
       <Filter>rnd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\asset\geometry.h">
+      <Filter>asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\asset\image.h">
+      <Filter>asset</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
