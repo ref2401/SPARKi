@@ -211,10 +211,10 @@ void renderer::init_assets()
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
 
-	ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
-	b.perform("../../data/pisa.hdr",
-		"../../data/pisa_skybox.tex", 1024,
-		"../../data/pisa_envmap.tex", 256);
+	//ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
+	//b.perform("../../data/pisa.hdr",
+	//	"../../data/pisa_skybox.tex", 1024,
+	//	"../../data/pisa_envmap.tex", 256);
 
 	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	bi.perform("../../data/brdf_lut.tex", 512);

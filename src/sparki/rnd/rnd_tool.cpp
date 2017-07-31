@@ -65,7 +65,7 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	desc.Width = desc.Height = side_size;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_R32G32_FLOAT;
+	desc.Format = DXGI_FORMAT_R16G16_FLOAT;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;

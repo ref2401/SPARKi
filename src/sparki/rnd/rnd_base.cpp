@@ -142,6 +142,8 @@ DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept
 	switch (fmt) {
 		default: 
 		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
+		case sparki::pixel_format::rg_16f:		return DXGI_FORMAT_R16G16_FLOAT;
+		case sparki::pixel_format::rgba_16f:	return DXGI_FORMAT_R16G16B16A16_FLOAT;
 		case sparki::pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
 		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
 		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -201,6 +203,8 @@ sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
 	switch (fmt) {
 		default:								return sparki::pixel_format::none;
 		
+		case DXGI_FORMAT_R16G16_FLOAT:			return sparki::pixel_format::rg_16f;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:	return sparki::pixel_format::rgba_16f;
 		case DXGI_FORMAT_R32G32_FLOAT:			return sparki::pixel_format::rg_32f;
 		case DXGI_FORMAT_R32G32B32_FLOAT:		return sparki::pixel_format::rgb_32f;
 		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return sparki::pixel_format::rgba_32f;
@@ -280,7 +284,7 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 			const UINT index = a * desc.MipLevels + m;
 			
 			D3D11_MAPPED_SUBRESOURCE map;
-			HRESULT hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
+			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
 			assert(hr == S_OK);
 
 			// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
