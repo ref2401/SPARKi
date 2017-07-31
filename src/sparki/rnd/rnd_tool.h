@@ -9,7 +9,7 @@ namespace rnd {
 class brdf_integrator final {
 public:
 
-	static constexpr UINT brdf_lut_side_min_limit = 1024;
+	static constexpr UINT compute_group_size = 32;
 
 
 	brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);

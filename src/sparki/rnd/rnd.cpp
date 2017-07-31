@@ -217,7 +217,7 @@ void renderer::init_assets()
 	//	"../../data/pisa_envmap.tex", 256);
 
 	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	bi.perform("../../data/brdf_lut.tex", 1024);
+	bi.perform("../../data/brdf_lut.tex", 512);
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<light_pass>(p_device_, p_ctx_, p_debug_);

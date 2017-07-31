@@ -59,7 +59,7 @@ brdf_integrator::brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_
 void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 {
 	assert(p_brdf_lut_filename);
-	assert(side_size >= brdf_integrator::brdf_lut_side_min_limit);
+	assert(side_size >= brdf_integrator::compute_group_size);
 
 	D3D11_TEXTURE2D_DESC desc = {};
 	desc.Width = desc.Height = side_size;
@@ -87,7 +87,7 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	assert(hr == S_OK);
 #endif
 
-	const UINT gx = side_size / brdf_integrator::brdf_lut_side_min_limit;
+	const UINT gx = side_size / brdf_integrator::compute_group_size;
 	const UINT gy = side_size;
 	p_ctx_->Dispatch(gx, gy, 1);
 
