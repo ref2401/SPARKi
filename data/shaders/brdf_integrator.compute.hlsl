@@ -39,7 +39,7 @@ float2 integrate_brdf(float dot_nv, float roughness)
 	return float2(a, b);
 }
 
-[numthreads(32, 1, 1)]
+[numthreads(256, 4, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
 	float w = 0;

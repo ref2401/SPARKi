@@ -9,7 +9,8 @@ namespace rnd {
 class brdf_integrator final {
 public:
 
-	static constexpr UINT compute_group_size = 32;
+	static constexpr UINT compute_group_x_size = 256;
+	static constexpr UINT compute_group_y_size = 4;
 
 
 	brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
@@ -31,8 +32,11 @@ private:
 class ibl_texture_builder final {
 public:
 
-	static constexpr UINT skybox_side_min_limit = 512;
-	static constexpr UINT envmap_compute_group_size = 16;
+	static constexpr UINT skybox_compute_group_x_size = 512;
+	static constexpr UINT skybox_compute_group_y_size = 2;
+	// (miplevel - side_size): (0 - 256), (1 - 128), (2 - 64), (3 - 32), (4, 16)
+	static constexpr UINT envmap_compute_group_x_size = 16;
+	static constexpr UINT envmap_compute_group_y_size = 16;
 	static constexpr UINT envmap_side_min_limit = 256;
 	static constexpr UINT envmap_mipmap_level_count = 5;
 

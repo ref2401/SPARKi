@@ -59,7 +59,7 @@ brdf_integrator::brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_
 void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 {
 	assert(p_brdf_lut_filename);
-	assert(side_size >= brdf_integrator::compute_group_size);
+	assert(side_size >= brdf_integrator::compute_group_x_size);
 
 	D3D11_TEXTURE2D_DESC desc = {};
 	desc.Width = desc.Height = side_size;
@@ -87,8 +87,8 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	assert(hr == S_OK);
 #endif
 
-	const UINT gx = side_size / brdf_integrator::compute_group_size;
-	const UINT gy = side_size;
+	const UINT gx = side_size / brdf_integrator::compute_group_x_size;
+	const UINT gy = side_size / brdf_integrator::compute_group_y_size;
 	p_ctx_->Dispatch(gx, gy, 1);
 
 	// reset uav binding
@@ -143,8 +143,8 @@ void ibl_texture_builder::convert_equirect_to_skybox(ID3D11ShaderResourceView* p
 	assert(hr == S_OK);
 #endif
 
-	const UINT gx = skybox_side_size / ibl_texture_builder::skybox_side_min_limit;
-	const UINT gy = skybox_side_size / (1024 / ibl_texture_builder::skybox_side_min_limit);
+	const UINT gx = skybox_side_size / ibl_texture_builder::skybox_compute_group_x_size;
+	const UINT gy = skybox_side_size / ibl_texture_builder::skybox_compute_group_y_size;
 	p_ctx_->Dispatch(gx, gy, 6);
 
 	// reset uav binding
@@ -183,8 +183,9 @@ void ibl_texture_builder::filter_envmap(ID3D11ShaderResourceView* p_tex_skybox_s
 #endif
 
 		const UINT mipmap_size = envmap_side_size >> m;
-		const UINT g = (mipmap_size) / ibl_texture_builder::envmap_compute_group_size;
-		p_ctx_->Dispatch(g, g, 6);
+		const UINT gx = (mipmap_size) / ibl_texture_builder::envmap_compute_group_x_size;
+		const UINT gy = (mipmap_size) / ibl_texture_builder::envmap_compute_group_y_size;
+		p_ctx_->Dispatch(gx, gy, 6);
 	}
 
 	// reset uav binding
@@ -220,7 +221,7 @@ void ibl_texture_builder::perform(const char* p_hdr_filename,
 {
 	assert(p_hdr_filename);
 	assert(p_skybox_filename);
-	assert(skybox_side_size >= ibl_texture_builder::skybox_side_min_limit);
+	assert(skybox_side_size >= ibl_texture_builder::skybox_compute_group_x_size);
 	assert(p_envmap_filename);
 	assert(envmap_side_size >= ibl_texture_builder::envmap_side_min_limit);
 

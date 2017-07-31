@@ -20,7 +20,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	g_tex_cubemap.GetDimensions(w, h, c);
 	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, (float)w, (float)h);
 
-	const uint sample_count = 1024;
+	static const uint sample_count = 1024;
 	float3 filtered_rgb = 0.0f;
 	float total_weight = 0.0f;
 
