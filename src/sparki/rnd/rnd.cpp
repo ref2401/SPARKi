@@ -55,7 +55,9 @@ void shading_pass::init_geometry()
 		&p_input_layout_.ptr);
 	assert(hr == S_OK);
 
-	geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
+	geometry_t geometry = read_geo("../../data/geometry/plane01.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
 	vb_desc.Usage = D3D11_USAGE_IMMUTABLE;

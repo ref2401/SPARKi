@@ -24,9 +24,10 @@ struct vs_output {
 vs_output vs_main(vertex vertex)
 {
 	// tangent space matrix
+	const float4 ts_ms = vertex.tangent_space_ms * 2.0f - 1.0f;
 	const float3 normal_ws = (mul(g_normal_matrix, float4(vertex.normal_ms, 1.0f))).xyz;
-	const float3 tangent_ws = (mul(g_normal_matrix, float4(vertex.tangent_space_ms.xyz, 1.0f))).xyz;
-	const float3 bitangent_ws = vertex.tangent_space_ms.w * cross(normal_ws, tangent_ws);
+	const float3 tangent_ws = (mul(g_normal_matrix, float4(ts_ms.xyz, 1.0f))).xyz;
+	const float3 bitangent_ws = ts_ms.w * cross(normal_ws, tangent_ws);
 	const float3x3 world_to_tangent = float3x3(tangent_ws, bitangent_ws, normal_ws);
 
 	vs_output o;

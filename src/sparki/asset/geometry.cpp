@@ -41,6 +41,12 @@ inline math::float4 make_float4(const FbxVector4& v) noexcept
 	return math::float4(float(v[0]), float(v[1]), float(v[2]), float(v[3]));
 }
 
+inline uint32_t pack_tangent_space_unorm_10_10_10_2(const FbxVector4& v)
+{
+	const math::float4 v_unorm = make_float4(v) * 0.5f + 0.5f;
+	return math::pack_unorm_10_10_10_2(v_unorm);
+}
+
 fbx_ptr<FbxScene> read_fbx_scene(FbxManager* manager, const char* filename)
 {
 	assert(manager);
@@ -91,9 +97,9 @@ void setup_triangle(FbxMesh* fbx_mesh, int polygon_index, int first_vertex_index
 	v2.uv = make_float2(uv2);
 
 	// tangent space
-	v0.tangent_h = math::pack_snorm_10_10_10_2(make_float4(ts_direct_array[first_vertex_index]));
-	v1.tangent_h = math::pack_snorm_10_10_10_2(make_float4(ts_direct_array[first_vertex_index + 1]));
-	v2.tangent_h = math::pack_snorm_10_10_10_2(make_float4(ts_direct_array[first_vertex_index + 2]));
+	v0.tangent_h = pack_tangent_space_unorm_10_10_10_2(ts_direct_array[first_vertex_index]);
+	v1.tangent_h = pack_tangent_space_unorm_10_10_10_2(ts_direct_array[first_vertex_index + 1]);
+	v2.tangent_h = pack_tangent_space_unorm_10_10_10_2(ts_direct_array[first_vertex_index + 2]);
 }
 
 } // namespace
