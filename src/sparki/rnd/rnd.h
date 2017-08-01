@@ -15,18 +15,20 @@ struct frame final {
 	float3 camera_up;
 };
 
-class light_pass final {
+class shading_pass final {
 public:
 
-	light_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+	shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
 
-	light_pass(light_pass&&) = delete;
-	light_pass& operator=(light_pass&&) = delete;
+	shading_pass(shading_pass&&) = delete;
+	shading_pass& operator=(shading_pass&&) = delete;
 
 	
-	void perform();
+	void perform(const float4x4& pv_matrix);
 
 private:
+
+	void init_geometry();
 
 	void init_pipeline_state();
 
@@ -45,6 +47,12 @@ private:
 	com_ptr<ID3D11ShaderResourceView>	p_tex_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_brdf_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_brdf_srv_;
+	// temporary
+	UINT								vertex_stride_;
+	UINT								index_count_;
+	com_ptr<ID3D11InputLayout>			p_input_layout_;
+	com_ptr<ID3D11Buffer>				p_vertex_buffer_;
+	com_ptr<ID3D11Buffer>				p_index_buffer_;
 };
 
 class skybox_pass final {
@@ -102,13 +110,15 @@ private:
 	com_ptr<ID3D11Device>			p_device_;
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
 	com_ptr<ID3D11Debug>			p_debug_;
-	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
+	// rtv stuff:
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
+	com_ptr<ID3D11Texture2D>		p_tex_depth_stencil_;
+	com_ptr<ID3D11DepthStencilView> p_tex_depth_stencil_dsv_;
 	// render stuff
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
-	std::unique_ptr<light_pass>		p_light_pass_;
+	std::unique_ptr<shading_pass>	p_light_pass_;
 };
 
 } // namespace rnd

@@ -31,6 +31,8 @@ void sparki_main()
 	}
 }
 
+#include "sparki/asset/geometry.h"
+
 int main() 
 {
 	bool keep_console_shown = false;

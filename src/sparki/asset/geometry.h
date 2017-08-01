@@ -24,6 +24,7 @@ struct vertex_interleaved_format;
 
 template<> struct vertex_interleaved_format<vertex_attribs::p_n_uv_ts> final {
 	static constexpr vertex_attribs attribs = vertex_attribs::p_n_uv_ts;
+	static constexpr size_t	attrib_count	= 4;
 
 	static constexpr size_t position_component_count		= 3;
 	static constexpr size_t position_byte_count				= sizeof(float) * position_component_count;
