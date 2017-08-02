@@ -15,6 +15,7 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	assert(size > 0);
 
 	p_tex_color.dispose();
+	p_tex_color_srv.dispose();
 	p_tex_color_rtv.dispose();
 	p_tex_depth.dispose();
 	p_tex_depth_dsv.dispose();
@@ -29,8 +30,10 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	color_desc.SampleDesc.Count = 1;
 	color_desc.SampleDesc.Quality = 0;
 	color_desc.Usage = D3D11_USAGE_DEFAULT;
-	color_desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	color_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	HRESULT hr = p_device->CreateTexture2D(&color_desc, nullptr, &p_tex_color.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_color, nullptr, &p_tex_color_srv.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
 	assert(hr == S_OK);
@@ -58,6 +61,74 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	viewport.Height = float(size.y);
 	viewport.MinDepth = 0.0;
 	viewport.MaxDepth = 1.0f;
+}
+
+// ----- final_pass -----
+
+final_pass::final_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	init_pipeline_state();
+
+	hlsl_shader_desc shader_desc("../../data/shaders/final_pass.hlsl");
+	shader_ = hlsl_shader(p_device_, shader_desc);
+}
+
+void final_pass::init_pipeline_state()
+{
+	D3D11_RASTERIZER_DESC rastr_desc = {};
+	rastr_desc.FillMode = D3D11_FILL_SOLID;
+	rastr_desc.CullMode = D3D11_CULL_BACK;
+	rastr_desc.FrontCounterClockwise = true;
+	HRESULT hr = p_device_->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
+	assert(hr == S_OK);
+
+	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
+	ds_desc.DepthEnable = false;
+	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	assert(hr == S_OK);
+
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
+	assert(hr == S_OK);
+}
+
+void final_pass::perform(ID3D11ShaderResourceView* p_tex_color_srv)
+{
+	assert(p_tex_color_srv);
+
+	// input layout
+	p_ctx_->IASetInputLayout(nullptr);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	// rasterizer & output merger
+	p_ctx_->RSSetState(p_rasterizer_state_);
+	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
+	// shaders
+	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
+	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
+	p_ctx_->PSSetShaderResources(0, 1, &p_tex_color_srv);
+	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
+
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	p_ctx_->Draw(4, 0);
+
+	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
+	p_ctx_->PSSetShaderResources(0, 1, srv_list);
 }
 
 // ----- light_pass -----
@@ -327,6 +398,7 @@ void renderer::init_assets()
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
+	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -379,6 +451,8 @@ void renderer::draw_frame(frame& frame)
 	p_light_pass_->perform(pv_matrix);
 
 	// present frame
+	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
+	p_final_pass_->perform(gbuffer_.p_tex_color_srv);
 	p_swap_chain_->Present(0, 0);
 }
 

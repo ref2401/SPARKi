@@ -26,11 +26,38 @@ struct gbuffer final {
 	void resize(ID3D11Device* p_device, const uint2 size);
 
 
-	com_ptr<ID3D11Texture2D>		p_tex_color;
-	com_ptr<ID3D11RenderTargetView>	p_tex_color_rtv;
-	com_ptr<ID3D11Texture2D>		p_tex_depth;
-	com_ptr<ID3D11DepthStencilView> p_tex_depth_dsv;
-	D3D11_VIEWPORT					viewport = { 0, 0, 0, 0, 0, 1 };
+	// color texture
+	com_ptr<ID3D11Texture2D>			p_tex_color;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_color_srv;
+	com_ptr<ID3D11RenderTargetView>		p_tex_color_rtv;
+	// depth texture
+	com_ptr<ID3D11Texture2D>			p_tex_depth;
+	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
+	D3D11_VIEWPORT						viewport = { 0, 0, 0, 0, 0, 1 };
+};
+
+class final_pass final {
+public:
+
+	final_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	final_pass(final_pass&&) = delete;
+	final_pass& operator=(final_pass&&) = delete;
+
+
+	void perform(ID3D11ShaderResourceView* p_tex_color_srv);
+
+private:
+
+	void init_pipeline_state();
+
+	ID3D11Device*						p_device_;
+	ID3D11DeviceContext*				p_ctx_;
+	ID3D11Debug*						p_debug_;
+	hlsl_shader							shader_;
+	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
+	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
+	com_ptr<ID3D11SamplerState>			p_sampler_;
 };
 
 class shading_pass final {
@@ -136,6 +163,7 @@ private:
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
 	std::unique_ptr<shading_pass>	p_light_pass_;
+	std::unique_ptr<final_pass>		p_final_pass_;
 };
 
 

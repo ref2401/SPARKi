@@ -30,8 +30,6 @@ vs_output vs_main(uint vid : SV_VertexID)
 
 // ----- pixel shader -----
 
-static const float power = 1.0f / 2.2f;
-
 TextureCube		g_tex_cubemap	: register(t0);
 SamplerState	g_sampler		: register(s0);
 
@@ -43,9 +41,8 @@ ps_output ps_main(vs_output pixel)
 {
 	const float3 d = normalize(pixel.position_ms);
 	const float3 hdr = g_tex_cubemap.Sample(g_sampler, d).rgb;
-	const float3 rgb = pow(hdr / (hdr + 1.0f), power);
 
 	ps_output o;
-	o.rt_color_0 = float4(rgb, 1.0f);
+	o.rt_color_0 = float4(hdr, 1.0f);
 	return o;
 }
