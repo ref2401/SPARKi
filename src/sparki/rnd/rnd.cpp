@@ -10,6 +10,20 @@ namespace rnd {
 
 // ----- gbuffer -----
 
+gbuffer::gbuffer(ID3D11Device* p_device)
+{
+	assert(p_device);
+
+	D3D11_SAMPLER_DESC desc = {};
+	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.MaxLOD = D3D11_FLOAT32_MAX;
+	HRESULT hr = p_device->CreateSamplerState(&desc, &p_sampler.ptr);
+	assert(hr == S_OK);
+}
+
 void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 {
 	assert(size > 0);
@@ -91,21 +105,10 @@ void final_pass::init_pipeline_state()
 	ds_desc.DepthEnable = false;
 	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
-
-	D3D11_SAMPLER_DESC sampler_desc = {};
-	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
-	assert(hr == S_OK);
 }
 
-void final_pass::perform(ID3D11ShaderResourceView* p_tex_color_srv)
+void final_pass::perform(const gbuffer& gbuffer)
 {
-	assert(p_tex_color_srv);
-
 	// input layout
 	p_ctx_->IASetInputLayout(nullptr);
 	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -117,8 +120,8 @@ void final_pass::perform(ID3D11ShaderResourceView* p_tex_color_srv)
 	// shaders
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetShaderResources(0, 1, &p_tex_color_srv);
-	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
+	p_ctx_->PSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
@@ -216,15 +219,6 @@ void shading_pass::init_pipeline_state()
 	ds_desc.DepthEnable = true;
 	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
-
-	D3D11_SAMPLER_DESC sampler_desc = {};
-	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
-	assert(hr == S_OK);
 }
 
 void shading_pass::init_textures(const texture_data& td_envmap, const texture_data& td_brdf)
@@ -238,7 +232,7 @@ void shading_pass::init_textures(const texture_data& td_envmap, const texture_da
 	assert(hr == S_OK);
 }
 
-void shading_pass::perform(const float4x4& pv_matrix)
+void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix)
 {
 	const float4x4 model_matrix = scale_matrix<float4x4>(float3(0.3f));
 	const float4x4 normal_matrix = float4x4::identity;
@@ -264,7 +258,7 @@ void shading_pass::perform(const float4x4& pv_matrix)
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
 	p_ctx_->PSSetShaderResources(0, 1, &p_tex_brdf_srv_.ptr);
-	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
@@ -312,15 +306,6 @@ void skybox_pass::init_pipeline_state()
 	ds_desc.DepthEnable = false;
 	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
-
-	D3D11_SAMPLER_DESC sampler_desc = {};
-	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = p_device_->CreateSamplerState(&sampler_desc, &p_sampler_.ptr);
-	assert(hr == S_OK);
 }
 
 void skybox_pass::init_skybox_texture()
@@ -331,7 +316,7 @@ void skybox_pass::init_skybox_texture()
 	assert(hr == S_OK);
 }
 
-void skybox_pass::perform(const float4x4& pv_matrix, const float3& position)
+void skybox_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& position)
 {
 	// update pvm matrix
 	const float4x4 pvm_matrix = pv_matrix * translation_matrix(position);
@@ -350,7 +335,7 @@ void skybox_pass::perform(const float4x4& pv_matrix, const float3& position)
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
 	p_ctx_->PSSetShaderResources(0, 1, &p_tex_skybox_srv_.ptr);
-	p_ctx_->PSSetSamplers(0, 1, &p_sampler_.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
@@ -396,6 +381,7 @@ void renderer::init_assets()
 	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	bi.perform("../../data/brdf_lut.tex", 512);
 
+	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
 	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
@@ -442,17 +428,17 @@ void renderer::draw_frame(frame& frame)
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
-	p_ctx_->RSSetViewports(1, &gbuffer_.viewport);
-	p_ctx_->OMSetRenderTargets(1, &gbuffer_.p_tex_color_rtv.ptr, gbuffer_.p_tex_depth_dsv);
-	p_ctx_->ClearRenderTargetView(gbuffer_.p_tex_color_rtv, &float4::unit_xyzw.x);
-	p_ctx_->ClearDepthStencilView(gbuffer_.p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	p_ctx_->RSSetViewports(1, &p_gbuffer_->viewport);
+	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
+	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::unit_xyzw.x);
+	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_skybox_pass_->perform(pv_matrix, frame.camera_position);
-	p_light_pass_->perform(pv_matrix);
+	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
+	p_light_pass_->perform(*p_gbuffer_, pv_matrix);
 
 	// present frame
 	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
-	p_final_pass_->perform(gbuffer_.p_tex_color_srv);
+	p_final_pass_->perform(*p_gbuffer_);
 	p_swap_chain_->Present(0, 0);
 }
 
@@ -484,7 +470,7 @@ void renderer::resize_viewport(const uint2& size)
 	hr = p_device_->CreateRenderTargetView(tex_back_buffer.ptr, nullptr, &p_tex_window_rtv_.ptr);
 	assert(hr == S_OK);
 
-	gbuffer_.resize(p_device_, size);
+	p_gbuffer_->resize(p_device_, size);
 }
 
 

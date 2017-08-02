@@ -17,7 +17,7 @@ struct frame final {
 
 struct gbuffer final {
 
-	gbuffer() = default;
+	explicit gbuffer(ID3D11Device* p_device);
 
 	gbuffer(gbuffer&&) = delete;
 	gbuffer& operator=(gbuffer&&) = delete;
@@ -33,6 +33,10 @@ struct gbuffer final {
 	// depth texture
 	com_ptr<ID3D11Texture2D>			p_tex_depth;
 	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
+	// other stuff
+	// Sampler that is used all over the place.
+	// MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
+	com_ptr<ID3D11SamplerState>			p_sampler;
 	D3D11_VIEWPORT						viewport = { 0, 0, 0, 0, 0, 1 };
 };
 
@@ -45,7 +49,7 @@ public:
 	final_pass& operator=(final_pass&&) = delete;
 
 
-	void perform(ID3D11ShaderResourceView* p_tex_color_srv);
+	void perform(const gbuffer& gbuffer);
 
 private:
 
@@ -57,7 +61,6 @@ private:
 	hlsl_shader							shader_;
 	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
-	com_ptr<ID3D11SamplerState>			p_sampler_;
 };
 
 class shading_pass final {
@@ -69,7 +72,7 @@ public:
 	shading_pass& operator=(shading_pass&&) = delete;
 
 	
-	void perform(const float4x4& pv_matrix);
+	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix);
 
 private:
 
@@ -87,7 +90,6 @@ private:
 	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
-	com_ptr<ID3D11SamplerState>			p_sampler_;
 	com_ptr<ID3D11Texture2D>			p_tex_envmap_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_brdf_;
@@ -109,7 +111,7 @@ public:
 	skybox_pass& operator=(skybox_pass&&) = delete;
 
 
-	void perform(const float4x4& pv_matrix, const float3& position);
+	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& position);
 
 private:
 
@@ -124,7 +126,6 @@ private:
 	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
-	com_ptr<ID3D11SamplerState>			p_sampler_;
 	com_ptr<ID3D11Texture2D>			p_tex_skybox_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_skybox_srv_;
 };
@@ -155,7 +156,7 @@ private:
 	com_ptr<ID3D11Device>			p_device_;
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
 	com_ptr<ID3D11Debug>			p_debug_;
-	gbuffer							gbuffer_;
+	std::unique_ptr<gbuffer>		p_gbuffer_;
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
