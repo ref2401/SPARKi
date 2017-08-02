@@ -70,7 +70,6 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 	
 	com_ptr<ID3D11Texture2D> p_tex;
 	HRESULT hr = p_device_->CreateTexture2D(&desc, nullptr, &p_tex.ptr);

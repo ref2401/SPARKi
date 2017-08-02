@@ -10,7 +10,7 @@ namespace rnd {
 
 // ----- light_pass -----
 
-light_pass::light_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
 {
 	assert(p_device);
@@ -28,14 +28,57 @@ light_pass::light_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D1
 	ts::run(load_assets, wc);
 
 	init_pipeline_state();
-	hlsl_shader_desc shader_desc("../../data/shaders/light_pass.hlsl");
+	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
+	init_geometry(); // shader_ must be initialized
+	p_cb_vertex_shader_ = constant_buffer(p_device_, 3 * sizeof(float4x4));
 
 	ts::wait_for(wc);
 	init_textures(td_envmap, td_brdf);
 }
 
-void light_pass::init_pipeline_state()
+void shading_pass::init_geometry()
+{
+	using geometry_t	= mesh_geometry<vertex_attribs::p_n_uv_ts>;
+	using fmt_t			= geometry_t::format;
+
+	D3D11_INPUT_ELEMENT_DESC attrib_layout[fmt_t::attrib_count] = {
+		{ "VERT_POSITION_MS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, fmt_t::position_byte_offset, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "VERT_NORMAL_MS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, fmt_t::normal_byte_offset, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "VERT_UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, fmt_t::uv_byte_offset, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "VERT_TANGENT_SPACE_MS", 0, DXGI_FORMAT_R10G10B10A2_UNORM, 0, fmt_t::tangent_space_byte_offset, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	HRESULT hr = p_device_->CreateInputLayout(attrib_layout, fmt_t::attrib_count,
+		shader_.p_vertex_shader_bytecode->GetBufferPointer(),
+		shader_.p_vertex_shader_bytecode->GetBufferSize(),
+		&p_input_layout_.ptr);
+	assert(hr == S_OK);
+
+	geometry_t geometry = read_geo("../../data/geometry/plane01.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
+	D3D11_BUFFER_DESC vb_desc = {};
+	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
+	vb_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	vb_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	const D3D11_SUBRESOURCE_DATA vb_data = { geometry.vertices.data(), 0, 0 };
+	hr = p_device_->CreateBuffer(&vb_desc, &vb_data, &p_vertex_buffer_.ptr);
+	assert(hr == S_OK);
+
+	D3D11_BUFFER_DESC ib_desc = {};
+	ib_desc.ByteWidth = UINT(byte_count(geometry.indices));
+	ib_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	ib_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	const D3D11_SUBRESOURCE_DATA ib_data = { geometry.indices.data(), 0, 0 };
+	hr = p_device_->CreateBuffer(&ib_desc, &ib_data, &p_index_buffer_.ptr);
+	assert(hr == S_OK);
+
+	vertex_stride_ = UINT(fmt_t::vertex_byte_count);
+	index_count_ = UINT(geometry.indices.size());
+}
+
+void shading_pass::init_pipeline_state()
 {
 	D3D11_RASTERIZER_DESC rastr_desc = {};
 	rastr_desc.FillMode = D3D11_FILL_SOLID;
@@ -61,7 +104,7 @@ void light_pass::init_pipeline_state()
 	assert(hr == S_OK);
 }
 
-void light_pass::init_textures(const texture_data& td_envmap, const texture_data& td_brdf)
+void shading_pass::init_textures(const texture_data& td_envmap, const texture_data& td_brdf)
 {
 	p_tex_envmap_ = texture2d(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_envmap_, nullptr, &p_tex_envmap_srv_.ptr);
@@ -72,13 +115,24 @@ void light_pass::init_textures(const texture_data& td_envmap, const texture_data
 	assert(hr == S_OK);
 }
 
-void light_pass::perform()
+void shading_pass::perform(const float4x4& pv_matrix)
 {
+	const float4x4 model_matrix = scale_matrix<float4x4>(float3(0.3f));
+	const float4x4 normal_matrix = float4x4::identity;
+	const float4x4 pvm_matrix = pv_matrix * model_matrix;
+
+	float cb_data[48];
+	to_array_column_major_order(pvm_matrix, cb_data);
+	to_array_column_major_order(model_matrix, cb_data + 16);
+	to_array_column_major_order(normal_matrix, cb_data + 32);
+	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
+
 	// input layout
-	p_ctx_->IASetInputLayout(nullptr);
-	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+	const UINT offset = 0;
+	p_ctx_->IASetInputLayout(p_input_layout_);
+	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	p_ctx_->IASetVertexBuffers(0, 1, &p_vertex_buffer_.ptr, &vertex_stride_, &offset);
+	p_ctx_->IASetIndexBuffer(p_index_buffer_, DXGI_FORMAT_R32_UINT, 0);
 	// rasterizer & output merger
 	p_ctx_->RSSetState(p_rasterizer_state_);
 	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
@@ -94,7 +148,7 @@ void light_pass::perform()
 	assert(hr == S_OK);
 #endif
 
-	p_ctx_->Draw(4, 0);
+	p_ctx_->DrawIndexed(index_count_, 0, 0);
 }
 
 // ----- skybox_pass -----
@@ -220,7 +274,7 @@ void renderer::init_assets()
 	bi.perform("../../data/brdf_lut.tex", 512);
 
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
-	p_light_pass_ = std::make_unique<light_pass>(p_device_, p_ctx_, p_debug_);
+	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -265,11 +319,12 @@ void renderer::draw_frame(frame& frame)
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
 	p_ctx_->RSSetViewports(1, &viewport_);
-	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
+	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, p_tex_depth_stencil_dsv_);
 	p_ctx_->ClearRenderTargetView(p_tex_window_rtv_, &float4::unit_xyzw.x);
+	p_ctx_->ClearDepthStencilView(p_tex_depth_stencil_dsv_, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	p_skybox_pass_->perform(pv_matrix, frame.camera_position);
-	p_light_pass_->perform();
+	p_light_pass_->perform(pv_matrix);
 
 	p_swap_chain_->Present(0, 0);
 }
@@ -287,6 +342,8 @@ void renderer::resize_viewport(const uint2& size)
 	if (p_tex_window_rtv_) {
 		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
 		p_tex_window_rtv_.dispose();
+		p_tex_depth_stencil_dsv_.dispose();
+		p_tex_depth_stencil_.dispose();
 
 		DXGI_SWAP_CHAIN_DESC d;
 		HRESULT hr = p_swap_chain_->GetDesc(&d);
@@ -300,8 +357,23 @@ void renderer::resize_viewport(const uint2& size)
 	HRESULT hr = p_swap_chain_->GetBuffer(0, __uuidof(ID3D11Texture2D),
 		reinterpret_cast<void**>(&tex_back_buffer.ptr));
 	assert(hr == S_OK);
-
 	hr = p_device_->CreateRenderTargetView(tex_back_buffer.ptr, nullptr, &p_tex_window_rtv_.ptr);
+	assert(hr == S_OK);
+
+	// update depth stencil dsv
+	D3D11_TEXTURE2D_DESC ds_desc = {};
+	ds_desc.Width = size.x;
+	ds_desc.Height = size.y;
+	ds_desc.MipLevels = 1;
+	ds_desc.ArraySize = 1;
+	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	ds_desc.SampleDesc.Count = 1;
+	ds_desc.SampleDesc.Quality = 0;
+	ds_desc.Usage = D3D11_USAGE_DEFAULT;
+	ds_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	hr = p_device_->CreateTexture2D(&ds_desc, nullptr, &p_tex_depth_stencil_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateDepthStencilView(p_tex_depth_stencil_, nullptr, &p_tex_depth_stencil_dsv_.ptr);
 	assert(hr == S_OK);
 
 	// update viewport

@@ -43,6 +43,8 @@ int main()
 	};
 
 	try {
+		sparki::convert_fbx_to_geo("../../data/geometry/plane01.fbx", "../../data/geometry/plane01.geo");
+
 		auto report = ts::launch_task_system(ts_desc, sparki_main);
 		std::cout << "----- Task System Report ----- " << std::endl
 			<< "task executed: " << report.task_count << std::endl
