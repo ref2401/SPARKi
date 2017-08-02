@@ -176,8 +176,8 @@ void shading_pass::init_geometry()
 		&p_input_layout_.ptr);
 	assert(hr == S_OK);
 
-	//geometry_t geometry = read_geo("../../data/geometry/plane.geo");
-	geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	geometry_t geometry = read_geo("../../data/geometry/plane.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
 	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
@@ -291,7 +291,9 @@ void skybox_pass::init_pipeline_state()
 	assert(hr == S_OK);
 
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
-	ds_desc.DepthEnable = false;
+	ds_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	ds_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	ds_desc.DepthEnable = true;
 	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
 }
@@ -418,11 +420,11 @@ void renderer::draw_frame(frame& frame)
 
 	p_ctx_->RSSetViewports(1, &p_gbuffer_->viewport);
 	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
-	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::unit_xyzw.x);
+	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 	p_light_pass_->perform(*p_gbuffer_, pv_matrix);
+	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// present frame
 	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
