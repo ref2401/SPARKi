@@ -73,9 +73,13 @@ public:
 	shading_pass& operator=(shading_pass&&) = delete;
 
 	
-	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix);
+	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& camera_position);
 
 private:
+
+	static constexpr size_t cb_component_count = 3 * 16 + 2 * 4;
+	static constexpr size_t cb_byte_count = cb_component_count * sizeof(float);
+
 
 	void init_geometry();
 

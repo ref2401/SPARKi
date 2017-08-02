@@ -152,7 +152,7 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
 	init_geometry(); // shader_ must be initialized
-	p_cb_vertex_shader_ = constant_buffer(p_device_, 3 * sizeof(float4x4));
+	p_cb_vertex_shader_ = constant_buffer(p_device_, shading_pass::cb_byte_count);
 
 	ts::wait_for(wc);
 	init_textures(td_envmap, td_brdf);
@@ -220,16 +220,19 @@ void shading_pass::init_textures(const texture_data& td_envmap, const texture_da
 	assert(hr == S_OK);
 }
 
-void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix)
+void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& camera_position)
 {
 	const float4x4 model_matrix = scale_matrix<float4x4>(float3(0.3f));
 	const float4x4 normal_matrix = float4x4::identity;
 	const float4x4 pvm_matrix = pv_matrix * model_matrix;
+	const float4 camera_position_ms = mul(inverse(model_matrix), camera_position);
 
-	float cb_data[48];
+	float cb_data[shading_pass::cb_component_count];
 	to_array_column_major_order(pvm_matrix, cb_data);
 	to_array_column_major_order(model_matrix, cb_data + 16);
 	to_array_column_major_order(normal_matrix, cb_data + 32);
+	std::memcpy(cb_data + 48, &camera_position_ms.x, sizeof(float4));
+	std::memcpy(cb_data + 52, &camera_position.x, sizeof(float3));
 	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
 
 	// input layout
@@ -245,7 +248,8 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix)
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetShaderResources(0, 1, &p_tex_brdf_srv_.ptr);
+	ID3D11ShaderResourceView* srv_list[2] = { p_tex_envmap_srv_, p_tex_brdf_srv_ };
+	p_ctx_->PSSetShaderResources(0, 1, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
 #ifdef SPARKI_DEBUG
@@ -423,7 +427,7 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_light_pass_->perform(*p_gbuffer_, pv_matrix);
+	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// present frame

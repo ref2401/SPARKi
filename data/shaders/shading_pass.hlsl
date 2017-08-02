@@ -2,8 +2,10 @@
 
 cbuffer cb_vertex_shader : register(b0) {
 	float4x4 g_pvm_matrix		: packoffset(c0);
-	float4x4 g_model_matrix	: packoffset(c4);
+	float4x4 g_model_matrix		: packoffset(c4);
 	float4x4 g_normal_matrix	: packoffset(c8);
+	float3 g_view_position_ms	: packoffset(c12.x);
+	float3 g_view_position_ws	: packoffset(c13.x);
 };
 
 struct vertex {
@@ -16,45 +18,57 @@ struct vertex {
 struct vs_output {
 	float4 position_cs	: SV_Position;
 	float3 n_ms			: PIXEL_N_MS;
+	float3 v_ms			: PIXEL_V_MS;
 	float2 uv			: PIXEL_UV;
-	float3 t			: PIXEL_T;
-	float3 b			: PIXEL_B;
 };
 
 vs_output vs_main(vertex vertex)
 {
 	// tangent space matrix
-	const float4 ts_ms = vertex.tangent_space_ms * 2.0f - 1.0f;
-	const float3 normal_ws = (mul(g_normal_matrix, float4(vertex.normal_ms, 1.0f))).xyz;
-	const float3 tangent_ws = (mul(g_normal_matrix, float4(ts_ms.xyz, 1.0f))).xyz;
-	const float3 bitangent_ws = ts_ms.w * cross(normal_ws, tangent_ws);
+	const float4 ts_ms				= vertex.tangent_space_ms * 2.0f - 1.0f;
+	const float3 normal_ws			= (mul(g_normal_matrix, float4(vertex.normal_ms, 1.0f))).xyz;
+	const float3 tangent_ws			= (mul(g_normal_matrix, float4(ts_ms.xyz, 1.0f))).xyz;
+	const float3 bitangent_ws		= ts_ms.w * cross(normal_ws, tangent_ws);
 	const float3x3 world_to_tangent = float3x3(tangent_ws, bitangent_ws, normal_ws);
 
 	vs_output o;
-	o.position_cs = mul(g_pvm_matrix, float4(vertex.position_ms, 1));
-	o.n_ms = vertex.normal_ms;
+	o.position_cs	= mul(g_pvm_matrix, float4(vertex.position_ms, 1));
+	o.n_ms			= normal_ws;
+	o.v_ms			= (g_view_position_ms - vertex.position_ms);
 	o.uv = vertex.uv;
-	o.t = tangent_ws;
-	o.b = bitangent_ws;
 
 	return o;
 }
 
 // ----- pixel shader -----
 
-Texture2D<float2>	g_tex_brdf : register(t0);
-SamplerState		g_sampler : register(s0);
+TextureCube<float4>	g_tex_envmap	: register(t0);
+Texture2D<float2>	g_tex_brdf		: register(t1);
+SamplerState		g_sampler		: register(s0);
 
 
 struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
+float3 ibl_light(float3 n_ms, float3 v_ms, float roughness)
+{
+	const float lod_level = roughness * 5.0f; // see envmap_mipmap_level_count::envmap_mipmap_level_count
+	const float3 r_ms = reflect(-v_ms, n_ms);
+
+	return g_tex_envmap.SampleLevel(g_sampler, r_ms, lod_level).rgb;
+}
+
 ps_output ps_main(vs_output pixel)
 {
+	const float3 n_ms = normalize(pixel.n_ms);
+
+	float3 color = 0;
+	color += ibl_light(n_ms, normalize(pixel.v_ms), 1.0f);
+
 	//const float2 brdf = g_tex_brdf.SampleLevel(g_sampler, pixel.uv, 0.0);
 	
 	ps_output o;
-	o.rt_color0 = float4(pixel.t, 1);
+	o.rt_color0 = float4(color, 1);
 	return o;
 }
