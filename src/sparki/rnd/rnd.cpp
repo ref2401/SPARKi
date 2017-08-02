@@ -8,6 +8,58 @@
 namespace sparki {
 namespace rnd {
 
+// ----- gbuffer -----
+
+void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
+{
+	assert(size > 0);
+
+	p_tex_color.dispose();
+	p_tex_color_rtv.dispose();
+	p_tex_depth.dispose();
+	p_tex_depth_dsv.dispose();
+
+	// update color texture & its views
+	D3D11_TEXTURE2D_DESC color_desc = {};
+	color_desc.Width = size.x;
+	color_desc.Height = size.y;
+	color_desc.MipLevels = 1;
+	color_desc.ArraySize = 1;
+	color_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	color_desc.SampleDesc.Count = 1;
+	color_desc.SampleDesc.Quality = 0;
+	color_desc.Usage = D3D11_USAGE_DEFAULT;
+	color_desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+	HRESULT hr = p_device->CreateTexture2D(&color_desc, nullptr, &p_tex_color.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
+	assert(hr == S_OK);
+
+	// update depth texture & its views
+	D3D11_TEXTURE2D_DESC ds_desc = {};
+	ds_desc.Width = size.x;
+	ds_desc.Height = size.y;
+	ds_desc.MipLevels = 1;
+	ds_desc.ArraySize = 1;
+	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	ds_desc.SampleDesc.Count = 1;
+	ds_desc.SampleDesc.Quality = 0;
+	ds_desc.Usage = D3D11_USAGE_DEFAULT;
+	ds_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	hr = p_device->CreateTexture2D(&ds_desc, nullptr, &p_tex_depth.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateDepthStencilView(p_tex_depth, nullptr, &p_tex_depth_dsv.ptr);
+	assert(hr == S_OK);
+
+	// update viewport
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = float(size.x);
+	viewport.Height = float(size.y);
+	viewport.MinDepth = 0.0;
+	viewport.MaxDepth = 1.0f;
+}
+
 // ----- light_pass -----
 
 shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
@@ -55,8 +107,8 @@ void shading_pass::init_geometry()
 		&p_input_layout_.ptr);
 	assert(hr == S_OK);
 
-	geometry_t geometry = read_geo("../../data/geometry/plane01.geo");
-	//geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/plane.geo");
+	geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
 	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
@@ -318,14 +370,15 @@ void renderer::draw_frame(frame& frame)
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
-	p_ctx_->RSSetViewports(1, &viewport_);
-	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, p_tex_depth_stencil_dsv_);
-	p_ctx_->ClearRenderTargetView(p_tex_window_rtv_, &float4::unit_xyzw.x);
-	p_ctx_->ClearDepthStencilView(p_tex_depth_stencil_dsv_, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	p_ctx_->RSSetViewports(1, &gbuffer_.viewport);
+	p_ctx_->OMSetRenderTargets(1, &gbuffer_.p_tex_color_rtv.ptr, gbuffer_.p_tex_depth_dsv);
+	p_ctx_->ClearRenderTargetView(gbuffer_.p_tex_color_rtv, &float4::unit_xyzw.x);
+	p_ctx_->ClearDepthStencilView(gbuffer_.p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	p_skybox_pass_->perform(pv_matrix, frame.camera_position);
 	p_light_pass_->perform(pv_matrix);
 
+	// present frame
 	p_swap_chain_->Present(0, 0);
 }
 
@@ -335,15 +388,12 @@ void renderer::resize_viewport(const uint2& size)
 
 	const float w = float(size.x);
 	const float h = float(size.y);
-
 	if (approx_equal(w, viewport_.Width) && approx_equal(h, viewport_.Height)) return;
 
 	// resize swap chain's buffers
 	if (p_tex_window_rtv_) {
 		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
 		p_tex_window_rtv_.dispose();
-		p_tex_depth_stencil_dsv_.dispose();
-		p_tex_depth_stencil_.dispose();
 
 		DXGI_SWAP_CHAIN_DESC d;
 		HRESULT hr = p_swap_chain_->GetDesc(&d);
@@ -360,30 +410,9 @@ void renderer::resize_viewport(const uint2& size)
 	hr = p_device_->CreateRenderTargetView(tex_back_buffer.ptr, nullptr, &p_tex_window_rtv_.ptr);
 	assert(hr == S_OK);
 
-	// update depth stencil dsv
-	D3D11_TEXTURE2D_DESC ds_desc = {};
-	ds_desc.Width = size.x;
-	ds_desc.Height = size.y;
-	ds_desc.MipLevels = 1;
-	ds_desc.ArraySize = 1;
-	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	ds_desc.SampleDesc.Count = 1;
-	ds_desc.SampleDesc.Quality = 0;
-	ds_desc.Usage = D3D11_USAGE_DEFAULT;
-	ds_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	hr = p_device_->CreateTexture2D(&ds_desc, nullptr, &p_tex_depth_stencil_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateDepthStencilView(p_tex_depth_stencil_, nullptr, &p_tex_depth_stencil_dsv_.ptr);
-	assert(hr == S_OK);
-
-	// update viewport
-	viewport_.TopLeftX = 0;
-	viewport_.TopLeftY = 0;
-	viewport_.Width = float(size.x);
-	viewport_.Height = float(size.y);
-	viewport_.MinDepth = 0.0;
-	viewport_.MaxDepth = 1.0f;
+	gbuffer_.resize(p_device_, size);
 }
+
 
 } // namespace rnd
 } // namespace sparki

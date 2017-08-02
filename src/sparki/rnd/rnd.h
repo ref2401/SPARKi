@@ -15,6 +15,24 @@ struct frame final {
 	float3 camera_up;
 };
 
+struct gbuffer final {
+
+	gbuffer() = default;
+
+	gbuffer(gbuffer&&) = delete;
+	gbuffer& operator=(gbuffer&&) = delete;
+
+
+	void resize(ID3D11Device* p_device, const uint2 size);
+
+
+	com_ptr<ID3D11Texture2D>		p_tex_color;
+	com_ptr<ID3D11RenderTargetView>	p_tex_color_rtv;
+	com_ptr<ID3D11Texture2D>		p_tex_depth;
+	com_ptr<ID3D11DepthStencilView> p_tex_depth_dsv;
+	D3D11_VIEWPORT					viewport = { 0, 0, 0, 0, 0, 1 };
+};
+
 class shading_pass final {
 public:
 
@@ -110,16 +128,16 @@ private:
 	com_ptr<ID3D11Device>			p_device_;
 	com_ptr<ID3D11DeviceContext>	p_ctx_;
 	com_ptr<ID3D11Debug>			p_debug_;
+	gbuffer							gbuffer_;
+	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
-	// rtv stuff:
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
-	com_ptr<ID3D11Texture2D>		p_tex_depth_stencil_;
-	com_ptr<ID3D11DepthStencilView> p_tex_depth_stencil_dsv_;
 	// render stuff
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
 	std::unique_ptr<shading_pass>	p_light_pass_;
 };
+
 
 } // namespace rnd
 } // namespace sparki
