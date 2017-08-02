@@ -14,13 +14,20 @@ gbuffer::gbuffer(ID3D11Device* p_device)
 {
 	assert(p_device);
 
-	D3D11_SAMPLER_DESC desc = {};
-	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	desc.MaxLOD = D3D11_FLOAT32_MAX;
-	HRESULT hr = p_device->CreateSamplerState(&desc, &p_sampler.ptr);
+	D3D11_RASTERIZER_DESC rastr_desc = {};
+	rastr_desc.FillMode = D3D11_FILL_SOLID;
+	rastr_desc.CullMode = D3D11_CULL_BACK;
+	rastr_desc.FrontCounterClockwise = true;
+	HRESULT hr = p_device->CreateRasterizerState(&rastr_desc, &p_rasterizer_state.ptr);
+	assert(hr == S_OK);
+
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler.ptr);
 	assert(hr == S_OK);
 }
 
@@ -86,24 +93,12 @@ final_pass::final_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D1
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	init_pipeline_state();
-
 	hlsl_shader_desc shader_desc("../../data/shaders/final_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
-}
-
-void final_pass::init_pipeline_state()
-{
-	D3D11_RASTERIZER_DESC rastr_desc = {};
-	rastr_desc.FillMode = D3D11_FILL_SOLID;
-	rastr_desc.CullMode = D3D11_CULL_BACK;
-	rastr_desc.FrontCounterClockwise = true;
-	HRESULT hr = p_device_->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
-	assert(hr == S_OK);
 
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
 	ds_desc.DepthEnable = false;
-	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	HRESULT hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -115,7 +110,7 @@ void final_pass::perform(const gbuffer& gbuffer)
 	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
 	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 	// rasterizer & output merger
-	p_ctx_->RSSetState(p_rasterizer_state_);
+	p_ctx_->RSSetState(gbuffer.p_rasterizer_state);
 	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
 	// shaders
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
@@ -206,18 +201,11 @@ void shading_pass::init_geometry()
 
 void shading_pass::init_pipeline_state()
 {
-	D3D11_RASTERIZER_DESC rastr_desc = {};
-	rastr_desc.FillMode = D3D11_FILL_SOLID;
-	rastr_desc.CullMode = D3D11_CULL_BACK;
-	rastr_desc.FrontCounterClockwise = true;
-	HRESULT hr = p_device_->CreateRasterizerState(&rastr_desc, &p_rasterizer_state_.ptr);
-	assert(hr == S_OK);
-
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
 	ds_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	ds_desc.DepthFunc = D3D11_COMPARISON_LESS;
 	ds_desc.DepthEnable = true;
-	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
+	HRESULT hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -251,7 +239,7 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix)
 	p_ctx_->IASetVertexBuffers(0, 1, &p_vertex_buffer_.ptr, &vertex_stride_, &offset);
 	p_ctx_->IASetIndexBuffer(p_index_buffer_, DXGI_FORMAT_R32_UINT, 0);
 	// rasterizer & output merger
-	p_ctx_->RSSetState(p_rasterizer_state_);
+	p_ctx_->RSSetState(gbuffer.p_rasterizer_state);
 	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
 	// shaders
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);

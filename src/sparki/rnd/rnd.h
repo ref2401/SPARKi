@@ -33,7 +33,11 @@ struct gbuffer final {
 	// depth texture
 	com_ptr<ID3D11Texture2D>			p_tex_depth;
 	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
-	// other stuff
+	
+	// other stuff:
+
+	// Common rasterizer state. FrontCounterClockwise, CULL_BACK
+	com_ptr<ID3D11RasterizerState>		p_rasterizer_state;
 	// Sampler that is used all over the place.
 	// MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
 	com_ptr<ID3D11SamplerState>			p_sampler;
@@ -53,13 +57,10 @@ public:
 
 private:
 
-	void init_pipeline_state();
-
 	ID3D11Device*						p_device_;
 	ID3D11DeviceContext*				p_ctx_;
 	ID3D11Debug*						p_debug_;
 	hlsl_shader							shader_;
-	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 };
 
@@ -87,7 +88,6 @@ private:
 	ID3D11DeviceContext*				p_ctx_;
 	ID3D11Debug*						p_debug_;
 	hlsl_shader							shader_;
-	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
 	com_ptr<ID3D11Texture2D>			p_tex_envmap_;
