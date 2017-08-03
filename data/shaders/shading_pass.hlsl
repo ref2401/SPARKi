@@ -51,23 +51,30 @@ struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
-float3 ibl_light(float3 n_ms, float3 v_ms, float roughness)
+float3 ibl_light(float3 n_ms, float3 v_ms, float3 f0, float roughness)
 {
-	const float lod_level = roughness * 5.0f; // see envmap_mipmap_level_count::envmap_mipmap_level_count
+	// sample envmap
 	const float3 r_ms = reflect(-v_ms, n_ms);
+	const float lod_level = roughness * 5.0f; // roughness * (envmap_mipmap_level_count::envmap_mipmap_level_count - 1)
+	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, r_ms, lod_level).rgb;
+	// sample brdf lut
+	const float dot_nv = saturate(dot(n_ms, v_ms));
+	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, roughness));
 
-	return g_tex_envmap.SampleLevel(g_sampler, r_ms, lod_level).rgb;
+	return envmap * (f0 * brdf.x + brdf.y);
+	//return envmap;
 }
 
 ps_output ps_main(vs_output pixel)
 {
+	static const float3 g_material_f0 = 0.7f;
+	static const float g_material_roughness = 0.5f;
+
 	const float3 n_ms = normalize(pixel.n_ms);
 
 	float3 color = 0;
-	color += ibl_light(n_ms, normalize(pixel.v_ms), 1.0f);
+	color += ibl_light(n_ms, normalize(pixel.v_ms), g_material_f0, g_material_roughness);
 
-	//const float2 brdf = g_tex_brdf.SampleLevel(g_sampler, pixel.uv, 0.0);
-	
 	ps_output o;
 	o.rt_color0 = float4(color, 1);
 	return o;

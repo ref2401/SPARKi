@@ -11,7 +11,7 @@ SamplerState				g_sampler : register(s0);
 RWTexture2DArray<float4>	g_tex_cubemap : register(u0);
 
 
-[numthreads(16, 16, 1)]
+[numthreads(8, 8, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
 	uint w = 0;
@@ -31,7 +31,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 		const float dot_nl = saturate(dot(dir_ws, l_ws));
 		if (dot_nl > 0) {
-			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, dir_ws, 0).rgb * dot_nl;
+			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, dir_ws, 0).rgb *dot_nl;
 			total_weight += dot_nl;
 		}
 	}

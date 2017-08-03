@@ -176,8 +176,8 @@ void shading_pass::init_geometry()
 		&p_input_layout_.ptr);
 	assert(hr == S_OK);
 
-	geometry_t geometry = read_geo("../../data/geometry/plane.geo");
-	//geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	//geometry_t geometry = read_geo("../../data/geometry/plane.geo");
+	geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
 	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
@@ -248,8 +248,9 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, co
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	ID3D11ShaderResourceView* srv_list[2] = { p_tex_envmap_srv_, p_tex_brdf_srv_ };
-	p_ctx_->PSSetShaderResources(0, 1, srv_list);
+	const UINT srv_count = 2;
+	ID3D11ShaderResourceView* srv_list[srv_count] = { p_tex_envmap_srv_, p_tex_brdf_srv_ };
+	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
 #ifdef SPARKI_DEBUG
@@ -369,16 +370,19 @@ void renderer::init_assets()
 
 	//ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
 	//b.perform("../../data/pisa.hdr",
-	//	"../../data/pisa_skybox.tex", 1024,
+	//	"../../data/pisa_skybox.tex", 512,
 	//	"../../data/pisa_envmap.tex", 256);
 
-	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	bi.perform("../../data/brdf_lut.tex", 512);
+	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
+	//bi.perform("../../data/brdf_lut.tex", 512);
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
-	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
-	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
-	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
+	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_);
+	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_envmap.tex", p_gbuffer_->p_sampler);
+	
+	//p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
+	//p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
+	//p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
@@ -427,12 +431,12 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
-	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
+	//p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
+	//p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// present frame
 	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
-	p_final_pass_->perform(*p_gbuffer_);
+	//p_final_pass_->perform(*p_gbuffer_);
 	p_swap_chain_->Present(0, 0);
 }
 

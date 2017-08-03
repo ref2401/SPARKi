@@ -96,7 +96,7 @@ float g_lambda(float rs, float cos_angle)
 // (SRC): Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs.
 float g_smith_correlated(float dot_nl, float dot_nv, float roughness)
 {
-	const float a2 = roughness * roughness * roughness * roughness;
+	const float a2 = roughness * roughness;
 	const float lambda_l = g_lambda(a2, dot_nl);
 	const float lambda_v = g_lambda(a2, dot_nv);
 	return 1.0f / (1 + lambda_l + lambda_v);
@@ -125,4 +125,9 @@ float3 importance_sample_ggx(float2 xi, float roughness)
 
 	// spherical coords to cartesian coords
 	return float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+}
+
+float roughness_ibl(float roughness)
+{
+	return roughness * roughness * 0.5;
 }
