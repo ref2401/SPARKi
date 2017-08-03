@@ -75,6 +75,15 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 	return (float3)0;
 }
 
+// Computes mipmap level base on the specigied roughness.
+float cube_mipmap_level(float roughness, float mipmap_count)
+{
+	// see UnrealEngine: ComputeCubemapMipFromRoughness
+	if (roughness < 0.001) return 0.0f;
+	const float lvl = 3 - 1.15 * log2(roughness);
+	return mipmap_count - 1 - lvl;
+}
+
 float3 fresnel_schlick(float3 f0, float dot_vn)
 {
 	return f0 + (1 - f0) * pow(1 - dot_vn, 5);

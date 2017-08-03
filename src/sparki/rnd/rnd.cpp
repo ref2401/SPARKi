@@ -366,7 +366,7 @@ void renderer::init_assets()
 	// create cubemap pass
 	// create equrectangular to cubemap pass
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
-	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
+	const hlsl_compute_desc hlsl_filter_envmap("../../data/shaders/specular_envmap.compute.hlsl");
 
 	//ibl_texture_builder b(p_device_, p_ctx_, p_debug_, hlsl_equirect_to_skybox, hlsl_filter_envmap);
 	//b.perform("../../data/pisa.hdr",
@@ -378,7 +378,8 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_envmap.tex", p_gbuffer_->p_sampler);
+	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_diffuse_envmap.tex",
+		"../../data/pisa_specular_envmap.tex", p_gbuffer_->p_sampler);
 	
 	//p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	//p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);

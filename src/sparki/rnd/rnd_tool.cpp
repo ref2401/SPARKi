@@ -52,13 +52,13 @@ brdf_integrator::brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_
 	assert(p_ctx);
 	assert(p_debug);
 
-	hlsl_compute_desc compute_desc("../../data/shaders/brdf_integrator.compute.hlsl");
-	compute_shader_ = hlsl_compute(p_device, compute_desc);
+	hlsl_compute_desc compute_desc("../../data/shaders/specular_brdf_integrator.compute.hlsl");
+	specular_computer_ = hlsl_compute(p_device, compute_desc);
 }
 
-void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
+void brdf_integrator::perform(const char* p_specular_brdf_filename, UINT side_size)
 {
-	assert(p_brdf_lut_filename);
+	assert(p_specular_brdf_filename);
 	assert(side_size >= brdf_integrator::compute_group_x_size);
 
 	D3D11_TEXTURE2D_DESC desc = {};
@@ -78,7 +78,7 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	hr = p_device_->CreateUnorderedAccessView(p_tex, nullptr, &p_tex_uav.ptr);
 	assert(hr == S_OK);
 
-	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetShader(specular_computer_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_uav.ptr, nullptr);
 
 #ifdef SPARKI_DEBUG
@@ -98,7 +98,7 @@ void brdf_integrator::perform(const char* p_brdf_lut_filename, UINT side_size)
 	// write brdf lut to a file
 	{
 		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex);
-		write_tex(p_brdf_lut_filename, td);
+		write_tex(p_specular_brdf_filename, td);
 	}
 }
 
@@ -114,8 +114,8 @@ envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11Dev
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	equirect_to_skybox_compute_ = hlsl_compute(p_device, hlsl_equirect_to_skybox);
 	
-	const hlsl_compute_desc hlsl_prefileter_envmap("../../data/shaders/prefilter_envmap.compute.hlsl");
-	prefilter_envmap_compute_ = hlsl_compute(p_device, hlsl_prefileter_envmap);
+	const hlsl_compute_desc hlsl_specular_envmap("../../data/shaders/specular_envmap.compute.hlsl");
+	specular_envmap_compute_ = hlsl_compute(p_device, hlsl_specular_envmap);
 
 	p_cb_prefilter_envmap_ = constant_buffer(p_device, sizeof(float4));
 }
@@ -189,11 +189,60 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	return p_tex_skybox;
 }
 
-void envmap_texture_builder::perform(const char* p_hdr_filename,
-	const char* p_envmap_filename, ID3D11SamplerState* p_sampler)
+com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
+	ID3D11ShaderResourceView* p_tex_skybox_srv, ID3D11SamplerState* p_sampler)
+{
+	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(
+		envmap_texture_builder::envmap_side_size,
+		envmap_texture_builder::envmap_mipmap_count,
+		D3D11_USAGE_DEFAULT, 
+		D3D11_BIND_UNORDERED_ACCESS);
+
+	// setup compute pipeline & dispatch work
+	p_ctx_->CSSetShader(specular_envmap_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetConstantBuffers(0, 1, &p_cb_prefilter_envmap_.ptr);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_skybox_srv);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler);
+
+	// for each mipmap level
+	for (UINT m = 0; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
+		const float roughness = float(m) / (envmap_texture_builder::envmap_mipmap_count - 1);
+		p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+		desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+		desc.Texture2DArray.MipSlice = m;
+		desc.Texture2DArray.FirstArraySlice = 0;
+		desc.Texture2DArray.ArraySize = 6;
+		com_ptr<ID3D11UnorderedAccessView> p_uav;
+		HRESULT hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, &desc, &p_uav.ptr);
+		assert(hr == S_OK);
+		p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_uav.ptr, nullptr);
+
+#ifdef SPARKI_DEBUG
+		hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+		assert(hr == S_OK);
+#endif
+		const UINT mipmap_size = envmap_texture_builder::envmap_side_size >> m;
+		const UINT gx = (mipmap_size) / envmap_texture_builder::envmap_compute_group_x_size;
+		const UINT gy = (mipmap_size) / envmap_texture_builder::envmap_compute_group_y_size;
+		p_ctx_->Dispatch(gx, gy, 6);
+	}
+
+	// reset uav binding
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+
+	return p_tex_envmap;
+}
+
+void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_diffuse_envmap_filename,
+	const char* p_specular_envmap_filename, ID3D11SamplerState* p_sampler)
 {
 	assert(p_hdr_filename);
-	assert(p_envmap_filename);
+	assert(p_diffuse_envmap_filename);
+	assert(p_specular_envmap_filename);
 	assert(p_sampler);
 
 	// make skybox texture & generate its mips
@@ -202,6 +251,8 @@ void envmap_texture_builder::perform(const char* p_hdr_filename,
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox, nullptr, &p_tex_skybox_srv.ptr);
 	assert(hr == S_OK);
 	p_ctx_->GenerateMips(p_tex_skybox_srv);
+
+	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox_srv, p_sampler);
 }
 
 // ----- ibl_texture_builder -----

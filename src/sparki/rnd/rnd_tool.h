@@ -19,14 +19,14 @@ public:
 	brdf_integrator& operator=(brdf_integrator&&) = delete;
 
 
-	void perform(const char* p_brdf_lut_filename, UINT side_size);
+	void perform(const char* p_specular_brdf_filename, UINT side_size);
 
 private:
 
 	ID3D11Device*			p_device_;
 	ID3D11DeviceContext*	p_ctx_;
 	ID3D11Debug*			p_debug_;
-	hlsl_compute			compute_shader_;
+	hlsl_compute			specular_computer_;
 };
 
 class envmap_texture_builder final {
@@ -38,8 +38,8 @@ public:
 	envmap_texture_builder& operator=(envmap_texture_builder&&) = delete;
 
 
-	void perform(const char* p_hdr_filename, const char* p_envmap_filename,
-		ID3D11SamplerState* p_sampler);
+	void perform(const char* p_hdr_filename, const char* p_diffuse_envmap_filename,
+		const char* p_specular_envmap_filename, ID3D11SamplerState* p_sampler);
 
 private:
 
@@ -49,8 +49,11 @@ private:
 	static constexpr UINT skybox_compute_group_y_size = 2;
 	static constexpr UINT skybox_compute_gx = skybox_side_size / skybox_compute_group_x_size;
 	static constexpr UINT skybox_compute_gy = skybox_side_size / skybox_compute_group_y_size;
-	// envmap
+	// diffuse & specular envmaps
+	static constexpr UINT envmap_side_size = 128;
 	static constexpr UINT envmap_mipmap_count = 5;
+	static constexpr UINT envmap_compute_group_x_size = 8;
+	static constexpr UINT envmap_compute_group_y_size = 8;
 
 
 	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, UINT mipmap_level_count,
@@ -58,12 +61,15 @@ private:
 
 	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename, ID3D11SamplerState* p_sampler);
 
+	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv, 
+		ID3D11SamplerState* p_sampler);
+
 
 	ID3D11Device*				p_device_;
 	ID3D11DeviceContext*		p_ctx_;
 	ID3D11Debug*				p_debug_;
 	hlsl_compute				equirect_to_skybox_compute_;
-	hlsl_compute				prefilter_envmap_compute_;
+	hlsl_compute				specular_envmap_compute_;
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 

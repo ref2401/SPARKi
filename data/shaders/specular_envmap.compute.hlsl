@@ -14,14 +14,16 @@ RWTexture2DArray<float4>	g_tex_cubemap : register(u0);
 [numthreads(8, 8, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
-	uint w = 0;
-	uint h = 0;
-	uint c = 0;
-	g_tex_cubemap.GetDimensions(w, h, c);
-	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, (float)w, (float)h);
-
+	static const float w = 128;				// envmap_texture_builder::envmap_side_size;
+	static const float h = w;
+	static const float mipmap_count = 5;	// envmap_texture_builder::envmap_mipmap_count
 	static const uint sample_count = 1024;
-	float3 filtered_rgb = 0.0f;
+
+	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, w, h);
+	const float lvl = mipmap_count - 3 - 1.15 * log2(g_roughness) - 1;
+	//const float lvl = cube_mipmap_level(g_roughness, mipmap_count);
+
+	/*float3 filtered_rgb = 0.0f;
 	float total_weight = 0.0f;
 
 	for (uint i = 0; i < sample_count; ++i) {
@@ -31,10 +33,11 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 		const float dot_nl = saturate(dot(dir_ws, l_ws));
 		if (dot_nl > 0) {
-			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, dir_ws, 0).rgb *dot_nl;
+			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, dir_ws, lvl).rgb * dot_nl;
 			total_weight += dot_nl;
 		}
-	}
+	}*/
 
-	g_tex_cubemap[dt_id] = float4(filtered_rgb / total_weight, 1.0f);
+	//g_tex_cubemap[dt_id] = float4(filtered_rgb / total_weight, 1.0f);
+	g_tex_cubemap[dt_id] = float4(lvl, lvl, lvl, 1.0f);
 }
