@@ -25,7 +25,8 @@ float2 integrate_brdf(float dot_nv, float roughness)
 
 			const float dot_nh = saturate(h_ts.z);
 			const float dot_vh = saturate(dot(v_ts, h_ts));
-			const float g_vis = (g * dot_vh) / (dot_nh * dot_nv);
+			float g_vis = (g * dot_vh) / (dot_nh * dot_nv);
+			if (isinf(g_vis)) g_vis = 1.0f;
 
 			const float fc = pow(1 - dot_vh, 5);
 			a += (1 - fc) * g_vis;
@@ -39,15 +40,14 @@ float2 integrate_brdf(float dot_nv, float roughness)
 	return float2(a, b);
 }
 
-[numthreads(256, 4, 1)]
+[numthreads(512, 2, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
-	float w = 0;
-	float h = 0;
-	g_tex_brdf.GetDimensions(w, h);
+	static const float side_size = 512; // brdf_integrator::brdf_side_size
 
-	const float dot_nv = (dt_id.x + 1) / w;
-	const float roughness = dt_id.y / h;
+	const float dot_nv = dt_id.x / (side_size - 1);
+	const float roughness = dt_id.y / (side_size - 1);
 
+	//g_tex_brdf[dt_id.xy] = float2(dot_nv, roughness);
 	g_tex_brdf[dt_id.xy] = integrate_brdf(dot_nv, roughness);
 }

@@ -142,7 +142,7 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	texture_data td_brdf;
 	auto load_assets = [&td_envmap, &td_brdf] {
 		td_envmap = read_tex("../../data/pisa_specular_envmap.tex");
-		td_brdf = read_tex("../../data/brdf_lut.tex");
+		td_brdf = read_tex("../../data/specular_brdf.tex");
 	};
 
 	std::atomic_size_t wc;
@@ -368,12 +368,12 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
-	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	//bi.perform("../../data/brdf_lut.tex", 512);
+	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
+	bi.perform("../../data/specular_brdf.tex");
 	
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);

@@ -51,7 +51,7 @@ struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
-float3 ibl_light(float3 n_ms, float3 v_ms, float3 f0, float roughness)
+float3 eval_ibl(float3 n_ms, float3 v_ms, float f0, float roughness)
 {
 	// sample envmap
 	const float3 r_ms = reflect(-v_ms, n_ms);
@@ -61,18 +61,19 @@ float3 ibl_light(float3 n_ms, float3 v_ms, float3 f0, float roughness)
 	const float dot_nv = saturate(dot(n_ms, v_ms));
 	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, roughness));
 
-	return envmap * (f0 * brdf.x + brdf.y);
+	return float3(brdf, 0.0f);
+	//return envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
 {
-	static const float3 g_material_f0 = 0.04f;
+	static const float g_material_f0 = 0.04f;
 	static const float g_material_roughness = 1.0f;
 
 	const float3 n_ms = normalize(pixel.n_ms);
 
 	float3 color = 0;
-	color += ibl_light(n_ms, normalize(pixel.v_ms), g_material_f0, g_material_roughness);
+	color += eval_ibl(n_ms, normalize(pixel.v_ms), g_material_f0, g_material_roughness);
 
 	ps_output o;
 	o.rt_color0 = float4(color, 1);

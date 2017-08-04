@@ -112,9 +112,9 @@ float g_lambda(float rs, float cos_angle)
 
 // Compute shadowing-masking term G(n, l, v, roughness).
 // (SRC): Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs.
-float g_smith_correlated(float dot_nl, float dot_nv, float roughness)
+float g_smith_correlated(float dot_nl, float dot_nv, float a)
 {
-	const float a2 = roughness * roughness;
+	const float a2 = a * a;
 	const float lambda_l = g_lambda(a2, dot_nl);
 	const float lambda_v = g_lambda(a2, dot_nv);
 	return 1.0f / (1 + lambda_l + lambda_v);
