@@ -62,13 +62,12 @@ float3 ibl_light(float3 n_ms, float3 v_ms, float3 f0, float roughness)
 	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, roughness));
 
 	return envmap * (f0 * brdf.x + brdf.y);
-	//return envmap;
 }
 
 ps_output ps_main(vs_output pixel)
 {
-	static const float3 g_material_f0 = 0.7f;
-	static const float g_material_roughness = 0.5f;
+	static const float3 g_material_f0 = 0.04f;
+	static const float g_material_roughness = 1.0f;
 
 	const float3 n_ms = normalize(pixel.n_ms);
 

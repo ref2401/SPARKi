@@ -15,7 +15,8 @@ RWTexture2DArray<float4>	g_tex_cubemap : register(u0);
 [numthreads(8, 8, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
-	static const float mipmap_count = 5;	// envmap_texture_builder::envmap_mipmap_count
+	static const float mipmap_count = 5;		// envmap_texture_builder::envmap_mipmap_count
+	static const float skybox_side_size = 512;	// envmap_texture_builder::skybox_side_size
 	static const uint sample_count = 1024;
 
 	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, g_side_size, g_side_size);
@@ -32,7 +33,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 		const float dot_nl = saturate(dot(dir_ws, l_ws));
 		if (dot_nl > 0) {
-			const float lvl = cube_mipmap_level(g_roughness, pdf, g_side_size, mipmap_count, sample_count);
+			const float lvl = cube_mipmap_level(g_roughness, pdf, skybox_side_size, mipmap_count, sample_count);
 			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, dir_ws, lvl).rgb * dot_nl;
 			total_weight += dot_nl;
 		}

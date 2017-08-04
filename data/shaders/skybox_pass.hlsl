@@ -40,7 +40,7 @@ struct ps_output {
 ps_output ps_main(vs_output pixel)
 {
 	const float3 d = normalize(pixel.position_ms);
-	const float3 hdr = g_tex_cubemap.SampleLevel(g_sampler, d, 0.0f).rgb;
+	const float3 hdr = g_tex_cubemap.SampleLevel(g_sampler, d, 4.0f).rgb;
 
 	ps_output o;
 	o.rt_color_0 = float4(hdr, 1.0f);

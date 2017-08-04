@@ -104,12 +104,14 @@ void brdf_integrator::perform(const char* p_specular_brdf_filename, UINT side_si
 
 // ----- envmap_texture_builder -----
 
-envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
-	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+	ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug), p_sampler_(p_sampler)
 {
 	assert(p_device);
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
+	assert(p_sampler);
 
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	equirect_to_skybox_compute_ = hlsl_compute(p_device, hlsl_equirect_to_skybox);
@@ -143,7 +145,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_cube_texture(UINT side_siz
 	return p_tex;
 }
 
-com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_filename, ID3D11SamplerState* p_sampler)
+com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_filename)
 {
 	// equirect texture
 	com_ptr<ID3D11Texture2D> p_tex_equirect = load_equirect_texture(p_device_, p_hdr_filename);
@@ -171,7 +173,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	// setup compute pipeline & dispatch work
 	p_ctx_->CSSetShader(equirect_to_skybox_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &p_tex_equirect_srv.ptr);
-	p_ctx_->CSSetSamplers(0, 1, &p_sampler);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler_);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_skybox_uav.ptr, nullptr);
 
 #ifdef SPARKI_DEBUG
@@ -190,7 +192,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 }
 
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
-	ID3D11ShaderResourceView* p_tex_skybox_srv, ID3D11SamplerState* p_sampler)
+	ID3D11ShaderResourceView* p_tex_skybox_srv)
 {
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(
 		envmap_texture_builder::envmap_side_size,
@@ -202,13 +204,15 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
 	p_ctx_->CSSetShader(specular_envmap_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetConstantBuffers(0, 1, &p_cb_prefilter_envmap_.ptr);
 	p_ctx_->CSSetShaderResources(0, 1, &p_tex_skybox_srv);
-	p_ctx_->CSSetSamplers(0, 1, &p_sampler);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler_);
 
 	// for each mipmap level
 	for (UINT m = 0; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
-		const float cb_data[2] = {
+		const float cb_data[4] = {
 			/* roughness */ float(m) / (envmap_texture_builder::envmap_mipmap_count - 1),
-			/* side_size */ float(envmap_texture_builder::envmap_side_size >> m)
+			/* side_size */ float(envmap_texture_builder::envmap_side_size >> m),
+			0.0f,
+			0.0f
 		};
 		p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, cb_data, 0, 0);
 
@@ -240,22 +244,33 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
 	return p_tex_envmap;
 }
 
-void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_diffuse_envmap_filename,
-	const char* p_specular_envmap_filename, ID3D11SamplerState* p_sampler)
+void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_skybox_filename,
+	const char* p_diffuse_envmap_filename, const char* p_specular_envmap_filename)
 {
 	assert(p_hdr_filename);
 	assert(p_diffuse_envmap_filename);
 	assert(p_specular_envmap_filename);
-	assert(p_sampler);
 
 	// make skybox texture & generate its mips
-	com_ptr<ID3D11Texture2D> p_tex_skybox = make_skybox(p_hdr_filename, p_sampler);
+	com_ptr<ID3D11Texture2D> p_tex_skybox = make_skybox(p_hdr_filename);
 	com_ptr<ID3D11ShaderResourceView> p_tex_skybox_srv;
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox, nullptr, &p_tex_skybox_srv.ptr);
 	assert(hr == S_OK);
 	p_ctx_->GenerateMips(p_tex_skybox_srv);
 
-	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox_srv, p_sampler);
+	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox_srv);
+
+	// write skybox texture to a file
+	{
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_skybox);
+		write_tex(p_skybox_filename, td);
+	}
+
+	// write envmap texture to a file
+	{
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_specular_envmap);
+		write_tex(p_specular_envmap_filename, td);
+	}
 }
 
 // ----- ibl_texture_builder -----

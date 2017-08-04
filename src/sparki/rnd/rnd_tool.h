@@ -32,14 +32,15 @@ private:
 class envmap_texture_builder final {
 public:
 
-	envmap_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+	envmap_texture_builder(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+		ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler);
 
 	envmap_texture_builder(envmap_texture_builder&&) = delete;
 	envmap_texture_builder& operator=(envmap_texture_builder&&) = delete;
 
 
-	void perform(const char* p_hdr_filename, const char* p_diffuse_envmap_filename,
-		const char* p_specular_envmap_filename, ID3D11SamplerState* p_sampler);
+	void perform(const char* p_hdr_filename, const char* p_skybox_filename,
+		const char* p_diffuse_envmap_filename, const char* p_specular_envmap_filename);
 
 private:
 
@@ -59,15 +60,15 @@ private:
 	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, UINT mipmap_level_count,
 		D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
 
-	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename, ID3D11SamplerState* p_sampler);
+	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename);
 
-	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv, 
-		ID3D11SamplerState* p_sampler);
+	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv);
 
 
 	ID3D11Device*				p_device_;
 	ID3D11DeviceContext*		p_ctx_;
 	ID3D11Debug*				p_debug_;
+	ID3D11SamplerState*			p_sampler_;
 	hlsl_compute				equirect_to_skybox_compute_;
 	hlsl_compute				specular_envmap_compute_;
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;

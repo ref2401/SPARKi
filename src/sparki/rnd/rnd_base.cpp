@@ -267,6 +267,8 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 	desc.Usage = D3D11_USAGE_STAGING;
 	desc.BindFlags = 0;
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.MiscFlags = desc.MiscFlags & (~D3D11_RESOURCE_MISC_GENERATE_MIPS);
+
 	com_ptr<ID3D11Texture2D> p_tex_staging;
 	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex_staging.ptr);
 	assert(hr == S_OK);
@@ -274,6 +276,7 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 
 	// create a texture_data object
 	texture_data td(uint3(desc.Width, desc.Height, desc.ArraySize), desc.MipLevels, rnd::pixel_format(desc.Format));
+	const size_t fmt_byte_count = byte_count(td.format);
 	uint8_t* ptr = td.buffer.data();
 
 	// for each array slice 
@@ -287,17 +290,29 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
 			assert(hr == S_OK);
 
-			// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
-			// that are larger than anticipated because there might be padding between rows and depth.
-			// https://msdn.microsoft.com/en-us/library/windows/desktop/ff476182(v=vs.85).aspx
 			const UINT w = desc.Width >> m;
 			const UINT h = desc.Height >> m;
-			const size_t bc = w * h * byte_count(td.format);
-			assert(bc > 0);
-			assert(map.DepthPitch >= bc);
+			const size_t mip_bc = w * h * fmt_byte_count;
+			assert(mip_bc > 0);
+			assert(mip_bc <= map.DepthPitch);
 
-			std::memcpy(ptr, map.pData, bc);
-			ptr += bc;
+			if (mip_bc == map.DepthPitch) {
+				std::memcpy(ptr, map.pData, mip_bc);
+				ptr += mip_bc;
+			}
+			else {
+				uint8_t* p_src = reinterpret_cast<uint8_t*>(map.pData);
+				const size_t row_bc = w * fmt_byte_count;
+				// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
+				// that are larger than anticipated because there might be padding between rows and depth.
+				// https://msdn.microsoft.com/en-us/library/windows/desktop/ff476182(v=vs.85).aspx
+				for (size_t row = 0; row < h; ++row) {
+					std::memcpy(ptr, p_src, row_bc);
+					p_src += map.RowPitch;
+					ptr += row_bc;
+				}
+			}
+
 			p_ctx->Unmap(p_tex_staging, index);
 		}
 	}
