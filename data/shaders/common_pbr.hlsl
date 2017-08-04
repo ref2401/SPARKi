@@ -76,12 +76,21 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 }
 
 // Computes mipmap level base on the specigied roughness.
-float cube_mipmap_level(float roughness, float mipmap_count)
+float cube_mipmap_level(float roughness, float pdf, float side_size, 
+	float mipmap_count, float sample_count)
 {
-	// see UnrealEngine: ComputeCubemapMipFromRoughness
-	if (roughness < 0.001) return 0.0f;
-	const float lvl = 3 - 1.15 * log2(roughness);
-	return mipmap_count - 1 - lvl;
+	// see Moving Frostbite to Physically Based Rendering 3.0
+	const float omega_s = 1.0 / (sample_count * pdf);
+	const float omega_p = 4.0 * pi / (6.0 * side_size * side_size);
+	return clamp(0.5 * log2(omega_s / omega_p), 0, mipmap_count);
+}
+
+// GGX / Trowbridge-Reitz
+float distribution_ggx(float dot_nh, float roughness)
+{
+	const float a2 = roughness * roughness * roughness * roughness;
+	const float d = (dot_nh * a2 - dot_nh) * dot_nh + 1;
+	return a2 / (pi * d * d);
 }
 
 float3 fresnel_schlick(float3 f0, float dot_vn)
@@ -123,17 +132,24 @@ float2 hammersley(uint index, uint count)
 	return float2(float(index) / float(count), van_der_corpus);
 }
 
-float3 importance_sample_ggx(float2 xi, float roughness)
+// Returns: xyz - half vector, w - pdf
+float4 importance_sample_ggx(float2 xi, float roughness)
 {
-	const float a = roughness * roughness;
+	// see Physically-Based Shading at Disney
+	// a = roughness * roughness
+	const float a2 = roughness * roughness * roughness * roughness;
 
 	// spherical coords
 	const float phi = 2.0 * pi * xi.x;
-	const float cos_theta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
+	const float cos_theta = sqrt((1.0 - xi.y) / (1.0 + (a2 - 1.0) * xi.y));
 	const float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
-
 	// spherical coords to cartesian coords
-	return float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+	const float3 h = float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+
+	const float d = (cos_theta * a2 - cos_theta) * cos_theta + 1;
+	const float ggx = a2 / (pi * d * d);
+
+	return float4(h, ggx * cos_theta);
 }
 
 float roughness_ibl(float roughness)

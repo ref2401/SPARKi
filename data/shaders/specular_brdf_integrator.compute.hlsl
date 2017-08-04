@@ -15,7 +15,7 @@ float2 integrate_brdf(float dot_nv, float roughness)
 
 	for (uint i = 0; i < sample_count; ++i) {
 		const float2 xi = hammersley(i, sample_count);
-		const float3 h_ts = importance_sample_ggx(xi, roughness);
+		const float3 h_ts = importance_sample_ggx(xi, roughness).xyz;
 		const float3 l_ts = 2 * dot(v_ts, h_ts) * h_ts - v_ts;
 
 		const float dot_nl = saturate(l_ts.z);

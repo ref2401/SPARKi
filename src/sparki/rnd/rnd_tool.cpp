@@ -206,8 +206,11 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
 
 	// for each mipmap level
 	for (UINT m = 0; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
-		const float roughness = float(m) / (envmap_texture_builder::envmap_mipmap_count - 1);
-		p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, &roughness, 0, 0);
+		const float cb_data[2] = {
+			/* roughness */ float(m) / (envmap_texture_builder::envmap_mipmap_count - 1),
+			/* side_size */ float(envmap_texture_builder::envmap_side_size >> m)
+		};
+		p_ctx_->UpdateSubresource(p_cb_prefilter_envmap_, 0, nullptr, cb_data, 0, 0);
 
 		D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
 		desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
