@@ -47,6 +47,7 @@ private:
 
 	// skybox
 	static constexpr UINT skybox_side_size = 512;
+	static constexpr UINT skybox_mipmap_count = 10;
 	static constexpr UINT skybox_compute_group_x_size = 512;
 	static constexpr UINT skybox_compute_group_y_size = 2;
 	static constexpr UINT skybox_compute_gx = skybox_side_size / skybox_compute_group_x_size;

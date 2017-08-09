@@ -48,6 +48,5 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float dot_nv = dt_id.x / (side_size - 1);
 	const float roughness = dt_id.y / (side_size - 1);
 
-	//g_tex_brdf[dt_id.xy] = float2(dot_nv, roughness);
 	g_tex_brdf[dt_id.xy] = integrate_brdf(dot_nv, roughness);
 }

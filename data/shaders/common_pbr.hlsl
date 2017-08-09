@@ -129,14 +129,14 @@ float2 hammersley(uint index, uint count)
 	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
 	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
 	const float van_der_corpus = float(bits) * 2.3283064365386963e-10;
+	
 	return float2(float(index) / float(count), van_der_corpus);
 }
 
 // Returns: xyz - half vector, w - pdf
 float4 importance_sample_ggx(float2 xi, float roughness)
 {
-	// see Physically-Based Shading at Disney
-	// a = roughness * roughness
+	// see Physically-Based Shading at Disney: a = roughness * roughness
 	const float a2 = roughness * roughness * roughness * roughness;
 
 	// spherical coords

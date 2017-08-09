@@ -155,7 +155,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	// skybox texture & uav
 	com_ptr<ID3D11Texture2D> p_tex_skybox = make_cube_texture(
 		envmap_texture_builder::skybox_side_size, 
-		envmap_texture_builder::envmap_mipmap_count,
+		envmap_texture_builder::skybox_mipmap_count,
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET | D3D11_BIND_UNORDERED_ACCESS,
 		D3D11_RESOURCE_MISC_GENERATE_MIPS);

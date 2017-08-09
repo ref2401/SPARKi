@@ -55,19 +55,19 @@ float3 eval_ibl(float3 n_ms, float3 v_ms, float f0, float roughness)
 {
 	// sample envmap
 	const float3 r_ms = reflect(-v_ms, n_ms);
-	const float lod_level = roughness * 5.0f; // roughness * (envmap_mipmap_level_count::envmap_mipmap_level_count - 1)
-	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, r_ms, lod_level).rgb;
+	const float lvl = roughness * 4.0f; // roughness * (envmap_mipmap_level_count::envmap_mipmap_level_count - 1)
+	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, r_ms, lvl).rgb;
 	// sample brdf lut
 	const float dot_nv = saturate(dot(n_ms, v_ms));
 	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, roughness));
 
-	return float3(brdf, 0.0f);
-	//return envmap * (f0 * brdf.x + brdf.y);
+	return envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
 {
-	static const float g_material_f0 = 0.04f;
+	//static const float g_material_f0 = 0.04f;
+	static const float g_material_f0 = 0.5f;
 	static const float g_material_roughness = 1.0f;
 
 	const float3 n_ms = normalize(pixel.n_ms);
