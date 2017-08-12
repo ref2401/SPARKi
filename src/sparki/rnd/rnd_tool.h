@@ -9,7 +9,6 @@ namespace rnd {
 class brdf_integrator final {
 public:
 
-
 	brdf_integrator(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
 
 	brdf_integrator(brdf_integrator&&) = delete;

@@ -22,7 +22,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float lvl = (skybox_mipmap_count - 1) * g_roughness;
 	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, g_side_size, g_side_size);
 
-	float3 filtered_rgb = (float3)0.0f;
+	float3 filtered_rgb = 0.0f;
 	float total_weight = 0.0f;
 
 	for (uint i = 0; i < sample_count; ++i) {

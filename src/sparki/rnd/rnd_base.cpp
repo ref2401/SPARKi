@@ -284,7 +284,7 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 	// map p_tex_tmp[array_slice][mipmap_level] and copy its' contents into the texture_data object.
 	for (UINT a = 0; a < desc.ArraySize; ++a) {
 		for (UINT m = 0; m < desc.MipLevels; ++m) {
-			const UINT index = a * desc.MipLevels + m;
+			const UINT index = D3D11CalcSubresource(m, a, desc.MipLevels);
 			
 			D3D11_MAPPED_SUBRESOURCE map;
 			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);

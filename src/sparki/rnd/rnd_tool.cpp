@@ -261,7 +261,24 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 
 	// write skybox texture to a file
 	{
-		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_skybox);
+		// create skybox texture (single mip level) and 
+		D3D11_TEXTURE2D_DESC tmp_desc;
+		p_tex_skybox->GetDesc(&tmp_desc);
+		tmp_desc.MipLevels = 1;
+		tmp_desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE; 
+		com_ptr<ID3D11Texture2D> p_tex_skybox_tmp;
+		hr = p_device_->CreateTexture2D(&tmp_desc, nullptr, &p_tex_skybox_tmp.ptr);
+		assert(hr == S_OK);
+		
+		// copy mip #0 from &p_tex_skybox to p_tex_skybox_tmp
+		const D3D11_BOX box = { 0, 0, 0, tmp_desc.Width, tmp_desc.Height, 1 };
+		for (UINT a = 0; a < tmp_desc.ArraySize; ++a) {
+			const UINT index = D3D11CalcSubresource(0, a, envmap_texture_builder::skybox_mipmap_count);
+			p_ctx_->CopySubresourceRegion(p_tex_skybox_tmp, a, 0, 0, 0, p_tex_skybox, index, &box);
+		}
+
+		// save p_tex_skybox_tmp to a file
+		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_skybox_tmp);
 		write_tex(p_skybox_filename, td);
 	}
 
