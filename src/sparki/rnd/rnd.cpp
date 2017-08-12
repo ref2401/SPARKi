@@ -222,17 +222,14 @@ void shading_pass::init_textures(const texture_data& td_envmap, const texture_da
 
 void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& camera_position)
 {
-	const float4x4 model_matrix = scale_matrix<float4x4>(float3(0.3f));
+	const float4x4 model_matrix = scale_matrix<float4x4>(float3(1.0f));
 	const float4x4 normal_matrix = float4x4::identity;
-	const float4x4 pvm_matrix = pv_matrix * model_matrix;
-	const float4 camera_position_ms = mul(inverse(model_matrix), camera_position);
 
 	float cb_data[shading_pass::cb_component_count];
-	to_array_column_major_order(pvm_matrix, cb_data);
+	to_array_column_major_order(pv_matrix, cb_data);
 	to_array_column_major_order(model_matrix, cb_data + 16);
 	to_array_column_major_order(normal_matrix, cb_data + 32);
-	std::memcpy(cb_data + 48, &camera_position_ms.x, sizeof(float4));
-	std::memcpy(cb_data + 52, &camera_position.x, sizeof(float3));
+	std::memcpy(cb_data + 48, &camera_position.x, sizeof(float3));
 	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
 
 	// input layout
@@ -368,9 +365,9 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
 	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	//bi.perform("../../data/specular_brdf.tex");
