@@ -1,3 +1,11 @@
+#include "common.hlsl"
+#include "common_pbr.hlsl"
+
+// NOTE(ref2401): material props are temporary here.
+//static const float g_material_f0 = 0.04f;
+static const float g_material_f0 = 0.5f;
+static const float g_material_linear_roughness = 1.0f;
+
 // ----- vertex shader ------
 
 cbuffer cb_vertex_shader : register(b0) {
@@ -5,6 +13,7 @@ cbuffer cb_vertex_shader : register(b0) {
 	float4x4 g_model_matrix		: packoffset(c4);
 	float4x4 g_normal_matrix	: packoffset(c8);
 	float3 g_view_position_ws	: packoffset(c12.x);
+	float3 g_view_position_ms	: packoffset(c13.x);
 };
 
 struct vertex {
@@ -15,9 +24,10 @@ struct vertex {
 };
 
 struct vs_output {
-	float4 position_cs	: SV_Position;
-	float3 v_ts			: PIXEL_V_TS;
-	float2 uv			: PIXEL_UV;
+	float4 position_cs			: SV_Position;
+	float3 specular_cube_dir	: PIXEL_SPECULAR_CUBE_DIR;
+	float3 v_ts					: PIXEL_V_TS;
+	float2 uv					: PIXEL_UV;
 };
 
 vs_output vs_main(vertex vertex)
@@ -33,9 +43,11 @@ vs_output vs_main(vertex vertex)
 	const float3 v_ws = (g_view_position_ws - p_ws);
 
 	vs_output o;
-	o.position_cs	= mul(g_pv_matrix, float4(p_ws, 1.0));
-	o.v_ts			= mul(world_to_tangent, v_ws).xyz;
-	o.uv			= vertex.uv;
+	o.position_cs		= mul(g_pv_matrix, float4(p_ws, 1.0));
+	o.specular_cube_dir	= specular_dominant_dir(vertex.normal_ms, vertex.position_ms, 
+												g_view_position_ms, g_material_linear_roughness);
+	o.v_ts				= mul(world_to_tangent, v_ws);
+	o.uv				= vertex.uv;
 
 	return o;
 }
@@ -51,30 +63,22 @@ struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
-float3 eval_ibl(float3 n_ts, float3 v_ts, float f0, float roughness)
+float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float f0, float linear_roughness)
 {
-	// sample envmap
-	const float3 r_ts = reflect(-v_ts, n_ts);
-	const float lvl = roughness * 4.0f; // roughness * (envmap_mipmap_level_count::envmap_mipmap_level_count - 1)
-	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, r_ts, lvl).rgb;
-	// sample brdf lut
-	const float dot_nv = saturate(dot(n_ts, v_ts));
-	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, roughness));
-
+	const float lvl = sqrt(linear_roughness) * 4.0f; // 4.0 == (envmap_texture_builder::envmap_mipmap_count - 1)
+	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
+	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, linear_roughness));
 	return envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
 {
-	//static const float g_material_f0 = 0.04f;
-	static const float g_material_f0 = 0.5f;
-	static const float g_material_roughness = 1.0f;
-
-	const float3 n_ts = float3(0, 0, 1);
+	const float3 n_ts = float3(0, 0, 1); // sample normal from a normal map.
 	const float3 v_ts = normalize(pixel.v_ts);
+	const float dot_nv = saturate(dot(n_ts, v_ts));
 
 	float3 color = 0;
-	color += eval_ibl(n_ts, v_ts, g_material_f0, g_material_roughness);
+	color += eval_ibl(normalize(pixel.specular_cube_dir), dot_nv, g_material_f0, g_material_linear_roughness);
 
 	ps_output o;
 	o.rt_color0 = float4(color, 1);

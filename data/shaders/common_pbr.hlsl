@@ -112,9 +112,9 @@ float g_lambda(float rs, float cos_angle)
 
 // Compute shadowing-masking term G(n, l, v, roughness).
 // (SRC): Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs.
-float g_smith_correlated(float dot_nl, float dot_nv, float a)
+float g_smith_correlated(float dot_nl, float dot_nv, float linear_roughness)
 {
-	const float a2 = a * a;
+	const float a2 = linear_roughness * linear_roughness;
 	const float lambda_l = g_lambda(a2, dot_nl);
 	const float lambda_v = g_lambda(a2, dot_nv);
 	return 1.0f / (1 + lambda_l + lambda_v);
@@ -134,10 +134,10 @@ float2 hammersley(uint index, uint count)
 }
 
 // Returns: xyz - half vector, w - pdf
-float4 importance_sample_ggx(float2 xi, float roughness)
+float4 importance_sample_ggx(float2 xi, float linear_roughness)
 {
-	// see Physically-Based Shading at Disney: a = roughness * roughness
-	const float a2 = roughness * roughness * roughness * roughness;
+	// see Physically-Based Shading at Disney: a = linear_roughness * linear_roughness
+	const float a2 = linear_roughness * linear_roughness * linear_roughness * linear_roughness;
 
 	// spherical coords
 	const float phi = 2.0 * pi * xi.x;
@@ -152,9 +152,21 @@ float4 importance_sample_ggx(float2 xi, float roughness)
 	return float4(h, ggx * cos_theta);
 }
 
-float roughness_ibl(float roughness)
+float roughness_ibl(float linear_roughness)
 {
-	return roughness * roughness * 0.5;
+	return linear_roughness * linear_roughness * 0.5;
 }
 
-//float3 specular_dominant_dir(float3 n, float)
+float3 specular_dominant_dir(float3 n_ms, float3 position_ms, float3 view_position_ms, float linear_roughness)
+{
+	// see Moving Frostbite to Physically Based Rendering 3.0
+
+	// lerp factor
+	const float s = saturate(1 - linear_roughness);
+	const float factor = s * (sqrt(s) + linear_roughness);
+	// reflected view vector
+	const float3 v_ms = normalize(position_ms - view_position_ms); // direction is reversed by purpose.
+	const float3 r_ms = reflect(v_ms, n_ms);
+
+	return lerp(n_ms, r_ms, factor);
+}
