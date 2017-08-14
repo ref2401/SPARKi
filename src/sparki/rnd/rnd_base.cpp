@@ -214,7 +214,7 @@ sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
 	}
 }
 
-com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& td, 
+com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data& td, 
 	D3D11_USAGE usage, UINT bind_flags)
 {
 	assert(p_device);
@@ -230,7 +230,6 @@ com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& t
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = usage;
 	desc.BindFlags = bind_flags;
-	if (td.size.z == 6) desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
 	const size_t fmt_byte_count = byte_count(td.format);
 	const uint8_t* ptr = td.buffer.data();
@@ -252,6 +251,163 @@ com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& t
 	com_ptr<ID3D11Texture2D> p_tex;
 	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
 	assert(hr == S_OK);
+	return p_tex;
+}
+
+com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_new& td,
+	D3D11_USAGE usage, UINT bind_flags)
+{
+	assert(p_device);
+	assert(td.type == texture_type::texture_2d);
+	assert(is_valid_texture_data(td));
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = td.size.x;
+	desc.Height = td.size.y;
+	desc.MipLevels = td.mipmap_count;
+	desc.ArraySize = td.array_size;
+	desc.Format = dxgi_format(td.format);
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bind_flags;
+
+	const size_t fmt_byte_count = byte_count(td.format);
+	const uint8_t* ptr = td.buffer.data();
+	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
+
+	for (UINT a = 0; a < desc.ArraySize; ++a) {
+		for (UINT m = 0; m < desc.MipLevels; ++m) {
+			const UINT w = desc.Width >> m;
+			const UINT h = desc.Height >> m;
+			const UINT index = a * desc.MipLevels + m;
+
+			data_list[index].pSysMem = ptr;
+			data_list[index].SysMemPitch = UINT(w * fmt_byte_count);
+			data_list[index].SysMemSlicePitch = 0;
+			ptr += w * h * fmt_byte_count;
+		}
+	}
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
+	assert(hr == S_OK);
+	return p_tex;
+}
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data& td,
+	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags)
+{
+	assert(p_device);
+	assert(is_valid_texture_data(td));
+	assert(td.size.z == 6);
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = td.size.x;
+	desc.Height = td.size.y;
+	desc.MipLevels = td.mipmap_level_count;
+	desc.ArraySize = td.size.z;
+	desc.Format = dxgi_format(td.format);
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bind_flags;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	if (misc_flags != 0)
+		desc.MiscFlags |= misc_flags;
+
+	const size_t fmt_byte_count = byte_count(td.format);
+	const uint8_t* ptr = td.buffer.data();
+	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
+
+	for (UINT a = 0; a < desc.ArraySize; ++a) {
+		for (UINT m = 0; m < desc.MipLevels; ++m) {
+			const UINT w = desc.Width >> m;
+			const UINT h = desc.Height >> m;
+			const UINT index = a * desc.MipLevels + m;
+
+			data_list[index].pSysMem = ptr;
+			data_list[index].SysMemPitch = UINT(w * fmt_byte_count);
+			data_list[index].SysMemSlicePitch = 0;
+			ptr += w * h * fmt_byte_count;
+		}
+	}
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
+	assert(hr == S_OK);
+	return p_tex;
+}
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data_new& td,
+	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags)
+{
+	assert(p_device);
+	assert(td.type == texture_type::texture_cube);
+	assert(td.array_size == 6);
+	assert(is_valid_texture_data(td));
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = td.size.x;
+	desc.Height = td.size.y;
+	desc.MipLevels = td.mipmap_count;
+	desc.ArraySize = td.array_size;
+	desc.Format = dxgi_format(td.format);
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bind_flags;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	if (misc_flags != 0)
+		desc.MiscFlags |= misc_flags;
+
+	const size_t fmt_byte_count = byte_count(td.format);
+	const uint8_t* ptr = td.buffer.data();
+	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
+
+	for (UINT a = 0; a < desc.ArraySize; ++a) {
+		for (UINT m = 0; m < desc.MipLevels; ++m) {
+			const UINT w = desc.Width >> m;
+			const UINT h = desc.Height >> m;
+			const UINT index = a * desc.MipLevels + m;
+
+			data_list[index].pSysMem = ptr;
+			data_list[index].SysMemPitch = UINT(w * fmt_byte_count);
+			data_list[index].SysMemSlicePitch = 0;
+			ptr += w * h * fmt_byte_count;
+		}
+	}
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
+	assert(hr == S_OK);
+	return p_tex;
+}
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
+	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags)
+{
+	assert(p_device);
+	assert(side_size > 0);
+	assert(mipmap_count > 0);
+
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = desc.Height = side_size;
+	desc.MipLevels = mipmap_count;
+	desc.ArraySize = 6;
+	desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = usage;
+	desc.BindFlags = bing_flags;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	if (misc_flags != 0)
+		desc.MiscFlags |= misc_flags;
+
+	com_ptr<ID3D11Texture2D> p_tex;
+	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex.ptr);
+	assert(hr == S_OK);
+
 	return p_tex;
 }
 
@@ -286,6 +442,80 @@ texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ct
 		for (UINT m = 0; m < desc.MipLevels; ++m) {
 			const UINT index = D3D11CalcSubresource(m, a, desc.MipLevels);
 			
+			D3D11_MAPPED_SUBRESOURCE map;
+			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
+			assert(hr == S_OK);
+
+			const UINT w = desc.Width >> m;
+			const UINT h = desc.Height >> m;
+			const size_t mip_bc = w * h * fmt_byte_count;
+			assert(mip_bc > 0);
+			assert(mip_bc <= map.DepthPitch);
+
+			if (mip_bc == map.DepthPitch) {
+				std::memcpy(ptr, map.pData, mip_bc);
+				ptr += mip_bc;
+			}
+			else {
+				uint8_t* p_src = reinterpret_cast<uint8_t*>(map.pData);
+				const size_t row_bc = w * fmt_byte_count;
+				// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
+				// that are larger than anticipated because there might be padding between rows and depth.
+				// https://msdn.microsoft.com/en-us/library/windows/desktop/ff476182(v=vs.85).aspx
+				for (size_t row = 0; row < h; ++row) {
+					std::memcpy(ptr, p_src, row_bc);
+					p_src += map.RowPitch;
+					ptr += row_bc;
+				}
+			}
+
+			p_ctx->Unmap(p_tex_staging, index);
+		}
+	}
+
+	return td;
+}
+
+texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+	texture_type type, ID3D11Texture2D* p_tex)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(type != texture_type::unknown);
+	assert(p_tex);
+
+	// create a staging texture & fill it with p_tex data.
+	D3D11_TEXTURE2D_DESC desc;
+	p_tex->GetDesc(&desc);
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.MiscFlags = desc.MiscFlags & (~D3D11_RESOURCE_MISC_GENERATE_MIPS);
+
+	com_ptr<ID3D11Texture2D> p_tex_staging;
+	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex_staging.ptr);
+	assert(hr == S_OK);
+	p_ctx->CopyResource(p_tex_staging, p_tex);
+
+
+#ifdef SPARKI_DEBUG
+	if (type == texture_type::texture_cube) assert(desc.ArraySize == 6);
+#endif // SPAKIR_DEBUG
+
+	// create a texture_data object
+	texture_data_new td(type, uint3(desc.Width, desc.Height, 1), 
+		desc.MipLevels, desc.ArraySize, rnd::pixel_format(desc.Format));
+	
+	const size_t fmt_byte_count = byte_count(td.format);
+	uint8_t* ptr = td.buffer.data();
+
+	// for each array slice 
+	// for each mipmap level of the slice
+	// map p_tex_tmp[array_slice][mipmap_level] and copy its' contents into the texture_data object.
+	for (UINT a = 0; a < desc.ArraySize; ++a) {
+		for (UINT m = 0; m < desc.MipLevels; ++m) {
+			const UINT index = D3D11CalcSubresource(m, a, desc.MipLevels);
+
 			D3D11_MAPPED_SUBRESOURCE map;
 			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
 			assert(hr == S_OK);

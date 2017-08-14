@@ -204,11 +204,26 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 // Creates an unitialized a constant buffer object.
 com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count);
 
-com_ptr<ID3D11Texture2D> texture2d(ID3D11Device* p_device, const texture_data& td, 
+com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data& td, 
 	D3D11_USAGE usage, UINT bind_flags);
+
+com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_new& td,
+	D3D11_USAGE usage, UINT bind_flags);
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data& td,
+	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags = 0);
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data_new& td,
+	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags = 0);
+
+com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
+	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
 
 // Returns texture_data object which stores all the array slices of the specified texture.
 texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex);
+
+texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+	texture_type type, ID3D11Texture2D* p_tex);
 
 sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept;
 

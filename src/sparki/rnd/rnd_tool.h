@@ -58,9 +58,6 @@ private:
 	static constexpr UINT envmap_compute_group_y_size = 8;
 
 
-	com_ptr<ID3D11Texture2D> make_cube_texture(UINT side_size, UINT mipmap_level_count,
-		D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
-
 	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename);
 
 	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv);

@@ -85,7 +85,7 @@ private:
 
 	void init_pipeline_state();
 
-	void init_textures(const texture_data& td_envmap, const texture_data& td_brdf);
+	void init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf);
 
 
 	ID3D11Device*						p_device_;

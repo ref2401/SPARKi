@@ -138,11 +138,11 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	texture_data td_envmap;
-	texture_data td_brdf;
+	texture_data_new td_envmap;
+	texture_data_new td_brdf;
 	auto load_assets = [&td_envmap, &td_brdf] {
-		td_envmap = read_tex("../../data/pisa_specular_envmap.tex");
-		td_brdf = read_tex("../../data/specular_brdf.tex");
+		td_envmap = load_from_file("../../data/pisa_specular_envmap.tex");
+		td_brdf = load_from_file("../../data/specular_brdf.tex");
 	};
 
 	std::atomic_size_t wc;
@@ -209,13 +209,13 @@ void shading_pass::init_pipeline_state()
 	assert(hr == S_OK);
 }
 
-void shading_pass::init_textures(const texture_data& td_envmap, const texture_data& td_brdf)
+void shading_pass::init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf)
 {
-	p_tex_envmap_ = texture2d(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_envmap_ = texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_envmap_, nullptr, &p_tex_envmap_srv_.ptr);
 	assert(hr == S_OK);
 
-	p_tex_brdf_ = texture2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_brdf_ = texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	hr = p_device_->CreateShaderResourceView(p_tex_brdf_, nullptr, &p_tex_brdf_srv_.ptr);
 	assert(hr == S_OK);
 }
@@ -305,8 +305,8 @@ void skybox_pass::init_pipeline_state()
 
 void skybox_pass::init_skybox_texture()
 {
-	const texture_data td = read_tex("../../data/pisa_skybox.tex");
-	p_tex_skybox_ = texture2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	const texture_data_new td = load_from_file("../../data/pisa_skybox.tex");
+	p_tex_skybox_ = texture_cube(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
 }
@@ -368,12 +368,12 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
-	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	//bi.perform("../../data/specular_brdf.tex");
+	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
+	bi.perform("../../data/specular_brdf.tex");
 	
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);

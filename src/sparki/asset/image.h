@@ -7,7 +7,7 @@
 namespace sparki {
 
 // Describes pixel's channels and their size. 
-enum class pixel_format :unsigned char {
+enum class pixel_format : unsigned char {
 	none = 0,
 
 	rg_16f,
@@ -21,6 +21,12 @@ enum class pixel_format :unsigned char {
 	rg_8,
 	rgb_8,
 	rgba_8
+};
+
+enum class texture_type : unsigned char {
+	unknown = 0,
+	texture_2d,
+	texture_cube
 };
 
 class image_2d final {
@@ -82,6 +88,20 @@ private:
 	sparki::pixel_format	pixel_format_ = pixel_format::none;
 };
 
+struct texture_data_new final {
+	texture_data_new() noexcept = default;
+
+	texture_data_new(texture_type type, const math::uint3& size, uint32_t mipmap_count,
+		uint32_t array_size, pixel_format fmt);
+
+	texture_type 			type = texture_type::unknown;
+	math::uint3				size;
+	uint32_t				mipmap_count = 0;
+	uint32_t				array_size = 0;
+	pixel_format			format = pixel_format::none;
+	std::vector<uint8_t> 	buffer;
+};
+
 struct texture_data final {
 
 	texture_data() noexcept = default;
@@ -103,13 +123,25 @@ size_t byte_count(pixel_format fmt) noexcept;
 // and with the specified number of mipmap levels.
 size_t byte_count(const math::uint3& size, uint32_t mipmap_level_count, pixel_format fmt) noexcept;
 
+size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_count, 
+	uint32_t array_size, pixel_format fmt) noexcept;
+
 bool is_valid_texture_data(const texture_data& td) noexcept;
+
+bool is_valid_texture_data(const texture_data_new& td) noexcept;
+
+// Reads texture data from the specified file.
+// The file may be .tex, .jpg, .png, .hdr
+texture_data_new load_from_file(const char* p_filename);
 
 // Reads texture data from the specified .tex file.
 texture_data read_tex(const char* p_filename);
 
 // Writes texture into the specified .tex file.
 void write_tex(const char* p_filename, const texture_data& td);
+
+// Writes texture into the specified .tex file.
+void save_to_file(const char* p_filename, const texture_data_new& td);
 
 } // namespace sparki
 

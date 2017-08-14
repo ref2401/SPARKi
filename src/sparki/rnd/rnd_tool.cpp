@@ -96,8 +96,8 @@ void brdf_integrator::perform(const char* p_specular_brdf_filename)
 
 	// write brdf lut to a file
 	{
-		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex);
-		write_tex(p_specular_brdf_filename, td);
+		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, texture_type::texture_2d, p_tex);
+		save_to_file(p_specular_brdf_filename, td);
 	}
 }
 
@@ -121,29 +121,6 @@ envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11Dev
 	p_cb_prefilter_envmap_ = constant_buffer(p_device, sizeof(float4));
 }
 
-com_ptr<ID3D11Texture2D> envmap_texture_builder::make_cube_texture(UINT side_size,
-	UINT mipmap_level_count, D3D11_USAGE usage, UINT bing_flags, UINT misc_flags)
-{
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = desc.Height = side_size;
-	desc.MipLevels = mipmap_level_count;
-	desc.ArraySize = 6;
-	desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = usage;
-	desc.BindFlags = bing_flags;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-	if (misc_flags != 0)
-		desc.MiscFlags |= misc_flags;
-
-	com_ptr<ID3D11Texture2D> p_tex;
-	HRESULT hr = p_device_->CreateTexture2D(&desc, nullptr, &p_tex.ptr);
-	assert(hr == S_OK);
-
-	return p_tex;
-}
-
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_filename)
 {
 	// equirect texture
@@ -153,7 +130,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	assert(hr == S_OK);
 
 	// skybox texture & uav
-	com_ptr<ID3D11Texture2D> p_tex_skybox = make_cube_texture(
+	com_ptr<ID3D11Texture2D> p_tex_skybox = texture_cube(p_device_,
 		envmap_texture_builder::skybox_side_size, 
 		envmap_texture_builder::skybox_mipmap_count,
 		D3D11_USAGE_DEFAULT, 
@@ -193,7 +170,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
 	ID3D11ShaderResourceView* p_tex_skybox_srv)
 {
-	com_ptr<ID3D11Texture2D> p_tex_envmap = make_cube_texture(
+	com_ptr<ID3D11Texture2D> p_tex_envmap = texture_cube(p_device_,
 		envmap_texture_builder::envmap_side_size,
 		envmap_texture_builder::envmap_mipmap_count,
 		D3D11_USAGE_DEFAULT, 
@@ -278,14 +255,16 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 		}
 
 		// save p_tex_skybox_tmp to a file
-		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_skybox_tmp);
-		write_tex(p_skybox_filename, td);
+		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, 
+			texture_type::texture_cube, p_tex_skybox_tmp);
+		save_to_file(p_skybox_filename, td);
 	}
 
 	// write envmap texture to a file
 	{
-		const texture_data td = make_texture_data(p_device_, p_ctx_, p_tex_specular_envmap);
-		write_tex(p_specular_envmap_filename, td);
+		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, 
+			texture_type::texture_cube, p_tex_specular_envmap);
+		save_to_file(p_specular_envmap_filename, td);
 	}
 }
 
