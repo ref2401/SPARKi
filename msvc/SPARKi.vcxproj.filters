@@ -36,7 +36,7 @@
     <ClCompile Include="..\src\sparki\asset\geometry.cpp">
       <Filter>asset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\asset\image.cpp">
+    <ClCompile Include="..\src\sparki\asset\texture.cpp">
       <Filter>asset</Filter>
     </ClCompile>
   </ItemGroup>
@@ -64,7 +64,7 @@
     <ClInclude Include="..\src\sparki\asset\geometry.h">
       <Filter>asset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\asset\image.h">
+    <ClInclude Include="..\src\sparki\asset\texture.h">
       <Filter>asset</Filter>
     </ClInclude>
   </ItemGroup>

@@ -196,36 +196,28 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 	return com_ptr.ptr != nullptr;
 }
 
-DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept;
-
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
 
 // Creates an unitialized a constant buffer object.
-com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count);
+com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, size_t byte_count);
 
-com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data& td, 
+DXGI_FORMAT make_dxgi_format(sparki::pixel_format fmt) noexcept;
+
+sparki::pixel_format make_pixel_format(DXGI_FORMAT fmt) noexcept;
+
+com_ptr<ID3D11Texture2D> make_texture_2d(ID3D11Device* p_device, const texture_data_new& td,
 	D3D11_USAGE usage, UINT bind_flags);
 
-com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_new& td,
-	D3D11_USAGE usage, UINT bind_flags);
-
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data& td,
+com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture_data_new& td,
 	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags = 0);
 
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data_new& td,
-	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags = 0);
-
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
+com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
 	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
 
 // Returns texture_data object which stores all the array slices of the specified texture.
-texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex);
-
 texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
 	texture_type type, ID3D11Texture2D* p_tex);
-
-sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept;
 
 } // namespace rnd
 } // namespace sparki

@@ -152,7 +152,7 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
 	init_geometry(); // shader_ must be initialized
-	p_cb_vertex_shader_ = constant_buffer(p_device_, shading_pass::cb_byte_count);
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
 
 	ts::wait_for(wc);
 	init_textures(td_envmap, td_brdf);
@@ -177,7 +177,7 @@ void shading_pass::init_geometry()
 	assert(hr == S_OK);
 
 	//geometry_t geometry = read_geo("../../data/geometry/plane.geo");
-	geometry_t geometry = read_geo("../../data/geometry/sphere.geo");
+	geometry_t geometry = read_from_geo_file("../../data/geometry/sphere.geo");
 	//geometry_t geometry = read_geo("../../data/geometry/suzanne.geo");
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.ByteWidth = UINT(byte_count(geometry.vertices));
@@ -211,11 +211,11 @@ void shading_pass::init_pipeline_state()
 
 void shading_pass::init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf)
 {
-	p_tex_envmap_ = texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_envmap_ = make_texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_envmap_, nullptr, &p_tex_envmap_srv_.ptr);
 	assert(hr == S_OK);
 
-	p_tex_brdf_ = texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_brdf_ = make_texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	hr = p_device_->CreateShaderResourceView(p_tex_brdf_, nullptr, &p_tex_brdf_srv_.ptr);
 	assert(hr == S_OK);
 }
@@ -279,7 +279,7 @@ skybox_pass::skybox_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3
 	ts::run(load_assets, wc);
 
 	init_pipeline_state();
-	p_cb_vertex_shader_ = constant_buffer(p_device_, sizeof(float4x4));
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, sizeof(float4x4));
 
 	ts::wait_for(wc);
 	shader_ = hlsl_shader(p_device_, shader_desc);
@@ -306,7 +306,7 @@ void skybox_pass::init_pipeline_state()
 void skybox_pass::init_skybox_texture()
 {
 	const texture_data_new td = load_from_tex_file("../../data/pisa_skybox.tex");
-	p_tex_skybox_ = texture_cube(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_skybox_ = make_texture_cube(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
 }
@@ -315,7 +315,9 @@ void skybox_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, con
 {
 	// update pvm matrix
 	const float4x4 pvm_matrix = pv_matrix * translation_matrix(position);
-	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, &pvm_matrix.m00, 0, 0);
+	float data[16];
+	to_array_column_major_order(pvm_matrix, data);
+	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, data, 0, 0);
 
 	// input layout
 	p_ctx_->IASetInputLayout(nullptr);
@@ -368,12 +370,12 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
-	brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	bi.perform("../../data/specular_brdf.tex");
+	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
+	//bi.perform("../../data/specular_brdf.tex");
 	
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);

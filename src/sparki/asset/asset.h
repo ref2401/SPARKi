@@ -2,7 +2,7 @@
 
 #include "sparki/utility.h"
 #include "sparki/asset/geometry.h"
-#include "sparki/asset/image.h"
+#include "sparki/asset/texture.h"
 
 
 namespace sparki {

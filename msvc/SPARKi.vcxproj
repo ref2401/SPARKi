@@ -135,7 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\sparki\asset\asset.cpp" />
-    <ClCompile Include="..\src\sparki\asset\image.cpp" />
+    <ClCompile Include="..\src\sparki\asset\texture.cpp" />
     <ClCompile Include="..\src\sparki\asset\geometry.cpp" />
     <ClCompile Include="..\src\sparki\game.cpp" />
     <ClCompile Include="..\src\sparki\main.cpp" />
@@ -149,7 +149,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\sparki\asset\asset.h" />
     <ClInclude Include="..\src\sparki\asset\geometry.h" />
-    <ClInclude Include="..\src\sparki\asset\image.h" />
+    <ClInclude Include="..\src\sparki\asset\texture.h" />
     <ClInclude Include="..\src\sparki\game.h" />
     <ClInclude Include="..\src\sparki\platform\input.h" />
     <ClInclude Include="..\src\sparki\platform\platform.h" />

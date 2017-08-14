@@ -135,24 +135,6 @@ void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_de
 
 // ----- funcs -----
 
-DXGI_FORMAT dxgi_format(sparki::pixel_format fmt) noexcept
-{
-	assert(fmt != sparki::pixel_format::rgb_8);
-
-	switch (fmt) {
-		default: 
-		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
-		case sparki::pixel_format::rg_16f:		return DXGI_FORMAT_R16G16_FLOAT;
-		case sparki::pixel_format::rgba_16f:	return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case sparki::pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
-		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
-		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case sparki::pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
-		case sparki::pixel_format::rg_8:		return DXGI_FORMAT_R8G8_UNORM;
-		case sparki::pixel_format::rgba_8:		return DXGI_FORMAT_R8G8B8A8_UNORM;
-	}
-}
-
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model)
 {
@@ -181,7 +163,7 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 	return p_bytecode;
 }
 
-com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count)
+com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, size_t byte_count)
 {
 	assert(p_device);
 	assert(byte_count > 0);
@@ -198,7 +180,25 @@ com_ptr<ID3D11Buffer> constant_buffer(ID3D11Device* p_device, size_t byte_count)
 	return buffer;
 }
 
-sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
+DXGI_FORMAT make_dxgi_format(sparki::pixel_format fmt) noexcept
+{
+	assert(fmt != sparki::pixel_format::rgb_8);
+
+	switch (fmt) {
+		default:
+		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
+		case sparki::pixel_format::rg_16f:		return DXGI_FORMAT_R16G16_FLOAT;
+		case sparki::pixel_format::rgba_16f:	return DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case sparki::pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
+		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
+		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
+		case sparki::pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
+		case sparki::pixel_format::rg_8:		return DXGI_FORMAT_R8G8_UNORM;
+		case sparki::pixel_format::rgba_8:		return DXGI_FORMAT_R8G8B8A8_UNORM;
+	}
+}
+
+sparki::pixel_format make_pixel_format(DXGI_FORMAT fmt) noexcept
 {
 	switch (fmt) {
 		default:								return sparki::pixel_format::none;
@@ -214,47 +214,7 @@ sparki::pixel_format pixel_format(DXGI_FORMAT fmt) noexcept
 	}
 }
 
-com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data& td, 
-	D3D11_USAGE usage, UINT bind_flags)
-{
-	assert(p_device);
-	assert(is_valid_texture_data(td));
-
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = td.size.x;
-	desc.Height = td.size.y;
-	desc.MipLevels = td.mipmap_level_count;
-	desc.ArraySize = td.size.z;
-	desc.Format = dxgi_format(td.format);
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = usage;
-	desc.BindFlags = bind_flags;
-
-	const size_t fmt_byte_count = byte_count(td.format);
-	const uint8_t* ptr = td.buffer.data();
-	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
-
-	for (UINT a = 0; a < desc.ArraySize; ++a) {
-		for (UINT m = 0; m < desc.MipLevels; ++m) {			
-			const UINT w = desc.Width >> m;
-			const UINT h = desc.Height >> m;
-			const UINT index = a * desc.MipLevels + m;
-
-			data_list[index].pSysMem = ptr;
-			data_list[index].SysMemPitch = UINT(w * fmt_byte_count);
-			data_list[index].SysMemSlicePitch = 0;
-			ptr += w * h * fmt_byte_count;
-		}
-	}
-
-	com_ptr<ID3D11Texture2D> p_tex;
-	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
-	assert(hr == S_OK);
-	return p_tex;
-}
-
-com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_new& td,
+com_ptr<ID3D11Texture2D> make_texture_2d(ID3D11Device* p_device, const texture_data_new& td,
 	D3D11_USAGE usage, UINT bind_flags)
 {
 	assert(p_device);
@@ -266,7 +226,7 @@ com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_n
 	desc.Height = td.size.y;
 	desc.MipLevels = td.mipmap_count;
 	desc.ArraySize = td.array_size;
-	desc.Format = dxgi_format(td.format);
+	desc.Format = make_dxgi_format(td.format);
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = usage;
@@ -295,51 +255,7 @@ com_ptr<ID3D11Texture2D> texture_2d(ID3D11Device* p_device, const texture_data_n
 	return p_tex;
 }
 
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data& td,
-	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags)
-{
-	assert(p_device);
-	assert(is_valid_texture_data(td));
-	assert(td.size.z == 6);
-
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = td.size.x;
-	desc.Height = td.size.y;
-	desc.MipLevels = td.mipmap_level_count;
-	desc.ArraySize = td.size.z;
-	desc.Format = dxgi_format(td.format);
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = usage;
-	desc.BindFlags = bind_flags;
-	desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-	if (misc_flags != 0)
-		desc.MiscFlags |= misc_flags;
-
-	const size_t fmt_byte_count = byte_count(td.format);
-	const uint8_t* ptr = td.buffer.data();
-	std::vector<D3D11_SUBRESOURCE_DATA> data_list(desc.ArraySize * desc.MipLevels);
-
-	for (UINT a = 0; a < desc.ArraySize; ++a) {
-		for (UINT m = 0; m < desc.MipLevels; ++m) {
-			const UINT w = desc.Width >> m;
-			const UINT h = desc.Height >> m;
-			const UINT index = a * desc.MipLevels + m;
-
-			data_list[index].pSysMem = ptr;
-			data_list[index].SysMemPitch = UINT(w * fmt_byte_count);
-			data_list[index].SysMemSlicePitch = 0;
-			ptr += w * h * fmt_byte_count;
-		}
-	}
-
-	com_ptr<ID3D11Texture2D> p_tex;
-	HRESULT hr = p_device->CreateTexture2D(&desc, data_list.data(), &p_tex.ptr);
-	assert(hr == S_OK);
-	return p_tex;
-}
-
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data_new& td,
+com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture_data_new& td,
 	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags)
 {
 	assert(p_device);
@@ -352,7 +268,7 @@ com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data
 	desc.Height = td.size.y;
 	desc.MipLevels = td.mipmap_count;
 	desc.ArraySize = td.array_size;
-	desc.Format = dxgi_format(td.format);
+	desc.Format = make_dxgi_format(td.format);
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = usage;
@@ -384,7 +300,7 @@ com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, const texture_data
 	return p_tex;
 }
 
-com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
+com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
 	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags)
 {
 	assert(p_device);
@@ -409,71 +325,6 @@ com_ptr<ID3D11Texture2D> texture_cube(ID3D11Device* p_device, UINT side_size, UI
 	assert(hr == S_OK);
 
 	return p_tex;
-}
-
-texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Texture2D* p_tex)
-{
-	assert(p_device);
-	assert(p_ctx);
-	assert(p_tex);
-
-	// create a staging texture & fill it with p_tex data.
-	D3D11_TEXTURE2D_DESC desc;
-	p_tex->GetDesc(&desc);
-	desc.Usage = D3D11_USAGE_STAGING;
-	desc.BindFlags = 0;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	desc.MiscFlags = desc.MiscFlags & (~D3D11_RESOURCE_MISC_GENERATE_MIPS);
-
-	com_ptr<ID3D11Texture2D> p_tex_staging;
-	HRESULT hr = p_device->CreateTexture2D(&desc, nullptr, &p_tex_staging.ptr);
-	assert(hr == S_OK);
-	p_ctx->CopyResource(p_tex_staging, p_tex);
-
-	// create a texture_data object
-	texture_data td(uint3(desc.Width, desc.Height, desc.ArraySize), desc.MipLevels, rnd::pixel_format(desc.Format));
-	const size_t fmt_byte_count = byte_count(td.format);
-	uint8_t* ptr = td.buffer.data();
-
-	// for each array slice 
-	// for each mipmap level of the slice
-	// map p_tex_tmp[array_slice][mipmap_level] and copy its' contents into the texture_data object.
-	for (UINT a = 0; a < desc.ArraySize; ++a) {
-		for (UINT m = 0; m < desc.MipLevels; ++m) {
-			const UINT index = D3D11CalcSubresource(m, a, desc.MipLevels);
-			
-			D3D11_MAPPED_SUBRESOURCE map;
-			hr = p_ctx->Map(p_tex_staging, index, D3D11_MAP_READ, 0, &map);
-			assert(hr == S_OK);
-
-			const UINT w = desc.Width >> m;
-			const UINT h = desc.Height >> m;
-			const size_t mip_bc = w * h * fmt_byte_count;
-			assert(mip_bc > 0);
-			assert(mip_bc <= map.DepthPitch);
-
-			if (mip_bc == map.DepthPitch) {
-				std::memcpy(ptr, map.pData, mip_bc);
-				ptr += mip_bc;
-			}
-			else {
-				uint8_t* p_src = reinterpret_cast<uint8_t*>(map.pData);
-				const size_t row_bc = w * fmt_byte_count;
-				// Note(MSDN): The runtime might assign values to RowPitch and DepthPitch 
-				// that are larger than anticipated because there might be padding between rows and depth.
-				// https://msdn.microsoft.com/en-us/library/windows/desktop/ff476182(v=vs.85).aspx
-				for (size_t row = 0; row < h; ++row) {
-					std::memcpy(ptr, p_src, row_bc);
-					p_src += map.RowPitch;
-					ptr += row_bc;
-				}
-			}
-
-			p_ctx->Unmap(p_tex_staging, index);
-		}
-	}
-
-	return td;
 }
 
 texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
@@ -504,7 +355,7 @@ texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceConte
 
 	// create a texture_data object
 	texture_data_new td(type, uint3(desc.Width, desc.Height, 1), 
-		desc.MipLevels, desc.ArraySize, rnd::pixel_format(desc.Format));
+		desc.MipLevels, desc.ArraySize, make_pixel_format(desc.Format));
 	
 	const size_t fmt_byte_count = byte_count(td.format);
 	uint8_t* ptr = td.buffer.data();

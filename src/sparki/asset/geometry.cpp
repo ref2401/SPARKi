@@ -113,15 +113,15 @@ void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 	assert(p_desc_filename);
 
 	try {
-		auto mesh_geometry = read_fbx(p_fbx_filename);
-		write_geo(p_desc_filename, mesh_geometry);
+		auto mesh_geometry = load_from_fbx_file(p_fbx_filename);
+		save_to_geo_file(p_desc_filename, mesh_geometry);
 	}
 	catch (...) {
 		std::throw_with_nested(std::runtime_error("Convert .fbx to .geo error."));
 	}
 }
 
-mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
+mesh_geometry<vertex_attribs::p_n_uv_ts> load_from_fbx_file(const char* filename)
 {
 	using mesh_geometry_t = mesh_geometry<vertex_attribs::p_n_uv_ts>;
 
@@ -189,7 +189,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_fbx(const char* filename)
 	}
 }
 
-mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* p_filename)
+mesh_geometry<vertex_attribs::p_n_uv_ts> read_from_geo_file(const char* p_filename)
 {
 	assert(p_filename);
 
@@ -215,7 +215,7 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_geo(const char* p_filename)
 	}
 }
 
-void write_geo(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
+void save_to_geo_file(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh)
 {
 	assert(p_filename);
 	assert((mesh.vertices.size() > 0) && (mesh.indices.size() > 0));
