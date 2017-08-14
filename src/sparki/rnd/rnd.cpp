@@ -141,8 +141,8 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	texture_data_new td_envmap;
 	texture_data_new td_brdf;
 	auto load_assets = [&td_envmap, &td_brdf] {
-		td_envmap = load_from_file("../../data/pisa_specular_envmap.tex");
-		td_brdf = load_from_file("../../data/specular_brdf.tex");
+		td_envmap = load_from_tex_file("../../data/pisa_specular_envmap.tex");
+		td_brdf = load_from_tex_file("../../data/specular_brdf.tex");
 	};
 
 	std::atomic_size_t wc;
@@ -305,7 +305,7 @@ void skybox_pass::init_pipeline_state()
 
 void skybox_pass::init_skybox_texture()
 {
-	const texture_data_new td = load_from_file("../../data/pisa_skybox.tex");
+	const texture_data_new td = load_from_tex_file("../../data/pisa_skybox.tex");
 	p_tex_skybox_ = texture_cube(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);

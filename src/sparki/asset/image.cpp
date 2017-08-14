@@ -16,39 +16,6 @@
 #pragma warning(push)
 #pragma warning(disable:4996) // C4996 'fopen': This function or variable may be unsafe.
 
-namespace {
-
-using namespace sparki;
-
-texture_data_new load_from_tex_file(const char* p_filename)
-{
-	assert(p_filename);
-
-	std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "rb"), &std::fclose);
-	ENFORCE(file, "Failed to open file ", p_filename);
-
-	// header
-	texture_type	type = texture_type::unknown;
-	math::uint3		size;
-	uint32_t		mipmap_count = 0;
-	uint32_t		array_size = 0;
-	pixel_format format = pixel_format::none;
-
-	std::fread(&type, sizeof(texture_type), 1, file.get());
-	std::fread(&size.x, sizeof(math::uint3), 1, file.get());
-	std::fread(&mipmap_count, sizeof(uint32_t), 1, file.get());
-	std::fread(&array_size, sizeof(uint32_t), 1, file.get());
-	std::fread(&format, sizeof(pixel_format), 1, file.get());
-	// texture data
-	texture_data_new td(type, size, mipmap_count, array_size, format);
-	std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
-
-	return td;
-}
-
-} // namespace
-
-
 namespace sparki {
 
 // ----- image_2d -----
@@ -266,10 +233,76 @@ bool is_valid_texture_data(const texture_data_new& td) noexcept
 	return (byte_count(td.buffer) == expected_bc);
 }
 
-texture_data_new load_from_file(const char* p_filename)
+texture_data_new load_from_image_file(const char* p_filename, uint8_t channel_count, bool flip_vertically)
+{	
+	struct stb_image final {
+		stb_image() noexcept = default;
+		~stb_image() noexcept { stbi_image_free(p_data); p_data = nullptr;  }
+
+		uint8_t* p_data = nullptr;
+	};
+
+	// load stb image from the file
+	stbi_set_flip_vertically_on_load(flip_vertically);
+
+	stb_image img;
+	int width = 0;
+	int height = 0;
+	int actual_channel_count = 0;
+	const bool is_hdr = stbi_is_hdr(p_filename);
+
+	if (is_hdr)
+		img.p_data = reinterpret_cast<uint8_t*>(stbi_loadf(p_filename, &width, &height, &actual_channel_count, channel_count));
+	else
+		img.p_data = stbi_load(p_filename, &width, &height, &actual_channel_count, channel_count);
+
+	if (!img.p_data) {
+		const char* p_stb_error = stbi_failure_reason();
+		throw std::runtime_error(EXCEPTION_MSG("Loading ", p_filename, " image error. ", p_stb_error));
+	}
+
+	// determine the pixel format
+	pixel_format format = pixel_format::none;
+	const uint8_t cc = (channel_count) ? channel_count : uint8_t(actual_channel_count);
+	switch (cc) {
+		case 1: format = pixel_format::red_8; break;
+		case 2: format = pixel_format::rg_8; break;
+		case 3: format = (is_hdr) ? (pixel_format::rgb_32f) : (pixel_format::rgb_8); break;
+		case 4: format = (is_hdr) ? (pixel_format::rgba_32f) : (pixel_format::rgba_8); break;
+	}
+
+	// create texture data object and fill it with image's contents.
+	texture_data_new td(texture_type::texture_2d, math::uint3(width, height, 1), 1, 1, format);
+	std::memcpy(td.buffer.data(), img.p_data, byte_count(td.buffer));
+
+	return td;
+}
+
+texture_data_new load_from_tex_file(const char* p_filename)
 {
+	assert(p_filename);
+
 	try {
-		return load_from_tex_file(p_filename);
+		std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(p_filename, "rb"), &std::fclose);
+		ENFORCE(file, "Failed to open file ", p_filename);
+
+		// header
+		texture_type	type = texture_type::unknown;
+		math::uint3		size;
+		uint32_t		mipmap_count = 0;
+		uint32_t		array_size = 0;
+		pixel_format	format = pixel_format::none;
+
+		std::fread(&type, sizeof(texture_type), 1, file.get());
+		std::fread(&size.x, sizeof(math::uint3), 1, file.get());
+		std::fread(&mipmap_count, sizeof(uint32_t), 1, file.get());
+		std::fread(&array_size, sizeof(uint32_t), 1, file.get());
+		std::fread(&format, sizeof(pixel_format), 1, file.get());
+		// texture data
+		texture_data_new td(type, size, mipmap_count, array_size, format);
+		std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
+
+		return td;
 	} 
 	catch (...) {
 		std::string exc_msg = EXCEPTION_MSG("Load .tex data error. File: ", p_filename);

@@ -131,8 +131,13 @@ bool is_valid_texture_data(const texture_data& td) noexcept;
 bool is_valid_texture_data(const texture_data_new& td) noexcept;
 
 // Reads texture data from the specified file.
-// The file may be .tex, .jpg, .png, .hdr
-texture_data_new load_from_file(const char* p_filename);
+// The file may be .jpg, .png, .hdr
+texture_data_new load_from_image_file(const char* p_filename, uint8_t channel_count, 
+	bool flip_vertically = false);
+
+// Reads texture data from the specified file.
+// The file may be .tex
+texture_data_new load_from_tex_file(const char* p_filename);
 
 // Reads texture data from the specified .tex file.
 texture_data read_tex(const char* p_filename);

@@ -3,43 +3,6 @@
 #include <cassert>
 
 
-namespace {
-
-using namespace sparki;
-using namespace sparki::rnd;
-
-com_ptr<ID3D11Texture2D> load_equirect_texture(ID3D11Device* p_device, const char* p_filename)
-{
-	assert(p_device);
-	assert(p_filename);
-
-	const image_2d img = image_2d(p_filename, 4);
-
-	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = UINT(img.width());
-	desc.Height = UINT(img.height());
-	desc.MipLevels = 1;
-	desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	desc.SampleDesc.Count = 1;
-	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_IMMUTABLE;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-	D3D11_SUBRESOURCE_DATA data = {};
-	data.pSysMem = img.p_data();
-	data.SysMemPitch = UINT(img.width() * byte_count(img.pixel_format()));
-
-	com_ptr<ID3D11Texture2D> p_tex;
-	HRESULT hr = p_device->CreateTexture2D(&desc, &data, &p_tex.ptr);
-	assert(hr == S_OK);
-
-	return p_tex;
-}
-
-} // namespace
-
-
 namespace sparki {
 namespace rnd {
 
@@ -124,7 +87,8 @@ envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11Dev
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_filename)
 {
 	// equirect texture
-	com_ptr<ID3D11Texture2D> p_tex_equirect = load_equirect_texture(p_device_, p_hdr_filename);
+	const texture_data_new td = load_from_image_file(p_hdr_filename, 4);
+	com_ptr<ID3D11Texture2D> p_tex_equirect = texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	com_ptr<ID3D11ShaderResourceView> p_tex_equirect_srv;
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_equirect, nullptr, &p_tex_equirect_srv.ptr);
 	assert(hr == S_OK);
