@@ -211,12 +211,12 @@ void shading_pass::init_pipeline_state()
 
 void shading_pass::init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf)
 {
-	p_tex_envmap_ = make_texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_envmap_, nullptr, &p_tex_envmap_srv_.ptr);
+	p_tex_specular_envmap_ = make_texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_specular_envmap_, nullptr, &p_tex_specular_envmap_srv_.ptr);
 	assert(hr == S_OK);
 
-	p_tex_brdf_ = make_texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	hr = p_device_->CreateShaderResourceView(p_tex_brdf_, nullptr, &p_tex_brdf_srv_.ptr);
+	p_tex_specular_brdf_ = make_texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	hr = p_device_->CreateShaderResourceView(p_tex_specular_brdf_, nullptr, &p_tex_specular_brdf_srv_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -249,7 +249,7 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, co
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
 	const UINT srv_count = 2;
-	ID3D11ShaderResourceView* srv_list[srv_count] = { p_tex_envmap_srv_, p_tex_brdf_srv_ };
+	ID3D11ShaderResourceView* srv_list[srv_count] = { p_tex_specular_envmap_srv_, p_tex_specular_brdf_srv_ };
 	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 

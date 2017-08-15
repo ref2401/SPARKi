@@ -80,7 +80,7 @@ float distribution_ggx(float dot_nh, float linear_roughness)
 {
 	const float a2 = linear_roughness * linear_roughness * linear_roughness * linear_roughness;
 	const float d = (dot_nh * a2 - dot_nh) * dot_nh + 1;
-	return a2 / (pi * d * d);
+	return a2 / (c_pi * d * d);
 }
 
 float3 fresnel_schlick(float3 f0, float dot_vn)
@@ -130,14 +130,14 @@ float4 importance_sample_ggx(float2 xi, float linear_roughness)
 	const float a2 = linear_roughness * linear_roughness * linear_roughness * linear_roughness;
 
 	// spherical coords
-	const float phi = 2.0 * pi * xi.x;
+	const float phi = c_2pi * xi.x;
 	const float cos_theta = sqrt((1.0 - xi.y) / (1.0 + (a2 - 1.0) * xi.y));
 	const float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
 	// spherical coords to cartesian coords
 	const float3 h = float3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
 
 	const float d = (cos_theta * a2 - cos_theta) * cos_theta + 1;
-	const float ggx = a2 / (pi * d * d);
+	const float ggx = a2 / (c_pi * d * d);
 
 	return float4(h, ggx * cos_theta);
 }

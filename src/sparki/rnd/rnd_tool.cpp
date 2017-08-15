@@ -100,6 +100,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	com_ptr<ID3D11Texture2D> p_tex_skybox = make_texture_cube(p_device_,
 		envmap_texture_builder::skybox_side_size, 
 		envmap_texture_builder::skybox_mipmap_count,
+		DXGI_FORMAT_R16G16B16A16_FLOAT,
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET | D3D11_BIND_UNORDERED_ACCESS,
 		D3D11_RESOURCE_MISC_GENERATE_MIPS);
@@ -140,6 +141,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_diffuse_envmap(ID3D11Shade
 
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_texture_cube(p_device_,
 		envmap_texture_builder::diffuse_envmap_side_size, 1,
+		DXGI_FORMAT_R16G16B16A16_FLOAT,
 		D3D11_USAGE_DEFAULT,
 		D3D11_BIND_UNORDERED_ACCESS);
 	com_ptr<ID3D11UnorderedAccessView> p_tex_envmap_uav;
@@ -176,6 +178,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Text
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_texture_cube(p_device_,
 		envmap_texture_builder::specular_envmap_side_size,
 		envmap_texture_builder::specular_envmap_mipmap_count,
+		DXGI_FORMAT_R16G16B16A16_FLOAT,
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_UNORDERED_ACCESS);
 

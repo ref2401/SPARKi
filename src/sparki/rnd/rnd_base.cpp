@@ -301,7 +301,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture
 }
 
 com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
-	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags)
+	DXGI_FORMAT format, D3D11_USAGE usage, UINT bing_flags, UINT misc_flags)
 {
 	assert(p_device);
 	assert(side_size > 0);
@@ -311,7 +311,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_siz
 	desc.Width = desc.Height = side_size;
 	desc.MipLevels = mipmap_count;
 	desc.ArraySize = 6;
-	desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	desc.Format = format;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
 	desc.Usage = usage;

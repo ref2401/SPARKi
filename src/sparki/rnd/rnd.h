@@ -94,10 +94,10 @@ private:
 	hlsl_shader							shader_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
-	com_ptr<ID3D11Texture2D>			p_tex_envmap_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_envmap_srv_;
-	com_ptr<ID3D11Texture2D>			p_tex_brdf_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_brdf_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_specular_envmap_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_specular_envmap_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_specular_brdf_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_specular_brdf_srv_;
 	// temporary
 	UINT								vertex_stride_;
 	UINT								index_count_;

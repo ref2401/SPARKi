@@ -1,4 +1,7 @@
-static const float pi = 3.14159265358979;
+static const float c_pi = 3.14159265358979;
+static const float c_pi_2 = c_pi / 2.0f;
+static const float c_2pi = 2.0f * c_pi;
+static const float c_1_pi = 1.0f / c_pi;
 
 
 float3x3 tangent_to_world_matrix(float3 oz)

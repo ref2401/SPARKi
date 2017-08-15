@@ -213,7 +213,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture
 	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags = 0);
 
 com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_size, UINT mipmap_count,
-	D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
+	DXGI_FORMAT format, D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
 
 // Returns texture_data object which stores all the array slices of the specified texture.
 texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
