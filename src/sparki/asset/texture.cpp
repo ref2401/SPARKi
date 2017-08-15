@@ -20,7 +20,7 @@ namespace sparki {
 
 // ----- texture_data -----
 
-texture_data_new::texture_data_new(texture_type type, const math::uint3& size, 
+texture_data::texture_data(texture_type type, const math::uint3& size, 
 	uint32_t mipmap_count, uint32_t array_size, pixel_format fmt)
 	: type(type), size(size), mipmap_count(mipmap_count), array_size(array_size), format(fmt)
 {
@@ -80,7 +80,7 @@ size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_co
 		: array_slice_bytes * array_size;
 }
 
-bool is_valid_texture_data(const texture_data_new& td) noexcept
+bool is_valid_texture_data(const texture_data& td) noexcept
 {
 	assert(td.size.z == 1); // the case z > 1 has not been implemented yet.
 
@@ -106,7 +106,7 @@ bool is_valid_texture_data(const texture_data_new& td) noexcept
 	return (byte_count(td.buffer) == expected_bc);
 }
 
-texture_data_new load_from_image_file(const char* p_filename, uint8_t channel_count, bool flip_vertically)
+texture_data load_from_image_file(const char* p_filename, uint8_t channel_count, bool flip_vertically)
 {	
 	struct stb_image final {
 		stb_image() noexcept = default;
@@ -145,13 +145,13 @@ texture_data_new load_from_image_file(const char* p_filename, uint8_t channel_co
 	}
 
 	// create texture data object and fill it with image's contents.
-	texture_data_new td(texture_type::texture_2d, math::uint3(width, height, 1), 1, 1, format);
+	texture_data td(texture_type::texture_2d, math::uint3(width, height, 1), 1, 1, format);
 	std::memcpy(td.buffer.data(), img.p_data, byte_count(td.buffer));
 
 	return td;
 }
 
-texture_data_new load_from_tex_file(const char* p_filename)
+texture_data load_from_tex_file(const char* p_filename)
 {
 	assert(p_filename);
 
@@ -172,7 +172,7 @@ texture_data_new load_from_tex_file(const char* p_filename)
 		std::fread(&array_size, sizeof(uint32_t), 1, file.get());
 		std::fread(&format, sizeof(pixel_format), 1, file.get());
 		// texture data
-		texture_data_new td(type, size, mipmap_count, array_size, format);
+		texture_data td(type, size, mipmap_count, array_size, format);
 		std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
 
 		return td;
@@ -183,7 +183,7 @@ texture_data_new load_from_tex_file(const char* p_filename)
 	}
 }
 
-void save_to_tex_file(const char* p_filename, const texture_data_new& td)
+void save_to_tex_file(const char* p_filename, const texture_data& td)
 {
 	assert(p_filename);
 	assert(is_valid_texture_data(td));

@@ -214,7 +214,7 @@ sparki::pixel_format make_pixel_format(DXGI_FORMAT fmt) noexcept
 	}
 }
 
-com_ptr<ID3D11Texture2D> make_texture_2d(ID3D11Device* p_device, const texture_data_new& td,
+com_ptr<ID3D11Texture2D> make_texture_2d(ID3D11Device* p_device, const texture_data& td,
 	D3D11_USAGE usage, UINT bind_flags)
 {
 	assert(p_device);
@@ -255,7 +255,7 @@ com_ptr<ID3D11Texture2D> make_texture_2d(ID3D11Device* p_device, const texture_d
 	return p_tex;
 }
 
-com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture_data_new& td,
+com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, const texture_data& td,
 	D3D11_USAGE usage, UINT bind_flags, UINT misc_flags)
 {
 	assert(p_device);
@@ -327,7 +327,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_siz
 	return p_tex;
 }
 
-texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+texture_data make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
 	texture_type type, ID3D11Texture2D* p_tex)
 {
 	assert(p_device);
@@ -354,7 +354,7 @@ texture_data_new make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceConte
 #endif // SPAKIR_DEBUG
 
 	// create a texture_data object
-	texture_data_new td(type, uint3(desc.Width, desc.Height, 1), 
+	texture_data td(type, uint3(desc.Width, desc.Height, 1), 
 		desc.MipLevels, desc.ArraySize, make_pixel_format(desc.Format));
 	
 	const size_t fmt_byte_count = byte_count(td.format);

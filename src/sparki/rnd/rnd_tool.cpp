@@ -59,7 +59,7 @@ void brdf_integrator::perform(const char* p_specular_brdf_filename)
 
 	// write brdf lut to a file
 	{
-		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, texture_type::texture_2d, p_tex);
+		const texture_data td = make_texture_data_new(p_device_, p_ctx_, texture_type::texture_2d, p_tex);
 		save_to_tex_file(p_specular_brdf_filename, td);
 	}
 }
@@ -90,7 +90,7 @@ envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11Dev
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_filename)
 {
 	// equirect texture
-	const texture_data_new td = load_from_image_file(p_hdr_filename, 4);
+	const texture_data td = load_from_image_file(p_hdr_filename, 4);
 	com_ptr<ID3D11Texture2D> p_tex_equirect = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	com_ptr<ID3D11ShaderResourceView> p_tex_equirect_srv;
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_equirect, nullptr, &p_tex_equirect_srv.ptr);
@@ -274,21 +274,21 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 		}
 
 		// save p_tex_skybox_tmp to a file
-		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, 
+		const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
 			texture_type::texture_cube, p_tex_skybox_tmp);
 		save_to_tex_file(p_skybox_filename, td);
 	}
 
 	// write diffuse envmap to a file
 	{
-		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_,
+		const texture_data td = make_texture_data_new(p_device_, p_ctx_,
 			texture_type::texture_cube, p_tex_diffuse_envmap);
 		save_to_tex_file(p_diffuse_envmap_filename, td);
 	}
 
 	// write specular envmap to a file
 	{
-		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, 
+		const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
 			texture_type::texture_cube, p_tex_specular_envmap);
 		save_to_tex_file(p_specular_envmap_filename, td);
 	}

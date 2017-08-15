@@ -138,11 +138,13 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	texture_data_new td_envmap;
-	texture_data_new td_brdf;
-	auto load_assets = [&td_envmap, &td_brdf] {
-		td_envmap = load_from_tex_file("../../data/pisa_specular_envmap.tex");
-		td_brdf = load_from_tex_file("../../data/specular_brdf.tex");
+	texture_data td_diffuse_envmap;
+	texture_data td_specular_envmap;
+	texture_data td_specular_brdf;
+	auto load_assets = [&td_diffuse_envmap, &td_specular_envmap, &td_specular_brdf] {
+		td_diffuse_envmap = load_from_tex_file("../../data/pisa_diffuse_envmap.tex");
+		td_specular_envmap = load_from_tex_file("../../data/pisa_specular_envmap.tex");
+		td_specular_brdf = load_from_tex_file("../../data/specular_brdf.tex");
 	};
 
 	std::atomic_size_t wc;
@@ -155,7 +157,7 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
 
 	ts::wait_for(wc);
-	init_textures(td_envmap, td_brdf);
+	init_textures(td_diffuse_envmap, td_specular_envmap, td_specular_brdf);
 }
 
 void shading_pass::init_geometry()
@@ -209,13 +211,18 @@ void shading_pass::init_pipeline_state()
 	assert(hr == S_OK);
 }
 
-void shading_pass::init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf)
+void shading_pass::init_textures(const texture_data& td_diffuse_envmap, 
+	const texture_data& td_specular_envmap, const texture_data& td_specular_brdf)
 {
-	p_tex_specular_envmap_ = make_texture_cube(p_device_, td_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_specular_envmap_, nullptr, &p_tex_specular_envmap_srv_.ptr);
+	p_tex_diffuse_envmap_ = make_texture_cube(p_device_, td_diffuse_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_diffuse_envmap_, nullptr, &p_tex_diffuse_envmap_srv_.ptr);
 	assert(hr == S_OK);
 
-	p_tex_specular_brdf_ = make_texture_2d(p_device_, td_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_specular_envmap_ = make_texture_cube(p_device_, td_specular_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	hr = p_device_->CreateShaderResourceView(p_tex_specular_envmap_, nullptr, &p_tex_specular_envmap_srv_.ptr);
+	assert(hr == S_OK);
+
+	p_tex_specular_brdf_ = make_texture_2d(p_device_, td_specular_brdf, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	hr = p_device_->CreateShaderResourceView(p_tex_specular_brdf_, nullptr, &p_tex_specular_brdf_srv_.ptr);
 	assert(hr == S_OK);
 }
@@ -248,8 +255,12 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, co
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	const UINT srv_count = 2;
-	ID3D11ShaderResourceView* srv_list[srv_count] = { p_tex_specular_envmap_srv_, p_tex_specular_brdf_srv_ };
+	constexpr UINT srv_count = 3;
+	ID3D11ShaderResourceView* srv_list[srv_count] = { 
+		p_tex_diffuse_envmap_srv_, 
+		p_tex_specular_envmap_srv_, 
+		p_tex_specular_brdf_srv_ 
+	};
 	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 
@@ -305,7 +316,7 @@ void skybox_pass::init_pipeline_state()
 
 void skybox_pass::init_skybox_texture()
 {
-	const texture_data_new td = load_from_tex_file("../../data/pisa_skybox.tex");
+	const texture_data td = load_from_tex_file("../../data/pisa_skybox.tex");
 	p_tex_skybox_ = make_texture_cube(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox_, nullptr, &p_tex_skybox_srv_.ptr);
 	assert(hr == S_OK);
@@ -370,9 +381,9 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
 	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	//bi.perform("../../data/specular_brdf.tex");

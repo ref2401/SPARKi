@@ -85,7 +85,8 @@ private:
 
 	void init_pipeline_state();
 
-	void init_textures(const texture_data_new& td_envmap, const texture_data_new& td_brdf);
+	void init_textures(const texture_data& td_diffuse_envmap, 
+		const texture_data& td_specular_envmap, const texture_data& td_specular_brdf);
 
 
 	ID3D11Device*						p_device_;
@@ -94,6 +95,8 @@ private:
 	hlsl_shader							shader_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
+	com_ptr<ID3D11Texture2D>			p_tex_diffuse_envmap_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_diffuse_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_specular_envmap_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_specular_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_specular_brdf_;

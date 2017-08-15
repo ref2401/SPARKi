@@ -29,10 +29,10 @@ enum class texture_type : unsigned char {
 	texture_cube
 };
 
-struct texture_data_new final {
-	texture_data_new() noexcept = default;
+struct texture_data final {
+	texture_data() noexcept = default;
 
-	texture_data_new(texture_type type, const math::uint3& size, uint32_t mipmap_count,
+	texture_data(texture_type type, const math::uint3& size, uint32_t mipmap_count,
 		uint32_t array_size, pixel_format fmt);
 
 	texture_type 			type = texture_type::unknown;
@@ -52,19 +52,19 @@ size_t byte_count(pixel_format fmt) noexcept;
 size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_count, 
 	uint32_t array_size, pixel_format fmt) noexcept;
 
-bool is_valid_texture_data(const texture_data_new& td) noexcept;
+bool is_valid_texture_data(const texture_data& td) noexcept;
 
 // Reads texture data from the specified file.
 // The file may be .jpg, .png, .hdr
-texture_data_new load_from_image_file(const char* p_filename, uint8_t channel_count, 
+texture_data load_from_image_file(const char* p_filename, uint8_t channel_count, 
 	bool flip_vertically = false);
 
 // Reads texture data from the specified file.
 // The file may be .tex
-texture_data_new load_from_tex_file(const char* p_filename);
+texture_data load_from_tex_file(const char* p_filename);
 
 // Writes texture into the specified .tex file.
-void save_to_tex_file(const char* p_filename, const texture_data_new& td);
+void save_to_tex_file(const char* p_filename, const texture_data& td);
 
 } // namespace sparki
 

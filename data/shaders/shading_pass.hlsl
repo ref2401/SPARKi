@@ -2,9 +2,9 @@
 #include "common_pbr.hlsl"
 
 // NOTE(ref2401): material props are temporary here.
-//static const float g_material_f0 = 0.04f;
-static const float g_material_f0 = 0.5f;
-static const float g_material_linear_roughness = 1.0f;
+static const float g_material_f0 = 0.04f;
+//static const float g_material_f0 = 0.5f;
+static const float g_material_linear_roughness = 0.0f;
 
 // ----- vertex shader ------
 
@@ -54,9 +54,10 @@ vs_output vs_main(vertex vertex)
 
 // ----- pixel shader -----
 
-TextureCube<float4>	g_tex_envmap	: register(t0);
-Texture2D<float2>	g_tex_brdf		: register(t1);
-SamplerState		g_sampler		: register(s0);
+TextureCube<float4> g_tex_diffuse_envmap	: register(t0);
+TextureCube<float4>	g_tex_specular_envmap	: register(t1);
+Texture2D<float2>	g_tex_specular_brdf		: register(t2);
+SamplerState		g_sampler				: register(s0);
 
 
 struct ps_output {
@@ -65,10 +66,15 @@ struct ps_output {
 
 float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float f0, float linear_roughness)
 {
+	// diffuse envmap
+	const float3 diffuse_envmap = g_tex_diffuse_envmap.SampleLevel(g_sampler, cube_dir_ms, 0).rgb;
+
+	// specular envmap & brdf
 	const float lvl = sqrt(linear_roughness) * 4.0f; // 4.0 == (envmap_texture_builder::envmap_mipmap_count - 1)
-	const float3 envmap = g_tex_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
-	const float2 brdf = g_tex_brdf.Sample(g_sampler, float2(dot_nv, linear_roughness));
-	return envmap * (f0 * brdf.x + brdf.y);
+	const float3 specular_envmap = g_tex_specular_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
+	const float2 brdf = g_tex_specular_brdf.SampleLevel(g_sampler, float2(dot_nv, linear_roughness), 0);
+
+	return diffuse_envmap + specular_envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
