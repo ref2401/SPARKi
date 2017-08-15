@@ -131,14 +131,26 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	return p_tex_skybox;
 }
 
-com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
+com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Texture2D* p_tex_skybox,
 	ID3D11ShaderResourceView* p_tex_skybox_srv)
 {
+	assert(p_tex_skybox);
+	assert(p_tex_skybox_srv);
+
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_texture_cube(p_device_,
 		envmap_texture_builder::envmap_side_size,
 		envmap_texture_builder::envmap_mipmap_count,
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_UNORDERED_ACCESS);
+
+	// Copy mipmap #skybox_mip_level from p_tex_skybox to first mip level of the p_tex_envmap.
+	const UINT skybox_lvl = UINT(std::log2(envmap_texture_builder::skybox_side_size / envmap_texture_builder::envmap_side_size));
+	const D3D11_BOX box = { 0, 0, 0, envmap_texture_builder::envmap_side_size, envmap_texture_builder::envmap_side_size, 1 };
+	for (UINT a = 0; a < 6; ++a) {
+		const UINT src_index = D3D11CalcSubresource(skybox_lvl, a, envmap_texture_builder::skybox_mipmap_count);
+		const UINT dest_index = D3D11CalcSubresource(0, a, envmap_texture_builder::envmap_mipmap_count);
+		p_ctx_->CopySubresourceRegion(p_tex_envmap, dest_index, 0, 0, 0, p_tex_skybox, src_index, &box);
+	}
 
 	// setup compute pipeline & dispatch work
 	p_ctx_->CSSetShader(specular_envmap_compute_.p_compute_shader, nullptr, 0);
@@ -147,7 +159,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(
 	p_ctx_->CSSetSamplers(0, 1, &p_sampler_);
 
 	// for each mipmap level
-	for (UINT m = 0; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
+	for (UINT m = 1; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
 		const float cb_data[4] = {
 			/* roughness */ float(m) / (envmap_texture_builder::envmap_mipmap_count - 1),
 			/* side_size */ float(envmap_texture_builder::envmap_side_size >> m),
@@ -198,7 +210,8 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 	assert(hr == S_OK);
 	p_ctx_->GenerateMips(p_tex_skybox_srv);
 
-	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox_srv);
+	// make specular env map
+	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox, p_tex_skybox_srv);
 
 	// write skybox texture to a file
 	{

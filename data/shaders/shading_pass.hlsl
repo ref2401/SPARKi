@@ -4,7 +4,7 @@
 // NOTE(ref2401): material props are temporary here.
 //static const float g_material_f0 = 0.04f;
 static const float g_material_f0 = 0.5f;
-static const float g_material_linear_roughness = 1.0f;
+static const float g_material_linear_roughness = 0.0f;
 
 // ----- vertex shader ------
 

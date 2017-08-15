@@ -370,9 +370,9 @@ void renderer::init_assets()
 
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
-	//envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
 
 	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
 	//bi.perform("../../data/specular_brdf.tex");

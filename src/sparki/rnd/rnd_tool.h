@@ -60,7 +60,8 @@ private:
 
 	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename);
 
-	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv);
+	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11Texture2D* p_tex_skybox, 
+		ID3D11ShaderResourceView* p_tex_skybox_srv);
 
 
 	ID3D11Device*				p_device_;
