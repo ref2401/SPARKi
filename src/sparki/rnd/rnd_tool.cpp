@@ -78,6 +78,9 @@ envmap_texture_builder::envmap_texture_builder(ID3D11Device* p_device, ID3D11Dev
 	const hlsl_compute_desc hlsl_equirect_to_skybox("../../data/shaders/equirect_to_skybox.compute.hlsl");
 	equirect_to_skybox_compute_ = hlsl_compute(p_device, hlsl_equirect_to_skybox);
 	
+	const hlsl_compute_desc hlsl_diffuse_envmap("../../data/shaders/diffuse_envmap.compute.hlsl");
+	diffuse_envmap_compute_ = hlsl_compute(p_device, hlsl_diffuse_envmap);
+
 	const hlsl_compute_desc hlsl_specular_envmap("../../data/shaders/specular_envmap.compute.hlsl");
 	specular_envmap_compute_ = hlsl_compute(p_device, hlsl_specular_envmap);
 
@@ -131,6 +134,39 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_skybox(const char* p_hdr_f
 	return p_tex_skybox;
 }
 
+com_ptr<ID3D11Texture2D> envmap_texture_builder::make_diffuse_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv)
+{
+	assert(p_tex_skybox_srv);
+
+	com_ptr<ID3D11Texture2D> p_tex_envmap = make_texture_cube(p_device_,
+		envmap_texture_builder::diffuse_envmap_side_size, 1,
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_UNORDERED_ACCESS);
+	com_ptr<ID3D11UnorderedAccessView> p_tex_envmap_uav;
+	HRESULT hr = p_device_->CreateUnorderedAccessView(p_tex_envmap, nullptr, &p_tex_envmap_uav.ptr);
+	assert(hr == S_OK);
+
+	// setup compute pipeline & dispatch work
+	p_ctx_->CSSetShader(diffuse_envmap_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_skybox_srv);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler_);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_envmap_uav.ptr, nullptr);
+
+#ifdef SPARKI_DEBUG
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	p_ctx_->Dispatch(envmap_texture_builder::diffuse_compute_gx, envmap_texture_builder::diffuse_compute_gy, 6);
+
+	// reset uav binding
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+
+	return p_tex_envmap;
+}
+
 com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Texture2D* p_tex_skybox,
 	ID3D11ShaderResourceView* p_tex_skybox_srv)
 {
@@ -138,17 +174,17 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Text
 	assert(p_tex_skybox_srv);
 
 	com_ptr<ID3D11Texture2D> p_tex_envmap = make_texture_cube(p_device_,
-		envmap_texture_builder::envmap_side_size,
-		envmap_texture_builder::envmap_mipmap_count,
+		envmap_texture_builder::specular_envmap_side_size,
+		envmap_texture_builder::specular_envmap_mipmap_count,
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_UNORDERED_ACCESS);
 
 	// Copy mipmap #skybox_mip_level from p_tex_skybox to first mip level of the p_tex_envmap.
-	const UINT skybox_lvl = UINT(std::log2(envmap_texture_builder::skybox_side_size / envmap_texture_builder::envmap_side_size));
-	const D3D11_BOX box = { 0, 0, 0, envmap_texture_builder::envmap_side_size, envmap_texture_builder::envmap_side_size, 1 };
+	const UINT skybox_lvl = UINT(std::log2(envmap_texture_builder::skybox_side_size / envmap_texture_builder::specular_envmap_side_size));
+	const D3D11_BOX box = { 0, 0, 0, envmap_texture_builder::specular_envmap_side_size, envmap_texture_builder::specular_envmap_side_size, 1 };
 	for (UINT a = 0; a < 6; ++a) {
 		const UINT src_index = D3D11CalcSubresource(skybox_lvl, a, envmap_texture_builder::skybox_mipmap_count);
-		const UINT dest_index = D3D11CalcSubresource(0, a, envmap_texture_builder::envmap_mipmap_count);
+		const UINT dest_index = D3D11CalcSubresource(0, a, envmap_texture_builder::specular_envmap_mipmap_count);
 		p_ctx_->CopySubresourceRegion(p_tex_envmap, dest_index, 0, 0, 0, p_tex_skybox, src_index, &box);
 	}
 
@@ -159,10 +195,10 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Text
 	p_ctx_->CSSetSamplers(0, 1, &p_sampler_);
 
 	// for each mipmap level
-	for (UINT m = 1; m < envmap_texture_builder::envmap_mipmap_count; ++m) {
+	for (UINT m = 1; m < envmap_texture_builder::specular_envmap_mipmap_count; ++m) {
 		const float cb_data[4] = {
-			/* roughness */ float(m) / (envmap_texture_builder::envmap_mipmap_count - 1),
-			/* side_size */ float(envmap_texture_builder::envmap_side_size >> m),
+			/* roughness */ float(m) / (envmap_texture_builder::specular_envmap_mipmap_count - 1),
+			/* side_size */ float(envmap_texture_builder::specular_envmap_side_size >> m),
 			0.0f,
 			0.0f
 		};
@@ -182,9 +218,9 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Text
 		hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 		assert(hr == S_OK);
 #endif
-		const UINT mipmap_size = envmap_texture_builder::envmap_side_size >> m;
-		const UINT gx = (mipmap_size) / envmap_texture_builder::envmap_compute_group_x_size;
-		const UINT gy = (mipmap_size) / envmap_texture_builder::envmap_compute_group_y_size;
+		const UINT mipmap_size = envmap_texture_builder::specular_envmap_side_size >> m;
+		const UINT gx = (mipmap_size) / envmap_texture_builder::specular_envmap_compute_group_x_size;
+		const UINT gy = (mipmap_size) / envmap_texture_builder::specular_envmap_compute_group_y_size;
 		p_ctx_->Dispatch(gx, gy, 6);
 	}
 
@@ -210,7 +246,10 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 	assert(hr == S_OK);
 	p_ctx_->GenerateMips(p_tex_skybox_srv);
 
-	// make specular env map
+
+	// make diffuse envmap
+	com_ptr<ID3D11Texture2D> p_tex_diffuse_envmap = make_diffuse_envmap(p_tex_skybox_srv);
+	// make specular envmap
 	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox, p_tex_skybox_srv);
 
 	// write skybox texture to a file
@@ -237,7 +276,14 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 		save_to_tex_file(p_skybox_filename, td);
 	}
 
-	// write envmap texture to a file
+	// write diffuse envmap to a file
+	{
+		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_,
+			texture_type::texture_cube, p_tex_diffuse_envmap);
+		save_to_tex_file(p_diffuse_envmap_filename, td);
+	}
+
+	// write specular envmap to a file
 	{
 		const texture_data_new td = make_texture_data_new(p_device_, p_ctx_, 
 			texture_type::texture_cube, p_tex_specular_envmap);

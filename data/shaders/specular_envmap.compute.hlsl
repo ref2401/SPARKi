@@ -7,9 +7,9 @@ cbuffer cb_compute_shader : register(b0) {
 	float g_side_size : packoffset(c0.y);
 };
 
-TextureCube<float4>			g_tex_skybox : register(t0);
-SamplerState				g_sampler : register(s0);
-RWTexture2DArray<float4>	g_tex_cubemap : register(u0);
+TextureCube<float4>			g_tex_skybox	: register(t0);
+SamplerState				g_sampler		: register(s0);
+RWTexture2DArray<float4>	g_tex_envmap	: register(u0);
 
 
 [numthreads(8, 8, 1)]
@@ -41,6 +41,6 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	}
 
 	total_weight = max(0.001, total_weight);
-	g_tex_cubemap[dt_id] = float4(filtered_rgb / total_weight, 1.0);
+	g_tex_envmap[dt_id] = float4(filtered_rgb / total_weight, 1.0);
 }
 

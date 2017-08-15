@@ -21,7 +21,7 @@ float2 integrate_brdf(float dot_nv, float roughness)
 		const float dot_nl = saturate(l_ts.z);
 
 		if (dot_nl > 0.0f) {
-			const float g = g_smith_correlated(dot_nl, dot_nv, roughness_ibl(roughness));
+			const float g = g_smith_correlated_ibl(dot_nl, dot_nv, roughness);
 
 			const float dot_nh = saturate(h_ts.z);
 			const float dot_vh = saturate(dot(v_ts, h_ts));

@@ -51,14 +51,21 @@ private:
 	static constexpr UINT skybox_compute_group_y_size = 2;
 	static constexpr UINT skybox_compute_gx = skybox_side_size / skybox_compute_group_x_size;
 	static constexpr UINT skybox_compute_gy = skybox_side_size / skybox_compute_group_y_size;
-	// diffuse & specular envmaps
-	static constexpr UINT envmap_side_size = 128;
-	static constexpr UINT envmap_mipmap_count = 5;
-	static constexpr UINT envmap_compute_group_x_size = 8;
-	static constexpr UINT envmap_compute_group_y_size = 8;
+	// diffuse envmap
+	static constexpr UINT diffuse_envmap_side_size = 32;
+	static constexpr UINT diffuse_compute_group_size = 32;
+	static constexpr UINT diffuse_compute_gx = diffuse_envmap_side_size / diffuse_compute_group_size;
+	static constexpr UINT diffuse_compute_gy = diffuse_envmap_side_size / diffuse_compute_group_size;
+	// specular envmap
+	static constexpr UINT specular_envmap_side_size = 128;
+	static constexpr UINT specular_envmap_mipmap_count = 5;
+	static constexpr UINT specular_envmap_compute_group_x_size = 8;
+	static constexpr UINT specular_envmap_compute_group_y_size = 8;
 
 
 	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename);
+
+	com_ptr<ID3D11Texture2D> make_diffuse_envmap(ID3D11ShaderResourceView* p_tex_skybox_srv);
 
 	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11Texture2D* p_tex_skybox, 
 		ID3D11ShaderResourceView* p_tex_skybox_srv);
@@ -69,6 +76,7 @@ private:
 	ID3D11Debug*				p_debug_;
 	ID3D11SamplerState*			p_sampler_;
 	hlsl_compute				equirect_to_skybox_compute_;
+	hlsl_compute				diffuse_envmap_compute_;
 	hlsl_compute				specular_envmap_compute_;
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };

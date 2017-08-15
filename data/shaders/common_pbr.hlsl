@@ -76,9 +76,9 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 }
 
 // GGX / Trowbridge-Reitz
-float distribution_ggx(float dot_nh, float roughness)
+float distribution_ggx(float dot_nh, float linear_roughness)
 {
-	const float a2 = roughness * roughness * roughness * roughness;
+	const float a2 = linear_roughness * linear_roughness * linear_roughness * linear_roughness;
 	const float d = (dot_nh * a2 - dot_nh) * dot_nh + 1;
 	return a2 / (pi * d * d);
 }
@@ -100,11 +100,11 @@ float g_lambda(float rs, float cos_angle)
 		: sqrt(1.0f + rs * ta * ta) * 0.5f - 0.5f;
 }
 
-// Compute shadowing-masking term G(n, l, v, roughness).
+// Compute shadowing-masking term G(n, l, v, roughness) for IBL lighting.
 // (SRC): Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs.
-float g_smith_correlated(float dot_nl, float dot_nv, float linear_roughness)
+float g_smith_correlated_ibl(float dot_nl, float dot_nv, float linear_roughness)
 {
-	const float a2 = linear_roughness * linear_roughness;
+	const float a2 = linear_roughness * linear_roughness * 0.5;
 	const float lambda_l = g_lambda(a2, dot_nl);
 	const float lambda_v = g_lambda(a2, dot_nv);
 	return 1.0f / (1 + lambda_l + lambda_v);
@@ -140,11 +140,6 @@ float4 importance_sample_ggx(float2 xi, float linear_roughness)
 	const float ggx = a2 / (pi * d * d);
 
 	return float4(h, ggx * cos_theta);
-}
-
-float roughness_ibl(float linear_roughness)
-{
-	return linear_roughness * linear_roughness * 0.5;
 }
 
 float3 specular_dominant_dir(float3 n_ms, float3 position_ms, float3 view_position_ms, float linear_roughness)
