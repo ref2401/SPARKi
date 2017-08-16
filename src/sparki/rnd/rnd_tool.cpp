@@ -242,56 +242,58 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 	assert(p_diffuse_envmap_filename);
 	assert(p_specular_envmap_filename);
 
-	// make skybox texture & generate its mips
+	// make skybox texture & save it to a file
 	com_ptr<ID3D11Texture2D> p_tex_skybox = make_skybox(p_hdr_filename);
+	save_skybox_to_file(p_skybox_filename, p_tex_skybox);
+
+	// generate skybox mipmaps
 	com_ptr<ID3D11ShaderResourceView> p_tex_skybox_srv;
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_skybox, nullptr, &p_tex_skybox_srv.ptr);
 	assert(hr == S_OK);
 	p_ctx_->GenerateMips(p_tex_skybox_srv);
 
-
-	// make diffuse envmap
-	com_ptr<ID3D11Texture2D> p_tex_diffuse_envmap = make_diffuse_envmap(p_tex_skybox_srv);
-	// make specular envmap
-	com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox, p_tex_skybox_srv);
-
-	// write skybox texture to a file
+	// make diffuse envmap and save it to a file
 	{
-		// create skybox texture (single mip level) and 
-		D3D11_TEXTURE2D_DESC tmp_desc;
-		p_tex_skybox->GetDesc(&tmp_desc);
-		tmp_desc.MipLevels = 1;
-		tmp_desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE; 
-		com_ptr<ID3D11Texture2D> p_tex_skybox_tmp;
-		hr = p_device_->CreateTexture2D(&tmp_desc, nullptr, &p_tex_skybox_tmp.ptr);
-		assert(hr == S_OK);
-		
-		// copy mip #0 from &p_tex_skybox to p_tex_skybox_tmp
-		const D3D11_BOX box = { 0, 0, 0, tmp_desc.Width, tmp_desc.Height, 1 };
-		for (UINT a = 0; a < tmp_desc.ArraySize; ++a) {
-			const UINT index = D3D11CalcSubresource(0, a, envmap_texture_builder::skybox_mipmap_count);
-			p_ctx_->CopySubresourceRegion(p_tex_skybox_tmp, a, 0, 0, 0, p_tex_skybox, index, &box);
-		}
-
-		// save p_tex_skybox_tmp to a file
-		const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
-			texture_type::texture_cube, p_tex_skybox_tmp);
-		save_to_tex_file(p_skybox_filename, td);
-	}
-
-	// write diffuse envmap to a file
-	{
+		com_ptr<ID3D11Texture2D> p_tex_diffuse_envmap = make_diffuse_envmap(p_tex_skybox_srv);
 		const texture_data td = make_texture_data_new(p_device_, p_ctx_,
 			texture_type::texture_cube, p_tex_diffuse_envmap);
 		save_to_tex_file(p_diffuse_envmap_filename, td);
 	}
-
-	// write specular envmap to a file
+	
+	// make specular envmap and save it to a file
 	{
+		com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox, p_tex_skybox_srv);
 		const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
 			texture_type::texture_cube, p_tex_specular_envmap);
 		save_to_tex_file(p_specular_envmap_filename, td);
 	}
+}
+
+void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11Texture2D* p_tex_skybox)
+{
+	assert(p_filename);
+	assert(p_tex_skybox);
+
+	// create skybox texture (single mip level) and 
+	D3D11_TEXTURE2D_DESC tmp_desc;
+	p_tex_skybox->GetDesc(&tmp_desc);
+	tmp_desc.MipLevels = 1;
+	tmp_desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	com_ptr<ID3D11Texture2D> p_tex_skybox_tmp;
+	HRESULT hr = p_device_->CreateTexture2D(&tmp_desc, nullptr, &p_tex_skybox_tmp.ptr);
+	assert(hr == S_OK);
+
+	// copy mip #0 from &p_tex_skybox to p_tex_skybox_tmp
+	const D3D11_BOX box = { 0, 0, 0, tmp_desc.Width, tmp_desc.Height, 1 };
+	for (UINT a = 0; a < tmp_desc.ArraySize; ++a) {
+		const UINT index = D3D11CalcSubresource(0, a, envmap_texture_builder::skybox_mipmap_count);
+		p_ctx_->CopySubresourceRegion(p_tex_skybox_tmp, a, 0, 0, 0, p_tex_skybox, index, &box);
+	}
+
+	// save p_tex_skybox_tmp to a file
+	const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
+		texture_type::texture_cube, p_tex_skybox_tmp);
+	save_to_tex_file(p_filename, td);
 }
 
 } // namespace rnd

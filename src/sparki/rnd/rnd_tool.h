@@ -71,7 +71,7 @@ private:
 	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11Texture2D* p_tex_skybox, 
 		ID3D11ShaderResourceView* p_tex_skybox_srv);
 
-	//void save_skybox_to_file(const char* p_filename, ID3D11Texture2D* p_tex_skybox);
+	void save_skybox_to_file(const char* p_filename, ID3D11Texture2D* p_tex_skybox);
 
 
 	ID3D11Device*				p_device_;
