@@ -52,10 +52,11 @@ private:
 	static constexpr UINT skybox_compute_gx = skybox_side_size / skybox_compute_group_x_size;
 	static constexpr UINT skybox_compute_gy = skybox_side_size / skybox_compute_group_y_size;
 	// diffuse envmap
-	static constexpr UINT diffuse_envmap_side_size = 32;
-	static constexpr UINT diffuse_compute_group_size = 32;
-	static constexpr UINT diffuse_compute_gx = diffuse_envmap_side_size / diffuse_compute_group_size;
-	static constexpr UINT diffuse_compute_gy = diffuse_envmap_side_size / diffuse_compute_group_size;
+	static constexpr UINT diffuse_envmap_side_size = 64;
+	static constexpr UINT diffuse_compute_group_x_size = 64;
+	static constexpr UINT diffuse_compute_group_y_size = 16;
+	static constexpr UINT diffuse_compute_gx = diffuse_envmap_side_size / diffuse_compute_group_x_size;
+	static constexpr UINT diffuse_compute_gy = diffuse_envmap_side_size / diffuse_compute_group_y_size;
 	// specular envmap
 	static constexpr UINT specular_envmap_side_size = 128;
 	static constexpr UINT specular_envmap_mipmap_count = 5;
@@ -69,6 +70,8 @@ private:
 
 	com_ptr<ID3D11Texture2D> make_specular_envmap(ID3D11Texture2D* p_tex_skybox, 
 		ID3D11ShaderResourceView* p_tex_skybox_srv);
+
+	//void save_skybox_to_file(const char* p_filename, ID3D11Texture2D* p_tex_skybox);
 
 
 	ID3D11Device*				p_device_;
