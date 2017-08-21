@@ -138,26 +138,14 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	texture_data td_diffuse_envmap;
-	texture_data td_specular_envmap;
-	texture_data td_specular_brdf;
-	auto load_assets = [&td_diffuse_envmap, &td_specular_envmap, &td_specular_brdf] {
-		td_diffuse_envmap = load_from_tex_file("../../data/pisa_diffuse_envmap.tex");
-		td_specular_envmap = load_from_tex_file("../../data/pisa_specular_envmap.tex");
-		td_specular_brdf = load_from_tex_file("../../data/specular_brdf.tex");
-	};
-
-	std::atomic_size_t wc;
-	ts::run(load_assets, wc);
-
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
 	init_pipeline_state();
+	init_textures();
+
 	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
-	init_geometry(); // shader_ must be initialized
-	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
 
-	ts::wait_for(wc);
-	init_textures(td_diffuse_envmap, td_specular_envmap, td_specular_brdf);
+	init_geometry(); // shader_ must be initialized
 }
 
 void shading_pass::init_geometry()
@@ -211,9 +199,12 @@ void shading_pass::init_pipeline_state()
 	assert(hr == S_OK);
 }
 
-void shading_pass::init_textures(const texture_data& td_diffuse_envmap, 
-	const texture_data& td_specular_envmap, const texture_data& td_specular_brdf)
+void shading_pass::init_textures()
 {
+	texture_data td_diffuse_envmap = load_from_tex_file("../../data/pisa_diffuse_envmap.tex");
+	texture_data td_specular_envmap = load_from_tex_file("../../data/pisa_specular_envmap.tex");
+	texture_data td_specular_brdf = load_from_tex_file("../../data/specular_brdf.tex");
+
 	p_tex_diffuse_envmap_ = make_texture_cube(p_device_, td_diffuse_envmap, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_diffuse_envmap_, nullptr, &p_tex_diffuse_envmap_srv_.ptr);
 	assert(hr == S_OK);
@@ -360,9 +351,25 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 	assert(p_hwnd);
 	assert(viewport_size > 0);
 
-	init_device(p_hwnd, viewport_size);
-	init_assets();
+	init_dx_device(p_hwnd, viewport_size);
+	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
+
+	auto task = [this] {
+		assert(p_gbuffer_);
+		p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+		p_brdf_integrator_ = std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
+	};
+
+	std::atomic_size_t wc;
+	ts::run(task, wc);
+
+	init_rnd_passes();
 	resize_viewport(viewport_size);
+	
+	ts::wait_for(wc);
+	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
+	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
+	//bi.perform("../../data/specular_brdf.tex");
 }
 
 renderer::~renderer() noexcept
@@ -372,23 +379,7 @@ renderer::~renderer() noexcept
 #endif
 }
 
-void renderer::init_assets()
-{
-	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
-	
-	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-	envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-		"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
-
-	//brdf_integrator bi(p_device_, p_ctx_, p_debug_);
-	//bi.perform("../../data/specular_brdf.tex");
-	
-	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
-	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
-	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
-}
-
-void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
+void renderer::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 {
 	DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
 	swap_chain_desc.BufferCount = 2;
@@ -428,6 +419,13 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 	hr = p_device_->QueryInterface<ID3D11Debug>(&p_debug_.ptr);
 	assert(hr == S_OK);
 #endif
+}
+
+void renderer::init_rnd_passes()
+{
+	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
+	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
+	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::draw_frame(frame& frame)

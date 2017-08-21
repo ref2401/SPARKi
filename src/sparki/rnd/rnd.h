@@ -85,8 +85,7 @@ private:
 
 	void init_pipeline_state();
 
-	void init_textures(const texture_data& td_diffuse_envmap, 
-		const texture_data& td_specular_envmap, const texture_data& td_specular_brdf);
+	void init_textures();
 
 
 	ID3D11Device*						p_device_;
@@ -154,9 +153,9 @@ public:
 
 private:
 
-	void init_assets();
+	void init_dx_device(HWND p_hwnd, const uint2& viewport_size);
 
-	void init_device(HWND p_hwnd, const uint2& viewport_size);
+	void init_rnd_passes();
 
 
 	// device stuff:
@@ -167,6 +166,9 @@ private:
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
+	// rnd tools
+	std::unique_ptr<envmap_texture_builder> p_envmap_builder_;
+	std::unique_ptr<brdf_integrator>		p_brdf_integrator_;
 	// render stuff
 	D3D11_VIEWPORT					viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
