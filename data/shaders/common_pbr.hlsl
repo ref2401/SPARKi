@@ -75,6 +75,16 @@ float3 cube_direction(uint3 dt_id, float width, float height)
 	return (float3)0;
 }
 
+// Computes mipmap level base on the specigied roughness.
+float cube_mipmap_level(float roughness, float pdf, float side_size,
+	float mipmap_count, float sample_count)
+{
+	// see Moving Frostbite to Physically Based Rendering 3.0
+	const float omega_s = 1.0 / (sample_count * pdf);
+	const float omega_p = 4.0 * c_pi / (6.0 * side_size * side_size);
+	return clamp(0.5 * log2(omega_s / omega_p), 0, mipmap_count);
+}
+
 // GGX / Trowbridge-Reitz
 float distribution_ggx(float dot_nh, float linear_roughness)
 {

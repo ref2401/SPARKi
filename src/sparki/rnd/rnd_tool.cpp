@@ -182,7 +182,7 @@ com_ptr<ID3D11Texture2D> envmap_texture_builder::make_specular_envmap(ID3D11Text
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_UNORDERED_ACCESS);
 
-	// Copy mipmap #skybox_mip_level from p_tex_skybox to first mip level of the p_tex_envmap.
+	// Copy mipmap #skybox_lvl from p_tex_skybox to the first mip level of the p_tex_envmap.
 	const UINT skybox_lvl = UINT(std::log2(envmap_texture_builder::skybox_side_size / envmap_texture_builder::specular_envmap_side_size));
 	const D3D11_BOX box = { 0, 0, 0, envmap_texture_builder::specular_envmap_side_size, envmap_texture_builder::specular_envmap_side_size, 1 };
 	for (UINT a = 0; a < 6; ++a) {

@@ -47,7 +47,7 @@ inline std::string concat(const Args&... args)
 
 // Constructs exception message string considering all the nested exceptions.
 // Each exception message is formatted as a new line and starts with " - " prefix. 
-std::string exception_message(const std::exception& exc);
+std::string make_exception_message(const std::exception& exc);
 
 // Calculates how many bytes are in the specified number of kilobytes.
 // Uses base 2 definition: 1 Kb = 1024 bytes = 2^10 bytes.

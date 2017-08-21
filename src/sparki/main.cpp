@@ -46,6 +46,7 @@ int main()
 		//sparki::convert_fbx_to_geo("../../data/geometry/sphere.fbx", "../../data/geometry/sphere.geo");
 
 		auto report = ts::launch_task_system(ts_desc, sparki_main);
+
 		std::cout << "----- Task System Report ----- " << std::endl
 			<< "task executed: " << report.task_count << std::endl
 			<< "immediate task executed: " << report.task_immediate_count << std::endl;
@@ -53,7 +54,7 @@ int main()
 	catch (const std::exception& e) {
 		keep_console_shown = true;
 
-		const std::string msg = sparki::exception_message(e);
+		const std::string msg = sparki::make_exception_message(e);
 		std::cout << "----- Exception -----" << std::endl << msg << std::endl;
 	}
 

@@ -374,11 +374,6 @@ renderer::~renderer() noexcept
 
 void renderer::init_assets()
 {
-	// ts:: load cubemap pass assets: hlsl, tex
-	// ts:: load equirectangular to cubemap pass stuff.
-	// create cubemap pass
-	// create equrectangular to cubemap pass
-
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 	
 	envmap_texture_builder envmap_builder(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
@@ -415,13 +410,19 @@ void renderer::init_device(HWND p_hwnd, const uint2& viewport_size)
 	D3D_FEATURE_LEVEL actual_feature_level;
 
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-		D3D11_CREATE_DEVICE_DEBUG, &expected_feature_level, 1, D3D11_SDK_VERSION, &swap_chain_desc,
+		D3D11_CREATE_DEVICE_DEBUG,  &expected_feature_level, 1, D3D11_SDK_VERSION, &swap_chain_desc,
 		&p_swap_chain_.ptr,
 		&p_device_.ptr,
 		&actual_feature_level,
 		&p_ctx_.ptr);
 	assert(hr == S_OK);
 	ENFORCE(actual_feature_level == expected_feature_level, "Failed to create a device with feature level: D3D_FEATURE_LEVEL_11_0");
+
+	D3D11_FEATURE_DATA_THREADING threading_feature;
+	p_device_->CheckFeatureSupport(D3D11_FEATURE_THREADING, 
+		&threading_feature, 
+		sizeof(D3D11_FEATURE_DATA_THREADING));
+	ENFORCE(threading_feature.DriverConcurrentCreates, "Your GPU must support D3D11_FEATURE_DATA_THREADING feature.");
 
 #ifdef SPARKI_DEBUG
 	hr = p_device_->QueryInterface<ID3D11Debug>(&p_debug_.ptr);

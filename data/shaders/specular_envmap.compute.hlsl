@@ -21,7 +21,6 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	static const uint max_sample_count = 32;
 
 	const uint sample_count = lerp(min_sample_count, max_sample_count, g_linear_roughness);
-	const float lvl = (skybox_mipmap_count - 1) * g_linear_roughness;
 	const float3 dir_ws = float3(1, -1, 1) * cube_direction(dt_id, g_side_size, g_side_size);
 	const float3x3 tw_matrix = tangent_to_world_matrix(dir_ws);
 
@@ -30,11 +29,16 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 	for (uint i = 0; i < sample_count; ++i) {
 		const float2 xi = hammersley(i, sample_count);
-		const float3 h_ws = mul(tw_matrix, importance_sample_ggx(xi, g_linear_roughness).xyz);
+		const float4 ggx = importance_sample_ggx(xi, g_linear_roughness);
+		const float3 h_ws = mul(tw_matrix, ggx.xyz);
 		const float3 l_ws = 2 * dot(dir_ws, h_ws) * h_ws - dir_ws;
 		
 		const float dot_nl = saturate(dot(dir_ws, l_ws));
 		if (dot_nl > 0) {
+			const float pdf = ggx.w;
+			const float lvl = cube_mipmap_level(g_linear_roughness, pdf, 
+				skybox_side_size, skybox_mipmap_count, sample_count);
+			
 			filtered_rgb += g_tex_skybox.SampleLevel(g_sampler, l_ws, lvl).rgb * dot_nl;
 			total_weight += dot_nl;
 		}

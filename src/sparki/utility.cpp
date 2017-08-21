@@ -27,7 +27,7 @@ void accumulate_exception_message_impl(std::string& dest, const std::exception& 
 
 namespace sparki {
 
-std::string exception_message(const std::exception& exc)
+std::string make_exception_message(const std::exception& exc)
 {
 	std::string msg;
 	accumulate_exception_message_impl(msg, exc);
