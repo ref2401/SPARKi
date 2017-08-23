@@ -30,6 +30,10 @@ struct gbuffer final {
 	com_ptr<ID3D11Texture2D>			p_tex_color;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_color_srv;
 	com_ptr<ID3D11RenderTargetView>		p_tex_color_rtv;
+	// post processing
+	com_ptr<ID3D11Texture2D>			p_tex_tone_mapping;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_tone_mapping_srv;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_tone_mapping_uav;
 	// depth texture
 	com_ptr<ID3D11Texture2D>			p_tex_depth;
 	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
@@ -42,26 +46,6 @@ struct gbuffer final {
 	// MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
 	com_ptr<ID3D11SamplerState>			p_sampler;
 	D3D11_VIEWPORT						viewport = { 0, 0, 0, 0, 0, 1 };
-};
-
-class final_pass final {
-public:
-
-	final_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
-
-	final_pass(final_pass&&) = delete;
-	final_pass& operator=(final_pass&&) = delete;
-
-
-	void perform(const gbuffer& gbuffer);
-
-private:
-
-	ID3D11Device*						p_device_;
-	ID3D11DeviceContext*				p_ctx_;
-	ID3D11Debug*						p_debug_;
-	hlsl_shader							shader_;
-	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 };
 
 class shading_pass final {
@@ -151,6 +135,10 @@ public:
 
 private:
 
+	static constexpr UINT compute_group_x_size = 512;
+	static constexpr UINT compute_group_y_size = 2;
+
+
 	ID3D11Device*						p_device_;
 	ID3D11DeviceContext*				p_ctx_;
 	ID3D11Debug*						p_debug_;
@@ -186,6 +174,7 @@ private:
 	std::unique_ptr<gbuffer>		p_gbuffer_;
 	// swap chain stuff:
 	com_ptr<IDXGISwapChain>			p_swap_chain_;
+	com_ptr<ID3D11Texture2D>		p_tex_window_;
 	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
 	// rnd tools
 	std::unique_ptr<envmap_texture_builder> p_envmap_builder_;
@@ -195,7 +184,6 @@ private:
 	std::unique_ptr<skybox_pass>		p_skybox_pass_;
 	std::unique_ptr<shading_pass>		p_light_pass_;
 	std::unique_ptr<tone_mapping_pass>	p_tone_mapping_pass_;
-	std::unique_ptr<final_pass>			p_final_pass_;
 };
 
 

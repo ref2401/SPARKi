@@ -38,6 +38,9 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	p_tex_color.dispose();
 	p_tex_color_srv.dispose();
 	p_tex_color_rtv.dispose();
+	p_tex_tone_mapping.dispose();
+	p_tex_tone_mapping_srv.dispose();
+	p_tex_tone_mapping_uav.dispose();
 	p_tex_depth.dispose();
 	p_tex_depth_dsv.dispose();
 
@@ -57,6 +60,24 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	hr = p_device->CreateShaderResourceView(p_tex_color, nullptr, &p_tex_color_srv.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
+	assert(hr == S_OK);
+
+	// update tone mapping textures & its views
+	D3D11_TEXTURE2D_DESC tm_desc = {};
+	tm_desc.Width = size.x;
+	tm_desc.Height = size.y;
+	tm_desc.MipLevels = 1;
+	tm_desc.ArraySize = 1;
+	tm_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	tm_desc.SampleDesc.Count = 1;
+	tm_desc.SampleDesc.Quality = 0;
+	tm_desc.Usage = D3D11_USAGE_DEFAULT;
+	tm_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	hr = p_device->CreateTexture2D(&tm_desc, nullptr, &p_tex_tone_mapping.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_srv.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateUnorderedAccessView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_uav.ptr);
 	assert(hr == S_OK);
 
 	// update depth texture & its views
@@ -82,51 +103,6 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	viewport.Height = float(size.y);
 	viewport.MinDepth = 0.0;
 	viewport.MaxDepth = 1.0f;
-}
-
-// ----- final_pass -----
-
-final_pass::final_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
-	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
-{
-	assert(p_device);
-	assert(p_ctx);
-	assert(p_debug); // p_debug == nullptr in Release mode.
-
-	hlsl_shader_desc shader_desc("../../data/shaders/final_pass.hlsl");
-	shader_ = hlsl_shader(p_device_, shader_desc);
-
-	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
-	ds_desc.DepthEnable = false;
-	HRESULT hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
-	assert(hr == S_OK);
-}
-
-void final_pass::perform(const gbuffer& gbuffer)
-{
-	// input layout
-	p_ctx_->IASetInputLayout(nullptr);
-	p_ctx_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	p_ctx_->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
-	p_ctx_->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
-	// rasterizer & output merger
-	p_ctx_->RSSetState(gbuffer.p_rasterizer_state);
-	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
-	// shaders
-	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
-	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
-	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
-
-#ifdef SPARKI_DEBUG
-	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
-	assert(hr == S_OK);
-#endif
-
-	p_ctx_->Draw(4, 0);
-
-	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
-	p_ctx_->PSSetShaderResources(0, 1, srv_list);
 }
 
 // ----- shading_pass -----
@@ -352,7 +328,23 @@ tone_mapping_pass::tone_mapping_pass(ID3D11Device* p_device, ID3D11DeviceContext
 
 void tone_mapping_pass::perform(const gbuffer& gbuffer)
 {
+	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_tone_mapping_uav.ptr, nullptr);
 
+	HRESULT hr;
+#ifdef SPARKI_DEBUG
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	const UINT gx = UINT(gbuffer.viewport.Width) / tone_mapping_pass::compute_group_x_size
+		+ ((std::fmod(gbuffer.viewport.Width, tone_mapping_pass::compute_group_x_size) > 0) ? 1 : 0 );
+	const UINT gy = UINT(gbuffer.viewport.Height) / tone_mapping_pass::compute_group_y_size
+		+ ((std::fmod(gbuffer.viewport.Height, tone_mapping_pass::compute_group_y_size) > 0) ? 1 : 0);
+	p_ctx_->Dispatch(gx, gy, 1);
+
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
 }
 
 // ----- renderer -----
@@ -436,7 +428,6 @@ void renderer::init_passes_and_tools()
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
 	p_tone_mapping_pass_ = std::make_unique<tone_mapping_pass>(p_device_, p_ctx_, p_debug_);
-	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::draw_frame(frame& frame)
@@ -452,9 +443,23 @@ void renderer::draw_frame(frame& frame)
 	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
+	// ----- post processing -----
+	
+	// reset rtv bindings
+	ID3D11RenderTargetView* rtv_list[1] = { nullptr };
+	p_ctx_->OMSetRenderTargets(1, rtv_list, nullptr);
+
+	p_tone_mapping_pass_->perform(*p_gbuffer_);
+
+	// reset srv binding
+	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
+	p_ctx_->CSSetShaderResources(0, 1, srv_list);
+	// reset uav binding
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+
 	// present frame
-	p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
-	p_final_pass_->perform(*p_gbuffer_);
+	p_ctx_->CopyResource(p_tex_window_, p_gbuffer_->p_tex_tone_mapping);
 	p_swap_chain_->Present(0, 0);
 }
 
@@ -469,6 +474,7 @@ void renderer::resize_viewport(const uint2& size)
 	// resize swap chain's buffers
 	if (p_tex_window_rtv_) {
 		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
+		p_tex_window_.dispose();
 		p_tex_window_rtv_.dispose();
 
 		DXGI_SWAP_CHAIN_DESC d;
@@ -479,11 +485,10 @@ void renderer::resize_viewport(const uint2& size)
 	}
 
 	// update window rtv
-	com_ptr<ID3D11Texture2D> tex_back_buffer;
 	HRESULT hr = p_swap_chain_->GetBuffer(0, __uuidof(ID3D11Texture2D),
-		reinterpret_cast<void**>(&tex_back_buffer.ptr));
+		reinterpret_cast<void**>(&p_tex_window_.ptr));
 	assert(hr == S_OK);
-	hr = p_device_->CreateRenderTargetView(tex_back_buffer.ptr, nullptr, &p_tex_window_rtv_.ptr);
+	hr = p_device_->CreateRenderTargetView(p_tex_window_.ptr, nullptr, &p_tex_window_rtv_.ptr);
 	assert(hr == S_OK);
 
 	p_gbuffer_->resize(p_device_, size);
