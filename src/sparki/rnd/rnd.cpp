@@ -138,13 +138,12 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
-	init_pipeline_state();
-	init_textures();
-
 	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
 
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
+	init_pipeline_state();
+	init_textures();
 	init_geometry(); // shader_ must be initialized
 }
 
@@ -272,19 +271,11 @@ skybox_pass::skybox_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	hlsl_shader_desc shader_desc;
-	auto load_assets = [&shader_desc] {
-		shader_desc = hlsl_shader_desc("../../data/shaders/skybox_pass.hlsl");
-	};
-
-	std::atomic_size_t wc;
-	ts::run(load_assets, wc);
-
-	init_pipeline_state();
-	p_cb_vertex_shader_ = make_constant_buffer(p_device_, sizeof(float4x4));
-
-	ts::wait_for(wc);
+	hlsl_shader_desc shader_desc("../../data/shaders/skybox_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
+
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, sizeof(float4x4));
+	init_pipeline_state();
 	init_skybox_texture();
 }
 
@@ -344,6 +335,26 @@ void skybox_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, con
 	p_ctx_->Draw(14, 0); // 14 - number of indices in a cube represented by a triangle strip
 }
 
+// ----- tone_mapping_pass -----
+
+tone_mapping_pass::tone_mapping_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device),
+	p_ctx_(p_ctx),
+	p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	hlsl_compute_desc compute_desc("../../data/shaders/tome_mapping_pass.compute.hlsl");
+	compute_shader_ = hlsl_compute(p_device, compute_desc);
+}
+
+void tone_mapping_pass::perform(const gbuffer& gbuffer)
+{
+
+}
+
 // ----- renderer -----
 
 renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
@@ -354,16 +365,9 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 	init_dx_device(p_hwnd, viewport_size);
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 
-	auto task = [this] {
-		assert(p_gbuffer_);
-		p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
-		p_brdf_integrator_ = std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
-	};
-
 	std::atomic_size_t wc;
-	ts::run(task, wc);
+	ts::run([this] { init_passes_and_tools(); }, wc);
 
-	init_rnd_passes();
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
@@ -421,10 +425,17 @@ void renderer::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 #endif
 }
 
-void renderer::init_rnd_passes()
+void renderer::init_passes_and_tools()
 {
+	assert(p_gbuffer_);
+
+	// rnd tools
+	p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	p_brdf_integrator_ = std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
+	// rnd passes
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
+	p_tone_mapping_pass_ = std::make_unique<tone_mapping_pass>(p_device_, p_ctx_, p_debug_);
 	p_final_pass_ = std::make_unique<final_pass>(p_device_, p_ctx_, p_debug_);
 }
 
@@ -477,7 +488,6 @@ void renderer::resize_viewport(const uint2& size)
 
 	p_gbuffer_->resize(p_device_, size);
 }
-
 
 } // namespace rnd
 } // namespace sparki
