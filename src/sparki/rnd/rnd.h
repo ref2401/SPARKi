@@ -34,6 +34,8 @@ struct gbuffer final {
 	com_ptr<ID3D11Texture2D>			p_tex_tone_mapping;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_tone_mapping_srv;
 	com_ptr<ID3D11UnorderedAccessView>	p_tex_tone_mapping_uav;
+	com_ptr<ID3D11Texture2D>			p_tex_aa;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_aa_uav;
 	// depth texture
 	com_ptr<ID3D11Texture2D>			p_tex_depth;
 	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
@@ -120,15 +122,16 @@ private:
 	com_ptr<ID3D11ShaderResourceView>	p_tex_skybox_srv_;
 };
 
+// Post-processing pass. Comprises such techniques as: tone mapping, anti-aliasing, etc.
 // Applies tone mapping to gbuffer.p_tex_color and computes luminance for each texel.
 // The output has rgbl format.
-class tone_mapping_pass final {
+class postproc_pass final {
 public:
 
-	tone_mapping_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+	postproc_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
 
-	tone_mapping_pass(tone_mapping_pass&&) = delete;
-	tone_mapping_pass& operator=(tone_mapping_pass&&) = delete;
+	postproc_pass(postproc_pass&&) = delete;
+	postproc_pass& operator=(postproc_pass&&) = delete;
 
 
 	void perform(const gbuffer& gbuffer);
@@ -139,10 +142,11 @@ private:
 	static constexpr UINT compute_group_y_size = 2;
 
 
-	ID3D11Device*						p_device_;
-	ID3D11DeviceContext*				p_ctx_;
-	ID3D11Debug*						p_debug_;
-	hlsl_compute						compute_shader_;
+	ID3D11Device*			p_device_;
+	ID3D11DeviceContext*	p_ctx_;
+	ID3D11Debug*			p_debug_;
+	hlsl_compute			tone_mapping_compute_;
+	hlsl_compute			fxaa_compute_;
 };
 
 class renderer final {
@@ -183,7 +187,7 @@ private:
 	D3D11_VIEWPORT						viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>		p_skybox_pass_;
 	std::unique_ptr<shading_pass>		p_light_pass_;
-	std::unique_ptr<tone_mapping_pass>	p_tone_mapping_pass_;
+	std::unique_ptr<postproc_pass>		p_postproc_pass_;
 };
 
 

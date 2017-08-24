@@ -41,6 +41,8 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	p_tex_tone_mapping.dispose();
 	p_tex_tone_mapping_srv.dispose();
 	p_tex_tone_mapping_uav.dispose();
+	p_tex_aa.dispose();
+	p_tex_aa_uav.dispose();
 	p_tex_depth.dispose();
 	p_tex_depth_dsv.dispose();
 
@@ -62,7 +64,7 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
 	assert(hr == S_OK);
 
-	// update tone mapping textures & its views
+	// update tone mapping textures & its view
 	D3D11_TEXTURE2D_DESC tm_desc = {};
 	tm_desc.Width = size.x;
 	tm_desc.Height = size.y;
@@ -78,6 +80,22 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	hr = p_device->CreateShaderResourceView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_srv.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateUnorderedAccessView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_uav.ptr);
+	assert(hr == S_OK);
+
+	// update aa texture & its view
+	D3D11_TEXTURE2D_DESC aa_desc = {};
+	aa_desc.Width = size.x;
+	aa_desc.Height = size.y;
+	aa_desc.MipLevels = 1;
+	aa_desc.ArraySize = 1;
+	aa_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	aa_desc.SampleDesc.Count = 1;
+	aa_desc.SampleDesc.Quality = 0;
+	aa_desc.Usage = D3D11_USAGE_DEFAULT;
+	aa_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+	hr = p_device->CreateTexture2D(&aa_desc, nullptr, &p_tex_aa.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateUnorderedAccessView(p_tex_aa, nullptr, &p_tex_aa_uav.ptr);
 	assert(hr == S_OK);
 
 	// update depth texture & its views
@@ -311,9 +329,9 @@ void skybox_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, con
 	p_ctx_->Draw(14, 0); // 14 - number of indices in a cube represented by a triangle strip
 }
 
-// ----- tone_mapping_pass -----
+// ----- postproc_pass -----
 
-tone_mapping_pass::tone_mapping_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+postproc_pass::postproc_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device),
 	p_ctx_(p_ctx),
 	p_debug_(p_debug)
@@ -322,26 +340,39 @@ tone_mapping_pass::tone_mapping_pass(ID3D11Device* p_device, ID3D11DeviceContext
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	hlsl_compute_desc compute_desc("../../data/shaders/tome_mapping_pass.compute.hlsl");
-	compute_shader_ = hlsl_compute(p_device, compute_desc);
+	hlsl_compute_desc tn_desc("../../data/shaders/tone_mapping_pass.compute.hlsl");
+	tone_mapping_compute_ = hlsl_compute(p_device, tn_desc);
+	hlsl_compute_desc fxaa_desc("../../data/shaders/fxaa_pass.compute.hlsl");
+	fxaa_compute_ = hlsl_compute(p_device, fxaa_desc);
 }
 
-void tone_mapping_pass::perform(const gbuffer& gbuffer)
+void postproc_pass::perform(const gbuffer& gbuffer)
 {
-	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	HRESULT hr;
+	const UINT gx = UINT(gbuffer.viewport.Width) / postproc_pass::compute_group_x_size
+		+ ((std::fmod(gbuffer.viewport.Width, postproc_pass::compute_group_x_size) > 0) ? 1 : 0);
+	const UINT gy = UINT(gbuffer.viewport.Height) / postproc_pass::compute_group_y_size
+		+ ((std::fmod(gbuffer.viewport.Height, postproc_pass::compute_group_y_size) > 0) ? 1 : 0);
+
+
+	// tone mapping pass
+	p_ctx_->CSSetShader(tone_mapping_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_tone_mapping_uav.ptr, nullptr);
-
-	HRESULT hr;
 #ifdef SPARKI_DEBUG
 	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
 #endif
+	p_ctx_->Dispatch(gx, gy, 1);
 
-	const UINT gx = UINT(gbuffer.viewport.Width) / tone_mapping_pass::compute_group_x_size
-		+ ((std::fmod(gbuffer.viewport.Width, tone_mapping_pass::compute_group_x_size) > 0) ? 1 : 0 );
-	const UINT gy = UINT(gbuffer.viewport.Height) / tone_mapping_pass::compute_group_y_size
-		+ ((std::fmod(gbuffer.viewport.Height, tone_mapping_pass::compute_group_y_size) > 0) ? 1 : 0);
+	// anti-aliasing pass
+	p_ctx_->CSSetShader(fxaa_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_aa_uav.ptr, nullptr);
+	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_tone_mapping_srv.ptr);
+#ifdef SPARKI_DEBUG
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
 	p_ctx_->Dispatch(gx, gy, 1);
 
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
@@ -427,7 +458,7 @@ void renderer::init_passes_and_tools()
 	// rnd passes
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
-	p_tone_mapping_pass_ = std::make_unique<tone_mapping_pass>(p_device_, p_ctx_, p_debug_);
+	p_postproc_pass_ = std::make_unique<postproc_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void renderer::draw_frame(frame& frame)
@@ -435,6 +466,7 @@ void renderer::draw_frame(frame& frame)
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
+	// ----- rnd passes -----
 	p_ctx_->RSSetViewports(1, &p_gbuffer_->viewport);
 	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
@@ -443,13 +475,12 @@ void renderer::draw_frame(frame& frame)
 	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
-	// ----- post processing -----
-	
 	// reset rtv bindings
 	ID3D11RenderTargetView* rtv_list[1] = { nullptr };
 	p_ctx_->OMSetRenderTargets(1, rtv_list, nullptr);
 
-	p_tone_mapping_pass_->perform(*p_gbuffer_);
+	// ----- post processing -----
+	p_postproc_pass_->perform(*p_gbuffer_);
 
 	// reset srv binding
 	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
@@ -459,7 +490,7 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 
 	// present frame
-	p_ctx_->CopyResource(p_tex_window_, p_gbuffer_->p_tex_tone_mapping);
+	p_ctx_->CopyResource(p_tex_window_, p_gbuffer_->p_tex_aa);
 	p_swap_chain_->Present(0, 0);
 }
 

@@ -16,8 +16,8 @@ float4 tone_mapping_rgbl(float3 hdr)
 }
 
 [numthreads(512, 2, 1)]
-void cs_main(uint3 dt_id : SV_DispatchThreadId) {
-
+void cs_main(uint3 dt_id : SV_DispatchThreadId) 
+{
 	uint width, height;
 	g_tex_ldr.GetDimensions(width, height);
 	if (dt_id.x >= width || dt_id.y >= height) return;
