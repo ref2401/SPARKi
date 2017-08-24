@@ -122,6 +122,16 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float dist_0 = (is_horizontal) ? (uv.x - uv_end_0.x) : (uv.y - uv_end_0.y);
 	const float dist_1 = (is_horizontal) ? (uv_end_1.x - uv.x) : (uv_end_0.y - uv.y);
 	const float min_dist = min(dist_0, dist_1);
+	const float span_size = dist_0 + dist_1;
+	const float pixel_offset = 0.5 - min_dist * span_size;
 
-	g_tex_aa[dt_id.xy] = float4(0, 1, 0, 1);
+	const bool dir_0 = (dist_0 < dist_1);
+	const bool is_luma_c_smaller = (luma_c < luma_edge);
+	const bool good_span = (((dir_0) ? (luma_end_0) : (luma_end_1)) < 0.0) != is_luma_c_smaller;
+	const float final_offset = (good_span) ? (pixel_offset) : (0);
+
+	const float2 uv_final = uv + float2(final_offset * step_size) * ((is_horizontal) ? float(0, 1) : float(1, 0));
+	const float3 rgb_final = g_tex_tone_mapping.SampleLevel(g_sampler, uv_final, 0).rgb;
+
+	g_tex_aa[dt_id.xy] = float4(rgb_final, 1);
 }
