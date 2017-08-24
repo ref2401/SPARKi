@@ -367,6 +367,7 @@ void postproc_pass::perform(const gbuffer& gbuffer)
 
 	// anti-aliasing pass
 	p_ctx_->CSSetShader(fxaa_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_aa_uav.ptr, nullptr);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_tone_mapping_srv.ptr);
 #ifdef SPARKI_DEBUG
@@ -375,7 +376,18 @@ void postproc_pass::perform(const gbuffer& gbuffer)
 #endif
 	p_ctx_->Dispatch(gx, gy, 1);
 
+
+	// clear pipeline state
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	// reset sampler
+	ID3D11SamplerState* sampler_list[1] = { nullptr };
+	p_ctx_->CSSetSamplers(0, 1, sampler_list);
+	// reset srv binding
+	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
+	p_ctx_->CSSetShaderResources(0, 1, srv_list);
+	// reset uav binding
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 }
 
 // ----- renderer -----
@@ -467,6 +479,7 @@ void renderer::draw_frame(frame& frame)
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
 	// ----- rnd passes -----
+	//
 	p_ctx_->RSSetViewports(1, &p_gbuffer_->viewport);
 	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
@@ -480,16 +493,11 @@ void renderer::draw_frame(frame& frame)
 	p_ctx_->OMSetRenderTargets(1, rtv_list, nullptr);
 
 	// ----- post processing -----
+	//
 	p_postproc_pass_->perform(*p_gbuffer_);
 
-	// reset srv binding
-	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
-	p_ctx_->CSSetShaderResources(0, 1, srv_list);
-	// reset uav binding
-	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
-
-	// present frame
+	// ----- present frame -----
+	//
 	p_ctx_->CopyResource(p_tex_window_, p_gbuffer_->p_tex_aa);
 	p_swap_chain_->Present(0, 0);
 }
