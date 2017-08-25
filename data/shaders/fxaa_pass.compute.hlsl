@@ -1,8 +1,8 @@
-static const float edge_threshold_min = 0.0312;
+static const float edge_threshold_min = 0.0833;
 static const float edge_threshold_max = 0.125;
-static const uint exploration_iteration_count = 8;
-static const float exploration_uv_offset_factors[exploration_iteration_count] = {
-	1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 4.0 
+static const uint exploration_iteration_count = 11;
+static const float exploration_uv_step_factors[exploration_iteration_count] = {
+	1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 
 };
 
 Texture2D<float4>	g_tex_tone_mapping	: register(t0);
@@ -72,18 +72,19 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 	// edge is between center texel and the one with luma_0 or luma_1 depends on which is the steepest.
 	// calc luma and uv of the edge.
-	const float luma_edge = 0.5 * (luma_c + (is_0_steepest) ? (luma_0) : (luma_1));
-	const float step_size = (is_0_steepest) ? (-1.0f) : (1.0f)
-		* (is_horizontal) ? (rcp_tex_size.y) : (rcp_tex_size.x);
+	const float luma_edge = 0.5 * (luma_c + ((is_0_steepest) ? (luma_0) : (luma_1)));
+	const float step_size = ((is_horizontal) ? (rcp_tex_size.y) : (rcp_tex_size.x))
+		* ((is_0_steepest) ? (-1.0f) : (1.0f));
+
 	const float2 uv_edge = uv + (float2)(0.5 * step_size) 
-		* (is_horizontal) ? float2(0, 1) : float2(1, 0);
+		* ((is_horizontal) ? float2(0, 1) : float2(1, 0));
 
 	// ----- edge exploration (the first iteration) -----
 	//
 	const float gradient_scaled = 0.25 * max(gradient_0, gradient_1);
-	const float2 uv_offset = (is_horizontal) ? float2(0, rcp_tex_size.y) : float2(rcp_tex_size.x, 0);
-	float2 uv_end_0 = uv_edge - uv_offset;
-	float2 uv_end_1 = uv_edge + uv_offset;
+	const float2 uv_step = (is_horizontal) ? float2(rcp_tex_size.x, 0) : float2(0, rcp_tex_size.y);
+	float2 uv_end_0 = uv_edge - uv_step;
+	float2 uv_end_1 = uv_edge + uv_step;
 	float luma_end_0 = g_tex_tone_mapping.SampleLevel(g_sampler, uv_end_0, 0).a;
 	float luma_end_1 = g_tex_tone_mapping.SampleLevel(g_sampler, uv_end_1, 0).a;
 	bool reached_end_0 = (abs(luma_edge - luma_end_0) >= gradient_scaled);
@@ -91,18 +92,19 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	
 	// ----- edge exploration (iterations [0, exploration_iteration_count]) -----
 	//
+	int i = -1;
 	if (!(reached_end_0 && reached_end_1)) {
-		for (uint i = 0; i < exploration_iteration_count; ++i) {
-			const float uv_offset_factor = exploration_uv_offset_factors[i];
+		for (i = 0; i < exploration_iteration_count; ++i) {
+			const float factor = exploration_uv_step_factors[i];
 
 			if (!reached_end_0) {
-				uv_end_0 -= uv_offset * uv_offset_factor;
+				uv_end_0 -= uv_step * factor;
 				luma_end_0 = g_tex_tone_mapping.SampleLevel(g_sampler, uv_end_0, 0).a;
 				reached_end_0 = (abs(luma_edge - luma_end_0) >= gradient_scaled);
 			}
 
 			if (!reached_end_1) {
-				uv_end_1 += uv_offset * uv_offset_factor;
+				uv_end_1 += uv_step * factor;
 				luma_end_1 = g_tex_tone_mapping.SampleLevel(g_sampler, uv_end_1, 0).a;
 				reached_end_1 = (abs(luma_edge - luma_end_1) >= gradient_scaled);
 			}
@@ -116,18 +118,23 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float dist_0 = (is_horizontal) ? (uv.x - uv_end_0.x) : (uv.y - uv_end_0.y);
 	const float dist_1 = (is_horizontal) ? (uv_end_1.x - uv.x) : (uv_end_1.y - uv.y);
 	const float min_dist = min(dist_0, dist_1);
-	const float span_size = dist_0 + dist_1;
+	const float span_size = (dist_0 + dist_1);
 	const float pixel_offset = 0.5 - min_dist / span_size;
 
 	const bool fffff = ((luma_c - 0.5 * luma_edge) < 0);
-	const bool good_span_0 = (luma_end_0 < 0.0) != fffff;
-	const bool good_span_1 = (luma_end_1 < 0.0) != fffff;
+	const bool good_span_0 = ((luma_end_0 < 0.0) != fffff);
+	const bool good_span_1 = ((luma_end_1 < 0.0) != fffff);
 	const bool good_span = (dist_0 < dist_1) ? (good_span_0) : (good_span_1);
 
-	const float final_offset = (good_span) ? (pixel_offset) : (0);
+	const float offset_final = (good_span) ? (pixel_offset) : (0);
 
-	const float2 uv_final = uv + (float2)(final_offset * step_size) * ((is_horizontal) ? float2(0, 1) : float2(1, 0));
+	const float2 uv_final = uv + (float2)(offset_final * step_size)
+		* ((is_horizontal) ? float2(0, 1) : float2(1, 0));
+	
 	const float3 rgb_final = g_tex_tone_mapping.SampleLevel(g_sampler, uv_final, 0).rgb;
-
-	g_tex_aa[dt_id.xy] = float4(rgb_final, 1);
+	//g_tex_aa[dt_id.xy] = float4(1, 0, 0, 1.0);
+	g_tex_aa[dt_id.xy] = float4(rgb_final, 1.0);
+	//g_tex_aa[dt_id.xy] = float4(rgb_c, 1.0);
+	//g_tex_aa[dt_id.xy] = float4(rgb_final.r, uv_final - uv, 1.0);
+	//g_tex_aa[dt_id.xy] = float4(rgb_final.r, uv_final, offset_final);
 }
