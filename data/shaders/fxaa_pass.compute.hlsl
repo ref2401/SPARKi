@@ -1,5 +1,6 @@
 static const float edge_threshold_min = 0.0833;
 static const float edge_threshold_max = 0.125;
+static const float subpixel_offset_factor = 0.5;
 static const uint exploration_iteration_count = 11;
 static const float exploration_uv_step_factors[exploration_iteration_count] = {
 	1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 
@@ -92,9 +93,8 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	
 	// ----- edge exploration (iterations [0, exploration_iteration_count]) -----
 	//
-	int i = -1;
 	if (!(reached_end_0 && reached_end_1)) {
-		for (i = 0; i < exploration_iteration_count; ++i) {
+		for (uint i = 0; i < exploration_iteration_count; ++i) {
 			const float factor = exploration_uv_step_factors[i];
 
 			if (!reached_end_0) {
@@ -126,15 +126,18 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const bool good_span_1 = ((luma_end_1 < 0.0) != fffff);
 	const bool good_span = (dist_0 < dist_1) ? (good_span_0) : (good_span_1);
 
+	// ----- subpixel anti-aliasing -----
+	//
+	const float luma_avg = (2.0 * (luma_ne + luma_we) + luma_nwsw + luma_nese) / 12.0;
+	const float subpix_offset_0 = saturate(abs(luma_avg - luma_c) / local_contrast);
+	const float subpix_offset_1 = (3 - 2 * subpix_offset_0) * subpix_offset_0 * subpix_offset_0;
+	const float subpix_offset_final = subpix_offset_1 * subpix_offset_1 * subpixel_offset_factor;
+
 	const float offset_final = (good_span) ? (pixel_offset) : (0);
 
 	const float2 uv_final = uv + (float2)(offset_final * step_size)
 		* ((is_horizontal) ? float2(0, 1) : float2(1, 0));
 	
 	const float3 rgb_final = g_tex_tone_mapping.SampleLevel(g_sampler, uv_final, 0).rgb;
-	//g_tex_aa[dt_id.xy] = float4(1, 0, 0, 1.0);
 	g_tex_aa[dt_id.xy] = float4(rgb_final, 1.0);
-	//g_tex_aa[dt_id.xy] = float4(rgb_c, 1.0);
-	//g_tex_aa[dt_id.xy] = float4(rgb_final.r, uv_final - uv, 1.0);
-	//g_tex_aa[dt_id.xy] = float4(rgb_final.r, uv_final, offset_final);
 }
