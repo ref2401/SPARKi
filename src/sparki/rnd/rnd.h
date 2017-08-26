@@ -17,6 +17,9 @@ struct frame final {
 
 struct gbuffer final {
 
+	static constexpr float viewport_factor = 1.333f;
+
+
 	explicit gbuffer(ID3D11Device* p_device);
 
 	gbuffer(gbuffer&&) = delete;
@@ -35,6 +38,7 @@ struct gbuffer final {
 	com_ptr<ID3D11ShaderResourceView>	p_tex_tone_mapping_srv;
 	com_ptr<ID3D11UnorderedAccessView>	p_tex_tone_mapping_uav;
 	com_ptr<ID3D11Texture2D>			p_tex_aa;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_aa_srv;
 	com_ptr<ID3D11UnorderedAccessView>	p_tex_aa_uav;
 	// depth texture
 	com_ptr<ID3D11Texture2D>			p_tex_depth;
@@ -47,7 +51,8 @@ struct gbuffer final {
 	// Sampler that is used all over the place.
 	// MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
 	com_ptr<ID3D11SamplerState>			p_sampler;
-	D3D11_VIEWPORT						viewport = { 0, 0, 0, 0, 0, 1 };
+	D3D11_VIEWPORT						rnd_viewport = { 0, 0, 0, 0, 0, 1 };
+	D3D11_VIEWPORT						window_viewport = { 0, 0, 0, 0, 0, 1 };
 };
 
 class shading_pass final {
@@ -134,12 +139,14 @@ public:
 	postproc_pass& operator=(postproc_pass&&) = delete;
 
 
-	void perform(const gbuffer& gbuffer);
+	void perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p_tex_window_uav);
 
 private:
 
-	static constexpr UINT compute_group_x_size = 512;
-	static constexpr UINT compute_group_y_size = 2;
+	static constexpr UINT postproc_compute_group_x_size = 512;
+	static constexpr UINT postproc_compute_group_y_size = 2;
+	static constexpr UINT downsample_compute_group_x_size = 32;
+	static constexpr UINT downsample_compute_group_y_size = 32;
 
 
 	ID3D11Device*			p_device_;
@@ -147,6 +154,7 @@ private:
 	ID3D11Debug*			p_debug_;
 	hlsl_compute			tone_mapping_compute_;
 	hlsl_compute			fxaa_compute_;
+	hlsl_compute			downsample_compute_;
 };
 
 class renderer final {
@@ -177,9 +185,10 @@ private:
 	com_ptr<ID3D11Debug>			p_debug_;
 	std::unique_ptr<gbuffer>		p_gbuffer_;
 	// swap chain stuff:
-	com_ptr<IDXGISwapChain>			p_swap_chain_;
-	com_ptr<ID3D11Texture2D>		p_tex_window_;
-	com_ptr<ID3D11RenderTargetView> p_tex_window_rtv_;
+	com_ptr<IDXGISwapChain>				p_swap_chain_;
+	com_ptr<ID3D11Texture2D>			p_tex_window_;
+	com_ptr<ID3D11RenderTargetView>		p_tex_window_rtv_;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_window_uav_;
 	// rnd tools
 	std::unique_ptr<envmap_texture_builder> p_envmap_builder_;
 	std::unique_ptr<brdf_integrator>		p_brdf_integrator_;

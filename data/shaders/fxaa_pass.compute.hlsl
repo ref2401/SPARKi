@@ -1,6 +1,6 @@
-static const float edge_threshold_min = 0.0833;
+static const float edge_threshold_min = 0.0312;
 static const float edge_threshold_max = 0.125;
-static const float subpixel_offset_factor = 0.5;
+static const float subpixel_offset_factor = 0.75;
 static const uint exploration_iteration_count = 11;
 static const float exploration_uv_step_factors[exploration_iteration_count] = {
 	1.0, 1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 

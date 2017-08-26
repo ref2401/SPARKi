@@ -35,6 +35,9 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 {
 	assert(size > 0);
 
+	const UINT width = UINT(size.x * gbuffer::viewport_factor);
+	const UINT height = UINT(size.y * gbuffer::viewport_factor);
+
 	p_tex_color.dispose();
 	p_tex_color_srv.dispose();
 	p_tex_color_rtv.dispose();
@@ -42,14 +45,15 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	p_tex_tone_mapping_srv.dispose();
 	p_tex_tone_mapping_uav.dispose();
 	p_tex_aa.dispose();
+	p_tex_aa_srv.dispose();
 	p_tex_aa_uav.dispose();
 	p_tex_depth.dispose();
 	p_tex_depth_dsv.dispose();
 
 	// update color texture & its views
 	D3D11_TEXTURE2D_DESC color_desc = {};
-	color_desc.Width = size.x;
-	color_desc.Height = size.y;
+	color_desc.Width = width;
+	color_desc.Height = height;
 	color_desc.MipLevels = 1;
 	color_desc.ArraySize = 1;
 	color_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -64,18 +68,18 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
 	assert(hr == S_OK);
 
-	// update tone mapping textures & its view
-	D3D11_TEXTURE2D_DESC tm_desc = {};
-	tm_desc.Width = size.x;
-	tm_desc.Height = size.y;
-	tm_desc.MipLevels = 1;
-	tm_desc.ArraySize = 1;
-	tm_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	tm_desc.SampleDesc.Count = 1;
-	tm_desc.SampleDesc.Quality = 0;
-	tm_desc.Usage = D3D11_USAGE_DEFAULT;
-	tm_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-	hr = p_device->CreateTexture2D(&tm_desc, nullptr, &p_tex_tone_mapping.ptr);
+	// update postproc textures & its view
+	D3D11_TEXTURE2D_DESC pp_desc = {};
+	pp_desc.Width = width;
+	pp_desc.Height = height;
+	pp_desc.MipLevels = 1;
+	pp_desc.ArraySize = 1;
+	pp_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pp_desc.SampleDesc.Count = 1;
+	pp_desc.SampleDesc.Quality = 0;
+	pp_desc.Usage = D3D11_USAGE_DEFAULT;
+	pp_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	hr = p_device->CreateTexture2D(&pp_desc, nullptr, &p_tex_tone_mapping.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateShaderResourceView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_srv.ptr);
 	assert(hr == S_OK);
@@ -83,25 +87,17 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	assert(hr == S_OK);
 
 	// update aa texture & its view
-	D3D11_TEXTURE2D_DESC aa_desc = {};
-	aa_desc.Width = size.x;
-	aa_desc.Height = size.y;
-	aa_desc.MipLevels = 1;
-	aa_desc.ArraySize = 1;
-	aa_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	aa_desc.SampleDesc.Count = 1;
-	aa_desc.SampleDesc.Quality = 0;
-	aa_desc.Usage = D3D11_USAGE_DEFAULT;
-	aa_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-	hr = p_device->CreateTexture2D(&aa_desc, nullptr, &p_tex_aa.ptr);
+	hr = p_device->CreateTexture2D(&pp_desc, nullptr, &p_tex_aa.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_aa, nullptr, &p_tex_aa_srv.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateUnorderedAccessView(p_tex_aa, nullptr, &p_tex_aa_uav.ptr);
 	assert(hr == S_OK);
 
 	// update depth texture & its views
 	D3D11_TEXTURE2D_DESC ds_desc = {};
-	ds_desc.Width = size.x;
-	ds_desc.Height = size.y;
+	ds_desc.Width = width;
+	ds_desc.Height = height;
 	ds_desc.MipLevels = 1;
 	ds_desc.ArraySize = 1;
 	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -114,13 +110,21 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 	hr = p_device->CreateDepthStencilView(p_tex_depth, nullptr, &p_tex_depth_dsv.ptr);
 	assert(hr == S_OK);
 
+	// rnd viewport
+	rnd_viewport.TopLeftX = 0;
+	rnd_viewport.TopLeftY = 0;
+	rnd_viewport.Width = float(width);
+	rnd_viewport.Height = float(height);
+	rnd_viewport.MinDepth = 0.0;
+	rnd_viewport.MaxDepth = 1.0f;
+
 	// update viewport
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.Width = float(size.x);
-	viewport.Height = float(size.y);
-	viewport.MinDepth = 0.0;
-	viewport.MaxDepth = 1.0f;
+	window_viewport.TopLeftX = 0;
+	window_viewport.TopLeftY = 0;
+	window_viewport.Width = float(size.x);
+	window_viewport.Height = float(size.y);
+	window_viewport.MinDepth = 0.0;
+	window_viewport.MaxDepth = 1.0f;
 }
 
 // ----- shading_pass -----
@@ -340,22 +344,26 @@ postproc_pass::postproc_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx,
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	hlsl_compute_desc tn_desc("../../data/shaders/tone_mapping_pass.compute.hlsl");
+	const hlsl_compute_desc tn_desc("../../data/shaders/tone_mapping_pass.compute.hlsl");
 	tone_mapping_compute_ = hlsl_compute(p_device, tn_desc);
-	hlsl_compute_desc fxaa_desc("../../data/shaders/fxaa_pass.compute.hlsl");
+	const hlsl_compute_desc fxaa_desc("../../data/shaders/fxaa_pass.compute.hlsl");
 	fxaa_compute_ = hlsl_compute(p_device, fxaa_desc);
+	const hlsl_compute_desc downsample_desc("../../data/shaders/downsample.compute.hlsl");
+	downsample_compute_ = hlsl_compute(p_device, downsample_desc);
 }
 
-void postproc_pass::perform(const gbuffer& gbuffer)
+void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p_tex_window_uav)
 {
+	assert(p_tex_window_uav);
+
 	HRESULT hr;
-	const UINT gx = UINT(gbuffer.viewport.Width) / postproc_pass::compute_group_x_size
-		+ ((std::fmod(gbuffer.viewport.Width, postproc_pass::compute_group_x_size) > 0) ? 1 : 0);
-	const UINT gy = UINT(gbuffer.viewport.Height) / postproc_pass::compute_group_y_size
-		+ ((std::fmod(gbuffer.viewport.Height, postproc_pass::compute_group_y_size) > 0) ? 1 : 0);
+	const UINT rnd_gx = UINT(gbuffer.rnd_viewport.Width) / postproc_pass::postproc_compute_group_x_size
+		+ ((std::fmod(gbuffer.rnd_viewport.Width, postproc_pass::postproc_compute_group_x_size) > 0) ? 1 : 0);
+	const UINT rnd_gy = UINT(gbuffer.rnd_viewport.Height) / postproc_pass::postproc_compute_group_y_size
+		+ ((std::fmod(gbuffer.rnd_viewport.Height, postproc_pass::postproc_compute_group_y_size) > 0) ? 1 : 0);
 
-
-	// tone mapping pass
+	// ---- tone mapping pass -----
+	//
 	p_ctx_->CSSetShader(tone_mapping_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_tone_mapping_uav.ptr, nullptr);
@@ -363,9 +371,10 @@ void postproc_pass::perform(const gbuffer& gbuffer)
 	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
 #endif
-	p_ctx_->Dispatch(gx, gy, 1);
+	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
-	// anti-aliasing pass
+	// ---- anti-aliasing pass -----
+	//
 	p_ctx_->CSSetShader(fxaa_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_aa_uav.ptr, nullptr);
@@ -374,8 +383,24 @@ void postproc_pass::perform(const gbuffer& gbuffer)
 	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
 #endif
-	p_ctx_->Dispatch(gx, gy, 1);
+	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
+	// ---- downsample pass -----
+	//
+	const UINT wnd_gx = UINT(gbuffer.window_viewport.Width) / postproc_pass::downsample_compute_group_x_size
+		+ ((std::fmod(gbuffer.window_viewport.Width, postproc_pass::downsample_compute_group_x_size) > 0) ? 1 : 0);
+	const UINT wnd_gy = UINT(gbuffer.window_viewport.Height) / postproc_pass::downsample_compute_group_y_size
+		+ ((std::fmod(gbuffer.window_viewport.Height, postproc_pass::downsample_compute_group_y_size) > 0) ? 1 : 0);
+
+	p_ctx_->CSSetShader(downsample_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_window_uav, nullptr);
+	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_aa_srv.ptr);
+#ifdef SPARKI_DEBUG
+	hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+	p_ctx_->Dispatch(wnd_gx, wnd_gy, 1);
 
 	// clear pipeline state
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
@@ -422,7 +447,7 @@ void renderer::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 {
 	DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
 	swap_chain_desc.BufferCount = 2;
-	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS;
 	swap_chain_desc.BufferDesc.Width = viewport_size.x;
 	swap_chain_desc.BufferDesc.Height = viewport_size.y;
 	swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -480,7 +505,7 @@ void renderer::draw_frame(frame& frame)
 
 	// ----- rnd passes -----
 	//
-	p_ctx_->RSSetViewports(1, &p_gbuffer_->viewport);
+	p_ctx_->RSSetViewports(1, &p_gbuffer_->rnd_viewport);
 	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -494,11 +519,10 @@ void renderer::draw_frame(frame& frame)
 
 	// ----- post processing -----
 	//
-	p_postproc_pass_->perform(*p_gbuffer_);
+	p_postproc_pass_->perform(*p_gbuffer_, p_tex_window_uav_);
 
 	// ----- present frame -----
 	//
-	p_ctx_->CopyResource(p_tex_window_, p_gbuffer_->p_tex_aa);
 	p_swap_chain_->Present(0, 0);
 }
 
@@ -515,6 +539,7 @@ void renderer::resize_viewport(const uint2& size)
 		p_ctx_->OMSetRenderTargets(0, nullptr, nullptr);
 		p_tex_window_.dispose();
 		p_tex_window_rtv_.dispose();
+		p_tex_window_uav_.dispose();
 
 		DXGI_SWAP_CHAIN_DESC d;
 		HRESULT hr = p_swap_chain_->GetDesc(&d);
@@ -527,9 +552,12 @@ void renderer::resize_viewport(const uint2& size)
 	HRESULT hr = p_swap_chain_->GetBuffer(0, __uuidof(ID3D11Texture2D),
 		reinterpret_cast<void**>(&p_tex_window_.ptr));
 	assert(hr == S_OK);
+	D3D11_TEXTURE2D_DESC d;
+	p_tex_window_->GetDesc(&d);
 	hr = p_device_->CreateRenderTargetView(p_tex_window_.ptr, nullptr, &p_tex_window_rtv_.ptr);
 	assert(hr == S_OK);
-
+	hr = p_device_->CreateUnorderedAccessView(p_tex_window_.ptr, nullptr, &p_tex_window_uav_.ptr);
+	assert(hr == S_OK);
 	p_gbuffer_->resize(p_device_, size);
 }
 
