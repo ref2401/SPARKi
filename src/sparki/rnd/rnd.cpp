@@ -27,7 +27,11 @@ gbuffer::gbuffer(ID3D11Device* p_device)
 	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler.ptr);
+	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_linear.ptr);
+	assert(hr == S_OK);
+
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_point.ptr);
 	assert(hr == S_OK);
 }
 
@@ -250,7 +254,7 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, co
 		p_tex_specular_brdf_srv_ 
 	};
 	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
-	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler_linear.ptr);
 
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
@@ -323,7 +327,7 @@ void skybox_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, con
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
 	p_ctx_->PSSetShaderResources(0, 1, &p_tex_skybox_srv_.ptr);
-	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
+	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler_linear.ptr);
 
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContext(p_ctx_);
@@ -363,7 +367,6 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 		+ ((std::fmod(gbuffer.rnd_viewport.Height, postproc_pass::postproc_compute_group_y_size) > 0) ? 1 : 0);
 
 	// ---- tone mapping pass -----
-	//
 	p_ctx_->CSSetShader(tone_mapping_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_tone_mapping_uav.ptr, nullptr);
@@ -374,9 +377,9 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
 	// ---- anti-aliasing pass -----
-	//
 	p_ctx_->CSSetShader(fxaa_compute_.p_compute_shader, nullptr, 0);
-	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
+	ID3D11SamplerState* sampler_list[2] = { gbuffer.p_sampler_linear, gbuffer.p_sampler_point };
+	p_ctx_->CSSetSamplers(0, 2, sampler_list);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_aa_uav.ptr, nullptr);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_tone_mapping_srv.ptr);
 #ifdef SPARKI_DEBUG
@@ -386,14 +389,13 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
 	// ---- downsample pass -----
-	//
 	const UINT wnd_gx = UINT(gbuffer.window_viewport.Width) / postproc_pass::downsample_compute_group_x_size
 		+ ((std::fmod(gbuffer.window_viewport.Width, postproc_pass::downsample_compute_group_x_size) > 0) ? 1 : 0);
 	const UINT wnd_gy = UINT(gbuffer.window_viewport.Height) / postproc_pass::downsample_compute_group_y_size
 		+ ((std::fmod(gbuffer.window_viewport.Height, postproc_pass::downsample_compute_group_y_size) > 0) ? 1 : 0);
 
 	p_ctx_->CSSetShader(downsample_compute_.p_compute_shader, nullptr, 0);
-	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler.ptr);
+	p_ctx_->CSSetSamplers(0, 1, &gbuffer.p_sampler_linear.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_window_uav, nullptr);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_aa_srv.ptr);
 #ifdef SPARKI_DEBUG
@@ -405,8 +407,9 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 	// clear pipeline state
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
 	// reset sampler
-	ID3D11SamplerState* sampler_list[1] = { nullptr };
-	p_ctx_->CSSetSamplers(0, 1, sampler_list);
+	sampler_list[0] = { nullptr };
+	sampler_list[1] = { nullptr };
+	p_ctx_->CSSetSamplers(0, 2, sampler_list);
 	// reset srv binding
 	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
 	p_ctx_->CSSetShaderResources(0, 1, srv_list);
@@ -490,7 +493,7 @@ void renderer::init_passes_and_tools()
 	assert(p_gbuffer_);
 
 	// rnd tools
-	p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler);
+	p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler_linear);
 	p_brdf_integrator_ = std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
 	// rnd passes
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);

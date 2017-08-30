@@ -48,9 +48,10 @@ struct gbuffer final {
 
 	// Common rasterizer state. FrontCounterClockwise, CULL_BACK
 	com_ptr<ID3D11RasterizerState>		p_rasterizer_state;
-	// Sampler that is used all over the place.
-	// MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
-	com_ptr<ID3D11SamplerState>			p_sampler;
+	// Sampler: MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
+	com_ptr<ID3D11SamplerState>			p_sampler_linear;
+	// Sampler: MIN_MAG_MIP_POINT, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
+	com_ptr<ID3D11SamplerState>			p_sampler_point;
 	D3D11_VIEWPORT						rnd_viewport = { 0, 0, 0, 0, 0, 1 };
 	D3D11_VIEWPORT						window_viewport = { 0, 0, 0, 0, 0, 1 };
 };
