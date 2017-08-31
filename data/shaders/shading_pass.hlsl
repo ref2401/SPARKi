@@ -3,8 +3,9 @@
 
 
 // NOTE(ref2401): material props are temporary here.
-static const float g_material_f0 = 0.04f;
-//static const float g_material_f0 = 0.9f;
+static const float3 g_material_base_color = float3(0.04, 0.04, 0.04);
+static const float3 g_material_reflect_color = float3(1, 1, 1);
+static const float g_material_metallic_mask = 0.0f;
 static const float g_material_linear_roughness = 0.1f;
 
 
@@ -66,7 +67,7 @@ struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
-float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float f0, float linear_roughness)
+float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3 f0, float diffuse_factor)
 {
 	// diffuse envmap
 	const float3 diffuse_envmap = g_tex_diffuse_envmap.SampleLevel(g_sampler, cube_dir_ms, 0).rgb;
@@ -76,17 +77,21 @@ float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float f0, float linear_roughne
 	const float3 specular_envmap = g_tex_specular_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
 	const float2 brdf = g_tex_specular_brdf.SampleLevel(g_sampler, float2(dot_nv, linear_roughness), 0);
 
-	return diffuse_envmap + specular_envmap * (f0 * brdf.x + brdf.y);
+	return diffuse_factor * diffuse_envmap + specular_envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
 {
-	const float3 n_ts = float3(0, 0, 1); // sample normal from a normal map.
-	const float3 v_ts = normalize(pixel.v_ts);
-	const float dot_nv = saturate(dot(n_ts, v_ts));
+	const float3 n_ts	= float3(0, 0, 1); // sample normal from a normal map.
+	const float3 v_ts	= normalize(pixel.v_ts);
+	const float	dot_nv	= saturate(dot(n_ts, v_ts));
+
+	const float3 f0 = lerp(pow(0.4 * g_material_reflect_color, 2), g_material_base_color, g_material_metallic_mask);
+	const float3 fresnel = fresnel_schlick(f0, dot_nv);
+	const float diffuse_factor = (1.0 - fresnel) * (1 - g_material_metallic_mask);
 
 	float3 color = 0;
-	color += eval_ibl(normalize(pixel.specular_cube_dir), dot_nv, g_material_f0, g_material_linear_roughness);
+	color += eval_ibl(normalize(pixel.specular_cube_dir), dot_nv, g_material_linear_roughness, f0, diffuse_factor);
 
 	ps_output o;
 	o.rt_color0 = float4(color, 1);
