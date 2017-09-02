@@ -17,10 +17,11 @@
 #pragma warning(disable:4996) // C4996 'fopen': This function or variable may be unsafe.
 
 namespace sparki {
+namespace core {
 
 // ----- texture_data -----
 
-texture_data::texture_data(texture_type type, const math::uint3& size, 
+texture_data::texture_data(texture_type type, const math::uint3& size,
 	uint32_t mipmap_count, uint32_t array_size, pixel_format fmt)
 	: type(type), size(size), mipmap_count(mipmap_count), array_size(array_size), format(fmt)
 {
@@ -75,7 +76,7 @@ size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_co
 		array_slice_bytes += std::max(1u, wo) * std::max(1u, ho) * fmt_bytes;
 	}
 
-	return (type == texture_type::texture_2d) 
+	return (type == texture_type::texture_2d)
 		? array_slice_bytes
 		: array_slice_bytes * array_size;
 }
@@ -107,10 +108,10 @@ bool is_valid_texture_data(const texture_data& td) noexcept
 }
 
 texture_data load_from_image_file(const char* p_filename, uint8_t channel_count, bool flip_vertically)
-{	
+{
 	struct stb_image final {
 		stb_image() noexcept = default;
-		~stb_image() noexcept { stbi_image_free(p_data); p_data = nullptr;  }
+		~stb_image() noexcept { stbi_image_free(p_data); p_data = nullptr; }
 
 		uint8_t* p_data = nullptr;
 	};
@@ -176,7 +177,7 @@ texture_data load_from_tex_file(const char* p_filename)
 		std::fread(td.buffer.data(), byte_count(td.buffer), 1, file.get());
 
 		return td;
-	} 
+	}
 	catch (...) {
 		std::string exc_msg = EXCEPTION_MSG("Load .tex data error. File: ", p_filename);
 		std::throw_with_nested(std::runtime_error(exc_msg));
@@ -207,6 +208,8 @@ void save_to_tex_file(const char* p_filename, const texture_data& td)
 	}
 }
 
+
+} // namespace core
 } // namespace sparki
 
 #pragma warning(pop)

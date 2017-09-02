@@ -26,6 +26,7 @@ void accumulate_exception_message_impl(std::string& dest, const std::exception& 
 
 
 namespace sparki {
+namespace core {
 
 std::string make_exception_message(const std::exception& exc)
 {
@@ -34,4 +35,5 @@ std::string make_exception_message(const std::exception& exc)
 	return msg;
 }
 
+} // namespace core
 } // namespace sparki

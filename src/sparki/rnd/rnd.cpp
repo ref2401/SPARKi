@@ -6,7 +6,7 @@
 
 
 namespace sparki {
-namespace rnd {
+namespace core {
 
 // ----- gbuffer -----
 
@@ -565,5 +565,5 @@ void renderer::resize_viewport(const uint2& size)
 	p_gbuffer_->resize(p_device_, size);
 }
 
-} // namespace rnd
+} // namespace core
 } // namespace sparki

@@ -8,6 +8,7 @@
 #pragma warning(disable:4996) // C4996 'fopen': This function or variable may be unsafe.
 
 namespace sparki {
+namespace core {
 
 // ----- hlsl_compute_desc -----
 
@@ -51,6 +52,7 @@ std::string read_text(const char* p_filename)
 	return str;
 }
 
+} // namespace core
 } // namespace sparki
 
 #pragma warning(pop)

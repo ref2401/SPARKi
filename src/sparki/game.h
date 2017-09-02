@@ -32,11 +32,10 @@ struct camera final {
 	float2 mouse_position_prev;
 };
 
-class game final : public event_listener_i {
+class game final : public core::event_listener_i {
 public:
 
-	game(HWND p_hwnd, const uint2& viewport_size,
-		const mouse& mouse);
+	game(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse);
 
 	game(game&&) = delete;
 	game& operator=(game&&) = delete;
@@ -62,13 +61,13 @@ private:
 
 
 	// ::game context::
-	const mouse&	mouse_;
-	rnd::renderer	renderer_;
-	ImGuiIO&		imgui_io_;
-	bool			viewport_is_visible_;
+	const core::mouse&	mouse_;
+	core::renderer		renderer_;
+	ImGuiIO&			imgui_io_;
+	bool				viewport_is_visible_;
 	// ::game state:: 
-	camera			camera_;
-	rnd::frame		frame_;
+	camera				camera_;
+	core::frame			frame_;
 };
 
 } // namespace sparki

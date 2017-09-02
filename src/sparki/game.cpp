@@ -7,7 +7,7 @@ namespace sparki {
 
 // ----- game -----
 
-game::game(HWND p_hwnd, const uint2& viewport_size, const mouse& mouse)
+game::game(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse)
 	:mouse_(mouse),
 	renderer_(p_hwnd, viewport_size),
 	imgui_io_(ImGui::GetIO()),

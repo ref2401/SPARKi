@@ -5,14 +5,14 @@
 
 namespace {
 
-using namespace sparki;
+using namespace sparki::core;
 
 // The global is set by sparki::platform's ctor and reset to null by sparki::platform's dctor.
 // It is meant to be used only in window_proc.
 platform* gp_platform = nullptr;
 
 
-sparki::mouse_buttons mouse_buttons(WPARAM w_param) noexcept
+mouse_buttons make_mouse_buttons(WPARAM w_param) noexcept
 {
 	auto buttons = mouse_buttons::none;
 
@@ -75,7 +75,7 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 		case WM_RBUTTONUP:
 		{
 			assert(!gp_platform->mouse().is_out);
-			gp_platform->enqueue_mouse_button(mouse_buttons(w_param));
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
 		}
 
@@ -91,7 +91,7 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 			const uint2 p(p0.x, vp.y - p0.y - 1);
 
 			if (gp_platform->mouse().is_out)
-				gp_platform->enqueue_mouse_enter(mouse_buttons(w_param), p);
+				gp_platform->enqueue_mouse_enter(make_mouse_buttons(w_param), p);
 			else 
 				gp_platform->enqueue_mouse_move(p);
 
@@ -136,6 +136,7 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 
 namespace sparki {
+namespace core {
 
 // ----- platform  -----
 
@@ -204,7 +205,7 @@ bool platform::process_sys_messages(event_listener_i& listener)
 
 	for (const auto& msg : sys_messages_) {
 		switch (msg.type) {
-			default: 
+			default:
 			{
 				assert(false);
 				break;
@@ -238,7 +239,7 @@ bool platform::process_sys_messages(event_listener_i& listener)
 				break;
 			}
 
-			case sys_message::type::viewport_resize: 
+			case sys_message::type::viewport_resize:
 			{
 				listener.on_resize_viewport(msg.uint2);
 				break;
@@ -305,4 +306,5 @@ bool is_valid_window_desc(const window_desc& desc) noexcept
 		&& (desc.viewport_size > 0);
 }
 
+} // namespace core
 } // namespace sparki

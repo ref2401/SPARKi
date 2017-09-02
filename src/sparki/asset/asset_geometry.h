@@ -5,6 +5,7 @@
 
 
 namespace sparki {
+namespace core {
 
 // All possible combinations of vertex attributes.
 // p - position;
@@ -24,23 +25,23 @@ struct vertex_interleaved_format;
 
 template<> struct vertex_interleaved_format<vertex_attribs::p_n_uv_ts> final {
 	static constexpr vertex_attribs attribs = vertex_attribs::p_n_uv_ts;
-	static constexpr size_t	attrib_count	= 4;
+	static constexpr size_t	attrib_count = 4;
 
-	static constexpr size_t position_component_count		= 3;
-	static constexpr size_t position_byte_count				= sizeof(float) * position_component_count;
-	static constexpr size_t position_byte_offset			= 0;
+	static constexpr size_t position_component_count = 3;
+	static constexpr size_t position_byte_count = sizeof(float) * position_component_count;
+	static constexpr size_t position_byte_offset = 0;
 
-	static constexpr size_t normal_component_count			= 3;
-	static constexpr size_t normal_byte_count				= sizeof(float) * normal_component_count;
-	static constexpr size_t normal_byte_offset				= position_byte_offset + position_byte_count;
+	static constexpr size_t normal_component_count = 3;
+	static constexpr size_t normal_byte_count = sizeof(float) * normal_component_count;
+	static constexpr size_t normal_byte_offset = position_byte_offset + position_byte_count;
 
-	static constexpr size_t uv_component_count				= 2;
-	static constexpr size_t uv_byte_count					= sizeof(float) * uv_component_count;
-	static constexpr size_t uv_byte_offset					= normal_byte_offset + normal_byte_count;
+	static constexpr size_t uv_component_count = 2;
+	static constexpr size_t uv_byte_count = sizeof(float) * uv_component_count;
+	static constexpr size_t uv_byte_offset = normal_byte_offset + normal_byte_count;
 
-	static constexpr size_t tangent_space_component_count	= 1;
-	static constexpr size_t tangent_space_byte_count		= sizeof(uint32_t) * tangent_space_component_count;
-	static constexpr size_t tangent_space_byte_offset		= uv_byte_offset + uv_byte_count;
+	static constexpr size_t tangent_space_component_count = 1;
+	static constexpr size_t tangent_space_byte_count = sizeof(uint32_t) * tangent_space_component_count;
+	static constexpr size_t tangent_space_byte_offset = uv_byte_offset + uv_byte_count;
 
 	static constexpr size_t vertex_component_count =
 		position_component_count
@@ -85,8 +86,8 @@ template<> struct vertex<vertex_attribs::p_n_uv_ts> final {
 template<vertex_attribs attribs>
 struct mesh_geometry final {
 
-	using format	= vertex_interleaved_format<attribs>;
-	using vertex_t	= vertex<attribs>;
+	using format = vertex_interleaved_format<attribs>;
+	using vertex_t = vertex<attribs>;
 
 
 	mesh_geometry() noexcept = default;
@@ -117,5 +118,6 @@ mesh_geometry<vertex_attribs::p_n_uv_ts> read_from_geo_file(const char* p_filena
 // Writes mesh geometry in the specified .geo file.
 void save_to_geo_file(const char* p_filename, const mesh_geometry<vertex_attribs::p_n_uv_ts>& mesh);
 
-} // namespace sparki
 
+} // namespace core
+} // namespace sparki

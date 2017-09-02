@@ -2,7 +2,8 @@
 
 
 namespace sparki {
+namespace core {
 
 
-
+} // namespace core
 } // namespace sparki

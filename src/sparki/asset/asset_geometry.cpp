@@ -12,7 +12,7 @@
 
 namespace {
 
-using namespace sparki;
+using namespace sparki::core;
 
 template<typename T>
 struct fbx_deleter final {
@@ -106,6 +106,7 @@ void setup_triangle(FbxMesh* fbx_mesh, int polygon_index, int first_vertex_index
 
 
 namespace sparki {
+namespace core {
 
 void convert_fbx_to_geo(const char* p_fbx_filename, const char* p_desc_filename)
 {
@@ -241,6 +242,7 @@ void save_to_geo_file(const char* p_filename, const mesh_geometry<vertex_attribs
 	}
 }
 
+} // namespace core
 } // namespace sparki
 
 #pragma warning(pop)

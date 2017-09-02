@@ -10,6 +10,7 @@ using namespace math;
 
 
 namespace sparki {
+namespace core {
 
 struct window_desc final {
 	std::string title;
@@ -84,12 +85,12 @@ private:
 
 
 	std::vector<sys_message>	sys_messages_;
-	sparki::mouse				mouse_;
+	sparki::core::mouse			mouse_;
 	HWND						p_hwnd_;
 };
 
 
 bool is_valid_window_desc(const window_desc& desc) noexcept;
 
-
+} // namespace core
 } // namespace sparki

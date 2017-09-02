@@ -5,6 +5,7 @@
 
 
 namespace sparki {
+namespace core {
 
 class imgui_pass final {
 public:
@@ -37,21 +38,23 @@ private:
 	void fill_vertex_buffers(ImDrawData* p_draw_data);
 
 
-	ID3D11Device*							p_device_;
-	ID3D11DeviceContext*					p_ctx_;
-	ID3D11Debug*							p_debug_;
-	ID3D11SamplerState*						p_sampler_;
-	rnd::hlsl_shader						shader_;
-	rnd::com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
-	rnd::com_ptr<ID3D11Buffer>				p_vertex_buffer_;
-	rnd::com_ptr<ID3D11Buffer>				p_index_buffer_;
-	rnd::com_ptr<ID3D11InputLayout>			p_input_layout_;
-	rnd::com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
-	rnd::com_ptr<ID3D11BlendState>			p_blend_state_;
-	rnd::com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
-	rnd::com_ptr<ID3D11Texture2D>			p_tex_font_;
-	rnd::com_ptr<ID3D11ShaderResourceView>	p_tex_font_srv_;
+	ID3D11Device*						p_device_;
+	ID3D11DeviceContext*				p_ctx_;
+	ID3D11Debug*						p_debug_;
+	ID3D11SamplerState*					p_sampler_;
+	hlsl_shader							shader_;
+	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
+	com_ptr<ID3D11Buffer>				p_vertex_buffer_;
+	com_ptr<ID3D11Buffer>				p_index_buffer_;
+	com_ptr<ID3D11InputLayout>			p_input_layout_;
+	com_ptr<ID3D11RasterizerState>		p_rasterizer_state_;
+	com_ptr<ID3D11BlendState>			p_blend_state_;
+	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
+	com_ptr<ID3D11Texture2D>			p_tex_font_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_font_srv_;
 };
 
+
+} // namespace core
 } // namespace sparki
 

@@ -4,7 +4,7 @@
 
 
 namespace sparki {
-namespace rnd {
+namespace core {
 
 class brdf_integrator final {
 public:
@@ -84,5 +84,6 @@ private:
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 
-} // namespace rnd
+
+} // namespace core
 } // namespace sparki

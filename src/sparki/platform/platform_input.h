@@ -5,12 +5,13 @@
 
 
 namespace sparki {
+namespace core {
 
 enum class mouse_buttons : unsigned char {
-	none	= 0,
-	left	= 1,
-	middle	= 2,
-	right	= 4
+	none = 0,
+	left = 1,
+	middle = 2,
+	right = 4
 };
 
 struct mouse final {
@@ -18,10 +19,10 @@ struct mouse final {
 	// The value is relative to the bottom-left corner.
 	// The value is undefined if is_out returns true.
 	math::uint2	position;
-	
+
 	// State of all the mouse's buttons.
 	mouse_buttons buttons = mouse_buttons::none;
-	
+
 	// True if cursor left the client area of the window.
 	bool is_out = true;
 };
@@ -98,5 +99,6 @@ inline bool right_down(const mouse& m) noexcept
 	return (m.buttons & mouse_buttons::right) == mouse_buttons::right;
 }
 
+} // namespace core
 } // namespace sparki
 

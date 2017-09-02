@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-#define EXCEPTION_MSG(...) sparki::concat(__FILE__, '(', __LINE__, "): ", __VA_ARGS__)
+#define EXCEPTION_MSG(...) sparki::core::concat(__FILE__, '(', __LINE__, "): ", __VA_ARGS__)
 
 #define ENFORCE(expression, ...)								\
 	if (!(expression)) {										\
@@ -13,6 +13,7 @@
 
 
 namespace sparki {
+namespace core {
 
 namespace intrinsic {
 
@@ -41,7 +42,7 @@ template<typename... Args>
 inline std::string concat(const Args&... args)
 {
 	std::ostringstream string_stream;
-	sparki::intrinsic::concat_impl(string_stream, args...);
+	sparki::core::intrinsic::concat_impl(string_stream, args...);
 	return string_stream.str();
 }
 
@@ -63,4 +64,5 @@ constexpr size_t megabytes(size_t amount) noexcept
 	return amount * 1048576;
 }
 
+} // namespace core
 } // namespace sparki

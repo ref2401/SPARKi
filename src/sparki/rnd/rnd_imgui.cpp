@@ -3,10 +3,9 @@
 #include <cassert>
 #include <limits>
 
-using namespace sparki::rnd;
-
 
 namespace sparki {
+namespace core {
 
 // ----- imgui_pass -----
 
@@ -268,5 +267,7 @@ void imgui_pass::perform(ImDrawData* p_draw_data)
 	}
 }
 
+
+} // namespace core
 } // namespace sparki
 

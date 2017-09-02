@@ -5,7 +5,7 @@
 
 
 namespace sparki {
-namespace rnd {
+namespace core {
 
 // ----- hlsl_compute -----
 
@@ -181,37 +181,37 @@ com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, size_t byte_c
 	return buffer;
 }
 
-DXGI_FORMAT make_dxgi_format(sparki::pixel_format fmt) noexcept
+DXGI_FORMAT make_dxgi_format(sparki::core::pixel_format fmt) noexcept
 {
-	assert(fmt != sparki::pixel_format::rgb_8);
+	assert(fmt != pixel_format::rgb_8);
 
 	switch (fmt) {
 		default:
-		case sparki::pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
-		case sparki::pixel_format::rg_16f:		return DXGI_FORMAT_R16G16_FLOAT;
-		case sparki::pixel_format::rgba_16f:	return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case sparki::pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
-		case sparki::pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
-		case sparki::pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case sparki::pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
-		case sparki::pixel_format::rg_8:		return DXGI_FORMAT_R8G8_UNORM;
-		case sparki::pixel_format::rgba_8:		return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case pixel_format::none:		return DXGI_FORMAT_UNKNOWN;
+		case pixel_format::rg_16f:		return DXGI_FORMAT_R16G16_FLOAT;
+		case pixel_format::rgba_16f:	return DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case pixel_format::rg_32f:		return DXGI_FORMAT_R32G32_FLOAT;
+		case pixel_format::rgb_32f:		return DXGI_FORMAT_R32G32B32_FLOAT;
+		case pixel_format::rgba_32f:	return DXGI_FORMAT_R32G32B32A32_FLOAT;
+		case pixel_format::red_8:		return DXGI_FORMAT_R8_UNORM;
+		case pixel_format::rg_8:		return DXGI_FORMAT_R8G8_UNORM;
+		case pixel_format::rgba_8:		return DXGI_FORMAT_R8G8B8A8_UNORM;
 	}
 }
 
-sparki::pixel_format make_pixel_format(DXGI_FORMAT fmt) noexcept
+pixel_format make_pixel_format(DXGI_FORMAT fmt) noexcept
 {
 	switch (fmt) {
-		default:								return sparki::pixel_format::none;
+		default:								return pixel_format::none;
 		
-		case DXGI_FORMAT_R16G16_FLOAT:			return sparki::pixel_format::rg_16f;
-		case DXGI_FORMAT_R16G16B16A16_FLOAT:	return sparki::pixel_format::rgba_16f;
-		case DXGI_FORMAT_R32G32_FLOAT:			return sparki::pixel_format::rg_32f;
-		case DXGI_FORMAT_R32G32B32_FLOAT:		return sparki::pixel_format::rgb_32f;
-		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return sparki::pixel_format::rgba_32f;
-		case DXGI_FORMAT_R8_UNORM:				return sparki::pixel_format::red_8;
-		case DXGI_FORMAT_R8G8_UNORM:			return sparki::pixel_format::rg_8;
-		case DXGI_FORMAT_R8G8B8A8_UNORM:		return sparki::pixel_format::rgba_8;
+		case DXGI_FORMAT_R16G16_FLOAT:			return pixel_format::rg_16f;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:	return pixel_format::rgba_16f;
+		case DXGI_FORMAT_R32G32_FLOAT:			return pixel_format::rg_32f;
+		case DXGI_FORMAT_R32G32B32_FLOAT:		return pixel_format::rgb_32f;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:	return pixel_format::rgba_32f;
+		case DXGI_FORMAT_R8_UNORM:				return pixel_format::red_8;
+		case DXGI_FORMAT_R8G8_UNORM:			return pixel_format::rg_8;
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return pixel_format::rgba_8;
 	}
 }
 
@@ -402,5 +402,5 @@ texture_data make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* 
 	return td;
 }
 
-} // namespace rnd
+} // namespace core
 } // namespace sparki

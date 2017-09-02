@@ -4,7 +4,7 @@
 
 
 namespace sparki {
-namespace rnd {
+namespace core {
 
 // ----- brdf_integrator -----
 
@@ -296,5 +296,5 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 	save_to_tex_file(p_filename, td);
 }
 
-} // namespace rnd
+} // namespace core
 } // namespace sparki

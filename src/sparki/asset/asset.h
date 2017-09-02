@@ -6,6 +6,7 @@
 
 
 namespace sparki {
+namespace core {
 
 struct hlsl_compute_desc final {
 
@@ -55,4 +56,5 @@ struct hlsl_shader_desc final {
 std::string read_text(const char* p_filename);
 
 
+} // namespace core
 } // namespace sparki

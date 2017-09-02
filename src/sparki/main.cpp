@@ -7,6 +7,7 @@
 
 void sparki_main()
 {
+	using namespace sparki::core;
 	using namespace sparki;
 
 	// init phase:
@@ -57,7 +58,7 @@ int main()
 	catch (const std::exception& e) {
 		keep_console_shown = true;
 
-		const std::string msg = sparki::make_exception_message(e);
+		const std::string msg = sparki::core::make_exception_message(e);
 		std::cout << "----- Exception -----" << std::endl << msg << std::endl;
 	}
 

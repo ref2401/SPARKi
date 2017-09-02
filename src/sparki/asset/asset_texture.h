@@ -5,6 +5,7 @@
 
 
 namespace sparki {
+namespace core {
 
 // Describes pixel's channels and their size. 
 enum class pixel_format : unsigned char {
@@ -49,14 +50,14 @@ size_t byte_count(pixel_format fmt) noexcept;
 
 // Returns the number of bytes occupied by a texture of the specified type, size, format
 // and with the specified number of mipmap levels.
-size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_count, 
+size_t byte_count(texture_type type, const math::uint3& size, uint32_t mipmap_count,
 	uint32_t array_size, pixel_format fmt) noexcept;
 
 bool is_valid_texture_data(const texture_data& td) noexcept;
 
 // Reads texture data from the specified file.
 // The file may be .jpg, .png, .hdr
-texture_data load_from_image_file(const char* p_filename, uint8_t channel_count, 
+texture_data load_from_image_file(const char* p_filename, uint8_t channel_count,
 	bool flip_vertically = false);
 
 // Reads texture data from the specified file.
@@ -66,5 +67,6 @@ texture_data load_from_tex_file(const char* p_filename);
 // Writes texture into the specified .tex file.
 void save_to_tex_file(const char* p_filename, const texture_data& td);
 
-} // namespace sparki
 
+} // namespace core {
+} // namespace sparki

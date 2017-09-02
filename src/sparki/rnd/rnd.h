@@ -6,7 +6,7 @@
 
 
 namespace sparki {
-namespace rnd {
+namespace core {
 
 struct frame final {
 	math::float4x4	projection_matrix;
@@ -200,5 +200,5 @@ private:
 };
 
 
-} // namespace rnd
+} // namespace core
 } // namespace sparki
