@@ -21,9 +21,6 @@
     <ClCompile Include="..\src\sparki\platform\platform.cpp">
       <Filter>platform</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\platform\input.cpp">
-      <Filter>platform</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\sparki\rnd\rnd_base.cpp">
       <Filter>rnd</Filter>
     </ClCompile>
@@ -33,11 +30,20 @@
     <ClCompile Include="..\src\sparki\rnd\rnd.cpp">
       <Filter>rnd</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\asset\geometry.cpp">
+    <ClCompile Include="..\extern\imgui\imgui.cpp" />
+    <ClCompile Include="..\extern\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\extern\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\src\sparki\rnd\rnd_imgui.cpp">
+      <Filter>rnd</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sparki\asset\asset_geometry.cpp">
       <Filter>asset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\asset\texture.cpp">
+    <ClCompile Include="..\src\sparki\asset\asset_texture.cpp">
       <Filter>asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sparki\platform\platform_input.cpp">
+      <Filter>platform</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -49,9 +55,6 @@
     <ClInclude Include="..\src\sparki\platform\platform.h">
       <Filter>platform</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\platform\input.h">
-      <Filter>platform</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\sparki\rnd\rnd_base.h">
       <Filter>rnd</Filter>
     </ClInclude>
@@ -61,11 +64,17 @@
     <ClInclude Include="..\src\sparki\rnd\rnd.h">
       <Filter>rnd</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\asset\geometry.h">
+    <ClInclude Include="..\src\sparki\rnd\rnd_imgui.h">
+      <Filter>rnd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\asset\asset_geometry.h">
       <Filter>asset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\asset\texture.h">
+    <ClInclude Include="..\src\sparki\asset\asset_texture.h">
       <Filter>asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sparki\platform\platform_input.h">
+      <Filter>platform</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

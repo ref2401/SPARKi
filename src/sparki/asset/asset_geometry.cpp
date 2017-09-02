@@ -1,4 +1,4 @@
-#include "sparki/asset/geometry.h"
+#include "sparki/asset/asset_geometry.h"
 
 #include <cassert>
 #include <cstdio>

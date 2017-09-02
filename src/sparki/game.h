@@ -1,7 +1,8 @@
 #pragma once
 
-#include "sparki/platform/input.h"
+#include "sparki/platform/platform_input.h"
 #include "sparki/rnd/rnd.h"
+#include "sparki/rnd/rnd_imgui.h"
 
 
 namespace sparki {
@@ -31,7 +32,7 @@ struct camera final {
 	float2 mouse_position_prev;
 };
 
-class game final {
+class game final : public event_listener_i {
 public:
 
 	game(HWND p_hwnd, const uint2& viewport_size,
@@ -45,11 +46,13 @@ public:
 
 	void update();
 
-	void on_mouse_click();
+	void on_mouse_click() override;
 
-	void on_mouse_move();
+	void on_mouse_move() override;
 
-	void on_resize_viewport(const uint2& size);
+	void on_resize_viewport(const uint2& size) override;
+
+	void terminate();
 
 private:
 
@@ -57,11 +60,15 @@ private:
 	static constexpr float projection_near = 0.1f;
 	static constexpr float projection_far = 1000.0f;
 
-	camera			camera_;
-	rnd::frame		frame_;
+
+	// ::game context::
 	const mouse&	mouse_;
 	rnd::renderer	renderer_;
+	ImGuiIO&		imgui_io_;
 	bool			viewport_is_visible_;
+	// ::game state:: 
+	camera			camera_;
+	rnd::frame		frame_;
 };
 
 } // namespace sparki

@@ -8,11 +8,15 @@ namespace sparki {
 // ----- game -----
 
 game::game(HWND p_hwnd, const uint2& viewport_size, const mouse& mouse)
-	: camera_(float3::unit_z, float3::zero),
-	mouse_(mouse),
+	:mouse_(mouse),
 	renderer_(p_hwnd, viewport_size),
-	viewport_is_visible_(true)
+	imgui_io_(ImGui::GetIO()),
+	viewport_is_visible_(true),
+	camera_(float3::unit_z, float3::zero)
 {
+	imgui_io_.ImeWindowHandle = p_hwnd;
+
+
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game::projection_fov, aspect_ratio(viewport_size),
 		game::projection_near, game::projection_far);
@@ -95,12 +99,17 @@ void game::on_resize_viewport(const uint2& size)
 		return;
 	}
 
-	frame_.projection_matrix = math::perspective_matrix_directx(
-		game::projection_fov, aspect_ratio(size),
-		game::projection_near, game::projection_far);
+	imgui_io_.DisplaySize = ImVec2(float(size.x), float(size.y));
 
 	viewport_is_visible_ = true;
+	frame_.projection_matrix = math::perspective_matrix_directx(game::projection_fov, 
+		aspect_ratio(size), game::projection_near, game::projection_far);
 	renderer_.resize_viewport(size);
+}
+
+void game::terminate()
+{
+	ImGui::Shutdown();
 }
 
 } // namespace sparki

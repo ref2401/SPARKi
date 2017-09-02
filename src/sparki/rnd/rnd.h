@@ -10,9 +10,9 @@ namespace rnd {
 
 struct frame final {
 	math::float4x4	projection_matrix;
-	float3 camera_position;
-	float3 camera_target;
-	float3 camera_up;
+	float3			camera_position;
+	float3			camera_target;
+	float3			camera_up;
 };
 
 struct gbuffer final {
@@ -194,7 +194,6 @@ private:
 	std::unique_ptr<envmap_texture_builder> p_envmap_builder_;
 	std::unique_ptr<brdf_integrator>		p_brdf_integrator_;
 	// render stuff
-	D3D11_VIEWPORT						viewport_ = { 0, 0, 0, 0, 0, 1 };
 	std::unique_ptr<skybox_pass>		p_skybox_pass_;
 	std::unique_ptr<shading_pass>		p_light_pass_;
 	std::unique_ptr<postproc_pass>		p_postproc_pass_;

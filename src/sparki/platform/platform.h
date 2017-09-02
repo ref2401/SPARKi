@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "sparki/game.h"
+#include "sparki/platform/platform_input.h"
 #include "sparki/utility.h"
 #include "math/math.h"
 #include <windows.h>
@@ -41,7 +41,7 @@ public:
 
 	// Processes all the system messages that are in the message queue at the moment.
 	// Returns true if the application has to terminate.
-	bool process_sys_messages(game& game);
+	bool process_sys_messages(event_listener_i& listener);
 
 	void show_window() noexcept;
 

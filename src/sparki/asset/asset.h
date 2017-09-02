@@ -1,8 +1,8 @@
 #pragma once
 
 #include "sparki/utility.h"
-#include "sparki/asset/geometry.h"
-#include "sparki/asset/texture.h"
+#include "sparki/asset/asset_geometry.h"
+#include "sparki/asset/asset_texture.h"
 
 
 namespace sparki {

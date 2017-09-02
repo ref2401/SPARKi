@@ -26,6 +26,19 @@ struct mouse final {
 	bool is_out = true;
 };
 
+class event_listener_i {
+public:
+
+	virtual ~event_listener_i() {};
+
+
+	virtual void on_mouse_click() = 0;
+
+	virtual void on_mouse_move() = 0;
+
+	virtual void on_resize_viewport(const math::uint2& size) = 0;
+};
+
 
 constexpr mouse_buttons operator|(mouse_buttons l, mouse_buttons r) noexcept
 {

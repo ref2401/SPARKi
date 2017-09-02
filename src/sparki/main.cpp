@@ -1,6 +1,7 @@
 #include <iostream>
 #include "sparki/asset/asset.h"
 #include "sparki/platform/platform.h"
+#include "sparki/game.h"
 #include "ts/task_system.h"
 
 
@@ -29,6 +30,8 @@ void sparki_main()
 		game.update();
 		game.draw_frame(1.0f);
 	}
+
+	game.terminate();
 }
 
 int main() 

@@ -535,7 +535,8 @@ void renderer::resize_viewport(const uint2& size)
 
 	const float w = float(size.x);
 	const float h = float(size.y);
-	if (approx_equal(w, viewport_.Width) && approx_equal(h, viewport_.Height)) return;
+	if (approx_equal(w, p_gbuffer_->window_viewport.Width) 
+		&& approx_equal(h, p_gbuffer_->window_viewport.Height)) return;
 
 	// resize swap chain's buffers
 	if (p_tex_window_rtv_) {

@@ -1,4 +1,4 @@
-#include "sparki/asset/texture.h"
+#include "sparki/asset/asset_texture.h"
 
 #include <cassert>
 #include <cstdio>

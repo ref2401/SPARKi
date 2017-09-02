@@ -141,10 +141,11 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 	com_ptr<ID3DBlob> p_bytecode;
 	com_ptr<ID3DBlob> p_error_blob;
 
+	const char* p_filename = (source_filename.empty()) ? nullptr : source_filename.c_str();
 	HRESULT hr = D3DCompile(
 		source_code.c_str(),
 		source_code.size(),
-		source_filename.c_str(),
+		p_filename,
 		nullptr,							// defines
 		D3D_COMPILE_STANDARD_FILE_INCLUDE,	// includes
 		p_entry_point_name,

@@ -8,7 +8,7 @@ namespace {
 using namespace sparki;
 
 // The global is set by sparki::platform's ctor and reset to null by sparki::platform's dctor.
-// It meant to be used only in window_proc.
+// It is meant to be used only in window_proc.
 platform* gp_platform = nullptr;
 
 
@@ -197,7 +197,7 @@ void platform::init_window(const window_desc& desc)
 	assert(p_hwnd_);
 }
 
-bool platform::process_sys_messages(game& game)
+bool platform::process_sys_messages(event_listener_i& listener)
 {
 	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
 	if (sys_messages_.empty()) return false;
@@ -213,7 +213,7 @@ bool platform::process_sys_messages(game& game)
 			case sys_message::type::mouse_button:
 			{
 				mouse_.buttons = msg.mouse_buttons;
-				game.on_mouse_click();
+				listener.on_mouse_click();
 				break;
 			}
 
@@ -234,13 +234,13 @@ bool platform::process_sys_messages(game& game)
 			case sys_message::type::mouse_move:
 			{
 				mouse_.position = msg.uint2;
-				game.on_mouse_move();
+				listener.on_mouse_move();
 				break;
 			}
 
 			case sys_message::type::viewport_resize: 
 			{
-				game.on_resize_viewport(msg.uint2);
+				listener.on_resize_viewport(msg.uint2);
 				break;
 			}
 		}
