@@ -1,8 +1,9 @@
-#include "sparki/asset/asset.h"
+#include "sparki/core/asset.h"
 
 #include <cassert>
 #include <cstdio>
 #include <memory>
+
 
 #pragma warning(push)
 #pragma warning(disable:4996) // C4996 'fopen': This function or variable may be unsafe.

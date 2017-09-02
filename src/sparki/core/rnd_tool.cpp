@@ -1,4 +1,4 @@
-#include "sparki/rnd/rnd_tool.h"
+#include "sparki/core/rnd_tool.h"
 
 #include <cassert>
 

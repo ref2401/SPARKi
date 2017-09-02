@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sparki/platform/platform_input.h"
-#include "sparki/rnd/rnd.h"
-#include "sparki/rnd/rnd_imgui.h"
+#include "sparki/core/platform_input.h"
+#include "sparki/core/rnd.h"
+#include "sparki/core/rnd_imgui.h"
 
 
 namespace sparki {

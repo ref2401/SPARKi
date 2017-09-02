@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "sparki/platform/platform_input.h"
-#include "sparki/utility.h"
+#include "sparki/core/platform_input.h"
+#include "sparki/core/utility.h"
 #include "math/math.h"
 #include <windows.h>
 

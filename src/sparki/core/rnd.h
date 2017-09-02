@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "sparki/rnd/rnd_base.h"
-#include "sparki/rnd/rnd_tool.h"
+#include "sparki/core/rnd_base.h"
+#include "sparki/core/rnd_tool.h"
 
 
 namespace sparki {

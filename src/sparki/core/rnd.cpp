@@ -1,7 +1,7 @@
-#include "sparki/rnd/rnd.h"
+#include "sparki/core/rnd.h"
 
 #include <cassert>
-#include "sparki/utility.h"
+#include "sparki/core/utility.h"
 #include "ts/task_system.h"
 
 

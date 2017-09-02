@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sparki/asset/asset.h"
+#include "sparki/core/asset.h"
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcommon.h>

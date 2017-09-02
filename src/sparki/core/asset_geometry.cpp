@@ -1,10 +1,10 @@
-#include "sparki/asset/asset_geometry.h"
+#include "sparki/core/asset_geometry.h"
 
 #include <cassert>
 #include <cstdio>
 #include <memory>
+#include "sparki/core/utility.h"
 #include "fbxsdk.h"
-#include "sparki/utility.h"
 
 
 #pragma warning(push)

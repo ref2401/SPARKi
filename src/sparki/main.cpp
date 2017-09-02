@@ -1,14 +1,14 @@
 #include <iostream>
-#include "sparki/asset/asset.h"
-#include "sparki/platform/platform.h"
+#include "sparki/core/asset.h"
+#include "sparki/core/platform.h"
 #include "sparki/game.h"
 #include "ts/task_system.h"
 
 
 void sparki_main()
 {
-	using namespace sparki::core;
 	using namespace sparki;
+	using namespace sparki::core;
 
 	// init phase:
 	const window_desc wnd_desc = {

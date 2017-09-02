@@ -1,4 +1,4 @@
-#include "sparki/utility.h"
+#include "sparki/core/utility.h"
 
 #include <cassert>
 

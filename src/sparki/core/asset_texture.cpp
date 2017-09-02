@@ -1,9 +1,9 @@
-#include "sparki/asset/asset_texture.h"
+#include "sparki/core/asset_texture.h"
 
 #include <cassert>
 #include <cstdio>
 #include <memory>
-#include "sparki/utility.h"
+#include "sparki/core/utility.h"
 #pragma warning(push)
 #pragma warning(disable:4244) // C4244 '=': conversion from 'int' to 'stbi__uint16', possible loss of data.
 #pragma warning(disable:4456) // C4456 '=': declaration of 'k' hides previous local declaration.

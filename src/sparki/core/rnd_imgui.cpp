@@ -1,4 +1,4 @@
-#include "sparki/rnd/rnd_imgui.h"
+#include "sparki/core/rnd_imgui.h"
 
 #include <cassert>
 #include <limits>

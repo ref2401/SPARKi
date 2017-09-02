@@ -1,4 +1,4 @@
-#include "sparki/platform/platform_input.h"
+#include "sparki/core/platform_input.h"
 
 
 namespace sparki {
