@@ -18,15 +18,15 @@ void sparki_main()
 		/* fullscreen */	false // NOTE(ref2401): true won't work cos it's not been implemented yet.
 	};
 
-	platform platform(wnd_desc);
-	game game(platform.p_hwnd(), wnd_desc.viewport_size, platform.mouse());
+	platform_system platform_system(wnd_desc);
+	game_system game(platform_system.p_hwnd(), wnd_desc.viewport_size, platform_system.mouse());
 
 	// before the main loop phase:
-	platform.show_window();
+	platform_system.show_window();
 
 	// the main loop:
 	while (true) {
-		if (platform.process_sys_messages(game)) break;
+		if (platform_system.process_sys_messages(game)) break;
 
 		game.update();
 		game.draw_frame(1.0f);

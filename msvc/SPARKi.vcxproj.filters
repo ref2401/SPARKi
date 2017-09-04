@@ -4,6 +4,9 @@
     <Filter Include="core">
       <UniqueIdentifier>{363ed827-f630-4030-8b98-070ee999c8ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{838806c3-30c1-41f3-9d0f-83fa5feb79be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\sparki\main.cpp" />
@@ -37,16 +40,16 @@
     <ClCompile Include="..\src\sparki\core\utility.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sparki\game.cpp" />
     <ClCompile Include="..\extern\imgui\imgui.cpp">
-      <Filter>core</Filter>
+      <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\extern\imgui\imgui_demo.cpp">
-      <Filter>core</Filter>
+      <Filter>imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\extern\imgui\imgui_draw.cpp">
-      <Filter>core</Filter>
+      <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\game.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\core\asset.h">
@@ -80,5 +83,23 @@
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\src\sparki\game.h" />
+    <ClInclude Include="..\extern\imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\stb_rect_pack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\stb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extern\imgui\stb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

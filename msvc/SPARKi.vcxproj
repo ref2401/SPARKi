@@ -151,6 +151,12 @@
     <ClCompile Include="..\src\sparki\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\extern\imgui\imconfig.h" />
+    <ClInclude Include="..\extern\imgui\imgui.h" />
+    <ClInclude Include="..\extern\imgui\imgui_internal.h" />
+    <ClInclude Include="..\extern\imgui\stb_rect_pack.h" />
+    <ClInclude Include="..\extern\imgui\stb_textedit.h" />
+    <ClInclude Include="..\extern\imgui\stb_truetype.h" />
     <ClInclude Include="..\src\sparki\core\asset.h" />
     <ClInclude Include="..\src\sparki\core\asset_geometry.h" />
     <ClInclude Include="..\src\sparki\core\asset_texture.h" />

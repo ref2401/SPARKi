@@ -14,11 +14,16 @@ gbuffer::gbuffer(ID3D11Device* p_device)
 {
 	assert(p_device);
 
+	D3D11_BLEND_DESC blend_desc = {};
+	blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	HRESULT hr = p_device->CreateBlendState(&blend_desc, &p_blend_state_no_blend.ptr);
+	assert(hr == S_OK);
+
 	D3D11_RASTERIZER_DESC rastr_desc = {};
 	rastr_desc.FillMode = D3D11_FILL_SOLID;
 	rastr_desc.CullMode = D3D11_CULL_BACK;
 	rastr_desc.FrontCounterClockwise = true;
-	HRESULT hr = p_device->CreateRasterizerState(&rastr_desc, &p_rasterizer_state.ptr);
+	hr = p_device->CreateRasterizerState(&rastr_desc, &p_rasterizer_state.ptr);
 	assert(hr == S_OK);
 
 	D3D11_SAMPLER_DESC sampler_desc = {};
@@ -420,7 +425,7 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 
 // ----- renderer -----
 
-renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
+render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 {
 	assert(p_hwnd);
 	assert(viewport_size > 0);
@@ -439,14 +444,14 @@ renderer::renderer(HWND p_hwnd, const uint2& viewport_size)
 	//bi.perform("../../data/specular_brdf.tex");
 }
 
-renderer::~renderer() noexcept
+render_system::~render_system() noexcept
 {
 #ifdef SPARKI_DEBUG
 	p_debug_->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 #endif
 }
 
-void renderer::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
+void render_system::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 {
 	DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
 	swap_chain_desc.BufferCount = 2;
@@ -488,7 +493,7 @@ void renderer::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 #endif
 }
 
-void renderer::init_passes_and_tools()
+void render_system::init_passes_and_tools()
 {
 	assert(p_gbuffer_);
 
@@ -499,16 +504,17 @@ void renderer::init_passes_and_tools()
 	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
 	p_postproc_pass_ = std::make_unique<postproc_pass>(p_device_, p_ctx_, p_debug_);
+	p_imgui_pass_ = std::make_unique<imgui_pass>(p_device_, p_ctx_, p_debug_);
 }
 
-void renderer::draw_frame(frame& frame)
+void render_system::draw_frame(frame& frame)
 {
 	const float4x4 view_matrix = math::view_matrix(frame.camera_position, frame.camera_target, frame.camera_up);
 	const float4x4 pv_matrix = frame.projection_matrix * view_matrix;
 
-	// ----- rnd passes -----
-	//
+	// __rnd passes__
 	p_ctx_->RSSetViewports(1, &p_gbuffer_->rnd_viewport);
+	p_ctx_->OMSetBlendState(p_gbuffer_->p_blend_state_no_blend, &float4::zero.x, 0xffffffff);
 	p_ctx_->OMSetRenderTargets(1, &p_gbuffer_->p_tex_color_rtv.ptr, p_gbuffer_->p_tex_depth_dsv);
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -520,16 +526,20 @@ void renderer::draw_frame(frame& frame)
 	ID3D11RenderTargetView* rtv_list[1] = { nullptr };
 	p_ctx_->OMSetRenderTargets(1, rtv_list, nullptr);
 
-	// ----- post processing -----
-	//
+	// __post processing__
 	p_postproc_pass_->perform(*p_gbuffer_, p_tex_window_uav_);
 
-	// ----- present frame -----
-	//
+	// __imgui rendering__
+	if (frame.p_imgui_draw_data) {
+		p_ctx_->OMSetRenderTargets(1, &p_tex_window_rtv_.ptr, nullptr);
+		p_imgui_pass_->perform(frame.p_imgui_draw_data, p_gbuffer_->p_sampler_linear);
+	}
+
+	// __present frame__
 	p_swap_chain_->Present(0, 0);
 }
 
-void renderer::resize_viewport(const uint2& size)
+void render_system::resize_viewport(const uint2& size)
 {
 	assert(size > 0);
 

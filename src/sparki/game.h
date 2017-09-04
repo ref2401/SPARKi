@@ -9,8 +9,8 @@ namespace sparki {
 
 // Tracks camera's current and previous position and orientation.
 // Also stores mouse input and appropriate roll angles which.
-// Mouse input messages are converted into roll angles (game::on_mouse_move).
-// Roll angles are converted into camera_transform (game::update).
+// Mouse input messages are converted into roll angles (game_system::on_mouse_move).
+// Roll angles are converted into camera_transform (game_system::update).
 // camera_transform is used to set frame's camera properties.
 struct camera final {
 
@@ -32,13 +32,13 @@ struct camera final {
 	float2 mouse_position_prev;
 };
 
-class game final : public core::event_listener_i {
+class game_system final : public core::event_listener_i {
 public:
 
-	game(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse);
+	game_system(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse);
 
-	game(game&&) = delete;
-	game& operator=(game&&) = delete;
+	game_system(game_system&&) = delete;
+	game_system& operator=(game_system&&) = delete;
 
 
 	void draw_frame(float interpolation_factor);
@@ -60,14 +60,14 @@ private:
 	static constexpr float projection_far = 1000.0f;
 
 
-	// ::game context::
-	const core::mouse&	mouse_;
-	core::renderer		renderer_;
-	ImGuiIO&			imgui_io_;
-	bool				viewport_is_visible_;
-	// ::game state:: 
-	camera				camera_;
-	core::frame			frame_;
+	// __game context__
+	const core::mouse&		mouse_;
+	core::render_system		render_system_;
+	ImGuiIO&				imgui_io_;
+	bool					viewport_is_visible_;
+	// __game state__
+	camera					camera_;
+	core::frame				frame_;
 };
 
 } // namespace sparki

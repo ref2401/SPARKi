@@ -5,11 +5,11 @@
 
 namespace sparki {
 
-// ----- game -----
+// ----- game_system -----
 
-game::game(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse)
+game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse)
 	:mouse_(mouse),
-	renderer_(p_hwnd, viewport_size),
+	render_system_(p_hwnd, viewport_size),
 	imgui_io_(ImGui::GetIO()),
 	viewport_is_visible_(true),
 	camera_(float3::unit_z, float3::zero)
@@ -18,23 +18,28 @@ game::game(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse)
 
 
 	frame_.projection_matrix = math::perspective_matrix_directx(
-		game::projection_fov, aspect_ratio(viewport_size),
-		game::projection_near, game::projection_far);
+		game_system::projection_fov, aspect_ratio(viewport_size),
+		game_system::projection_near, game_system::projection_far);
 }
 
-void game::draw_frame(float interpolation_factor)
+void game_system::draw_frame(float interpolation_factor)
 {
 	assert(0.0f <= interpolation_factor && interpolation_factor <= 1.0f);
 	if (!viewport_is_visible_) return;
+
+	ImGui::NewFrame();
+	ImGui::ShowTestWindow();
 
 	frame_.camera_position = lerp(camera_.position, camera_.prev_position, interpolation_factor);
 	frame_.camera_target = lerp(camera_.target, camera_.prev_target, interpolation_factor);
 	frame_.camera_up = lerp(camera_.up, camera_.prev_up, interpolation_factor);
 
-	renderer_.draw_frame(frame_);
+	ImGui::Render(); // NOTE(ref2401): render_system_ does the actual imgui rendering.
+	frame_.p_imgui_draw_data = ImGui::GetDrawData();
+	render_system_.draw_frame(frame_);
 }
 
-void game::update()
+void game_system::update()
 {
 	camera_.prev_position = camera_.position;
 	camera_.prev_target = camera_.target;
@@ -69,11 +74,11 @@ void game::update()
 	camera_.roll_angles = float2::zero;
 }
 
-void game::on_mouse_click()
+void game_system::on_mouse_click()
 {
 }
 
-void game::on_mouse_move()
+void game_system::on_mouse_move()
 {
 	const float2 curr_pos(float(mouse_.position.x), float(mouse_.position.y));
 	const float2 diff = curr_pos - camera_.mouse_position_prev;
@@ -92,7 +97,7 @@ void game::on_mouse_move()
 		camera_.roll_angles.x += (diff.y > 0.0f) ? pi_128 : -pi_128;
 }
 
-void game::on_resize_viewport(const uint2& size)
+void game_system::on_resize_viewport(const uint2& size)
 {
 	if (size.x == 0 || size.y == 0) {
 		viewport_is_visible_ = false;
@@ -102,12 +107,12 @@ void game::on_resize_viewport(const uint2& size)
 	imgui_io_.DisplaySize = ImVec2(float(size.x), float(size.y));
 
 	viewport_is_visible_ = true;
-	frame_.projection_matrix = math::perspective_matrix_directx(game::projection_fov, 
-		aspect_ratio(size), game::projection_near, game::projection_far);
-	renderer_.resize_viewport(size);
+	frame_.projection_matrix = math::perspective_matrix_directx(game_system::projection_fov, 
+		aspect_ratio(size), game_system::projection_near, game_system::projection_far);
+	render_system_.resize_viewport(size);
 }
 
-void game::terminate()
+void game_system::terminate()
 {
 	ImGui::Shutdown();
 }

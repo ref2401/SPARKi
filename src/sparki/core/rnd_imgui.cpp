@@ -9,17 +9,14 @@ namespace core {
 
 // ----- imgui_pass -----
 
-imgui_pass::imgui_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx,
-	ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler)
+imgui_pass::imgui_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device),
 	p_ctx_(p_ctx),
-	p_debug_(p_debug),
-	p_sampler_(p_sampler)
+	p_debug_(p_debug)
 {
 	assert(p_device);
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
-	assert(p_sampler);
 
 	init_font_texture();
 	init_shader();
@@ -73,7 +70,6 @@ void imgui_pass::init_pipeline_state_objects()
 	assert(hr == S_OK);
 
 	D3D11_BLEND_DESC blend_desc = {};
-	blend_desc.AlphaToCoverageEnable = false;
 	blend_desc.RenderTarget[0].BlendEnable = true;
 	blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -86,13 +82,6 @@ void imgui_pass::init_pipeline_state_objects()
 	assert(hr == S_OK);
 
 	D3D11_DEPTH_STENCIL_DESC ds_desc = {};
-	ds_desc.DepthEnable = false;
-	ds_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	ds_desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
-	ds_desc.StencilEnable = false;
-	ds_desc.FrontFace.StencilFailOp = ds_desc.FrontFace.StencilDepthFailOp = ds_desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	ds_desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	ds_desc.BackFace = ds_desc.FrontFace;
 	hr = p_device_->CreateDepthStencilState(&ds_desc, &p_depth_stencil_state_.ptr);
 	assert(hr == S_OK);
 }
@@ -125,12 +114,12 @@ PS_INPUT vs_main(VS_INPUT input)
 	return output;
 }
 
-Texture2D		g_tex_0;
-SamplerState	g_sampler;
+Texture2D		g_tex_0 : register(t0);
+SamplerState	g_sampler : register(s0);
 
-float4 ps_main(PS_INPUT input) : SV_Target
+float4 ps_main(PS_INPUT input) : SV_Target0
 {
-	return input.col * g_tex_0.Sample(g_sampler, input.uv); 
+	return input.col * g_tex_0.Sample(g_sampler, input.uv);
 }
 )";
 
@@ -152,7 +141,7 @@ void imgui_pass::init_vertex_buffers()
 	D3D11_BUFFER_DESC ib_desc = {};
 	ib_desc.ByteWidth = imgui_pass::index_buffer_byte_count;
 	ib_desc.Usage = D3D11_USAGE_DYNAMIC;
-	ib_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	ib_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	ib_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	hr = p_device_->CreateBuffer(&ib_desc, nullptr, &p_index_buffer_.ptr);
 	assert(hr == S_OK);
@@ -198,18 +187,18 @@ void imgui_pass::fill_vertex_buffers(ImDrawData* p_draw_data)
 	p_ctx_->Unmap(p_index_buffer_, 0);
 }
 
-void imgui_pass::perform(ImDrawData* p_draw_data)
+void imgui_pass::perform(ImDrawData* p_draw_data, ID3D11SamplerState* p_sampler)
 {
 	assert(p_draw_data);
+	assert(p_sampler);
 	static_assert(sizeof(ImDrawIdx) == 2, "2 -> DXGI_FORMAT_R16_UINT, 4 -> DXGI_FORMAT_R32_UINT");
 
 	// ----- update buffers -----
-
 	fill_vertex_buffers(p_draw_data);
 
 	const ImVec2 vp_size = ImGui::GetIO().DisplaySize;
 	// update p_cb_vertex_shader_
-	const float4x4 projection_matrix = orthographic_matrix_directx(vp_size.x, vp_size.y, 0.0f, 1.0f);
+	const float4x4 projection_matrix = orthographic_matrix_directx(0.0f, vp_size.x, vp_size.y, 0.0f, -1.0f, 1.0f);
 	float cb_data[16];
 	to_array_column_major_order(projection_matrix, cb_data);
 	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
@@ -231,16 +220,10 @@ void imgui_pass::perform(ImDrawData* p_draw_data)
 	p_ctx_->RSSetState(p_rasterizer_state_);
 	// PS
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetSamplers(0, 1, &p_sampler_);
+	p_ctx_->PSSetSamplers(0, 1, &p_sampler);
 	// OM
 	p_ctx_->OMSetBlendState(p_blend_state_, &float4::zero.x, std::numeric_limits<UINT>::max());
 	p_ctx_->OMSetDepthStencilState(p_depth_stencil_state_, 0);
-
-	HRESULT hr;
-#ifdef SPARKI_DEBUG
-	hr = p_debug_->ValidateContext(p_ctx_);
-	assert(hr == S_OK);
-#endif
 
 	// ----- rnd -----
 	int base_vertex = 0;
@@ -259,6 +242,10 @@ void imgui_pass::perform(ImDrawData* p_draw_data)
 			ID3D11ShaderResourceView* p_tex_srv = reinterpret_cast<ID3D11ShaderResourceView*>(p_cmd->TextureId);
 			p_ctx_->PSSetShaderResources(0, 1, &p_tex_srv);
 
+#ifdef SPARKI_DEBUG
+			HRESULT hr = p_debug_->ValidateContext(p_ctx_);
+			assert(hr == S_OK);
+#endif
 			p_ctx_->DrawIndexed(p_cmd->ElemCount, index_offset, base_vertex);
 			index_offset += p_cmd->ElemCount;
 		}

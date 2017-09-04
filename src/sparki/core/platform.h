@@ -19,15 +19,15 @@ struct window_desc final {
 	bool		fullscreen;
 };
 
-class platform final {
+class platform_system final {
 public:
 
-	explicit platform(const window_desc& window_desc);
+	explicit platform_system(const window_desc& window_desc);
 
-	platform(platform&&) = delete;
-	platform& operator=(platform&&) = delete;
+	platform_system(platform_system&&) = delete;
+	platform_system& operator=(platform_system&&) = delete;
 
-	~platform() noexcept;
+	~platform_system() noexcept;
 
 
 	HWND p_hwnd() noexcept

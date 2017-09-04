@@ -9,7 +9,7 @@ using namespace sparki::core;
 
 // The global is set by sparki::platform's ctor and reset to null by sparki::platform's dctor.
 // It is meant to be used only in window_proc.
-platform* gp_platform = nullptr;
+platform_system* gp_platform = nullptr;
 
 
 mouse_buttons make_mouse_buttons(WPARAM w_param) noexcept
@@ -140,7 +140,7 @@ namespace core {
 
 // ----- platform  -----
 
-platform::platform(const window_desc& window_desc)
+platform_system::platform_system(const window_desc& window_desc)
 {
 	assert(is_valid_window_desc(window_desc));
 	sys_messages_.reserve(256);
@@ -149,7 +149,7 @@ platform::platform(const window_desc& window_desc)
 	gp_platform = this;
 }
 
-platform::~platform() noexcept
+platform_system::~platform_system() noexcept
 {
 	gp_platform = nullptr;
 
@@ -158,10 +158,10 @@ platform::~platform() noexcept
 	p_hwnd_ = nullptr;
 
 	// window class
-	UnregisterClass(platform::window_class_name, GetModuleHandle(nullptr));
+	UnregisterClass(platform_system::window_class_name, GetModuleHandle(nullptr));
 }
 
-void platform::init_window(const window_desc& desc)
+void platform_system::init_window(const window_desc& desc)
 {
 	HINSTANCE p_hinstance = GetModuleHandle(nullptr);
 	assert(!desc.fullscreen); // NOTE(ref2401): Not implemented
@@ -178,7 +178,7 @@ void platform::init_window(const window_desc& desc)
 	wnd_class.hCursor = LoadCursor(nullptr, IDI_APPLICATION);
 	wnd_class.hbrBackground = nullptr;
 	wnd_class.lpszMenuName = nullptr;
-	wnd_class.lpszClassName = platform::window_class_name;
+	wnd_class.lpszClassName = platform_system::window_class_name;
 
 	ATOM reg_res = RegisterClassEx(&wnd_class);
 	assert(reg_res != 0);
@@ -191,14 +191,14 @@ void platform::init_window(const window_desc& desc)
 	wnd_rect.bottom = desc.position.y + desc.viewport_size.y;
 	AdjustWindowRectEx(&wnd_rect, WS_OVERLAPPEDWINDOW, false, WS_EX_APPWINDOW);
 
-	p_hwnd_ = CreateWindowEx(WS_EX_APPWINDOW, platform::window_class_name, desc.title.c_str(),
+	p_hwnd_ = CreateWindowEx(WS_EX_APPWINDOW, platform_system::window_class_name, desc.title.c_str(),
 		WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 		wnd_rect.left, wnd_rect.top, wnd_rect.right - wnd_rect.left, wnd_rect.bottom - wnd_rect.top,
 		nullptr, nullptr, p_hinstance, nullptr);
 	assert(p_hwnd_);
 }
 
-bool platform::process_sys_messages(event_listener_i& listener)
+bool platform_system::process_sys_messages(event_listener_i& listener)
 {
 	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
 	if (sys_messages_.empty()) return false;
@@ -251,14 +251,14 @@ bool platform::process_sys_messages(event_listener_i& listener)
 	return false;
 }
 
-void platform::show_window() noexcept
+void platform_system::show_window() noexcept
 {
 	ShowWindow(p_hwnd_, SW_SHOW);
 	SetForegroundWindow(p_hwnd_);
 	SetFocus(p_hwnd_);
 }
 
-void platform::enqueue_mouse_button(const mouse_buttons& mb)
+void platform_system::enqueue_mouse_button(const mouse_buttons& mb)
 {
 	sys_message msg;
 	msg.type = sys_message::type::mouse_button;
@@ -266,7 +266,7 @@ void platform::enqueue_mouse_button(const mouse_buttons& mb)
 	sys_messages_.push_back(msg);
 }
 
-void platform::enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p)
+void platform_system::enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p)
 {
 	sys_message msg;
 	msg.type = sys_message::type::mouse_enter;
@@ -275,14 +275,14 @@ void platform::enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p)
 	sys_messages_.push_back(msg);
 }
 
-void platform::enqueue_mouse_leave()
+void platform_system::enqueue_mouse_leave()
 {
 	sys_message msg;
 	msg.type = sys_message::type::mouse_leave;
 	sys_messages_.push_back(msg);
 }
 
-void platform::enqueue_mouse_move(const uint2& p)
+void platform_system::enqueue_mouse_move(const uint2& p)
 {
 	sys_message msg;
 	msg.type = sys_message::type::mouse_move;
@@ -290,7 +290,7 @@ void platform::enqueue_mouse_move(const uint2& p)
 	sys_messages_.push_back(msg);
 }
 
-void platform::enqueue_window_resize()
+void platform_system::enqueue_window_resize()
 {
 	sys_message msg;
 	msg.type = sys_message::type::viewport_resize;
