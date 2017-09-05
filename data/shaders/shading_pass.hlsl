@@ -68,7 +68,7 @@ struct ps_output {
 	float4 rt_color0 : SV_Target0;
 };
 
-float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3 f0, float diffuse_factor)
+float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3 f0, float3 diffuse_color)
 {
 	// diffuse envmap
 	const float3 diffuse_envmap = g_tex_diffuse_envmap.SampleLevel(g_sampler, cube_dir_ms, 0).rgb;
@@ -78,7 +78,7 @@ float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3
 	const float3 specular_envmap = g_tex_specular_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
 	const float2 brdf = g_tex_specular_brdf.SampleLevel(g_sampler, float2(dot_nv, linear_roughness), 0);
 
-	return diffuse_factor * diffuse_envmap + specular_envmap * (f0 * brdf.x + brdf.y);
+	return diffuse_color * diffuse_envmap + specular_envmap * (f0 * brdf.x + brdf.y);
 }
 
 ps_output ps_main(vs_output pixel)
@@ -89,10 +89,10 @@ ps_output ps_main(vs_output pixel)
 
 	const float3 f0 = lerp(pow(0.4 * g_material_reflect_color, 2), g_material_base_color, g_material_metallic_mask);
 	const float3 fresnel = fresnel_schlick(f0, dot_nv);
-	const float diffuse_factor = (1.0 - fresnel) * (1 - g_material_metallic_mask);
+	const float3 diffuse_color = g_material_base_color * (1.0 - fresnel) * (1 - g_material_metallic_mask);
 
 	float3 color = 0;
-	color += eval_ibl(normalize(pixel.specular_cube_dir), dot_nv, g_material_linear_roughness, f0, diffuse_factor);
+	color += eval_ibl(normalize(pixel.specular_cube_dir), dot_nv, g_material_linear_roughness, f0, diffuse_color);
 
 	ps_output o;
 	o.rt_color0 = float4(color, 1);
