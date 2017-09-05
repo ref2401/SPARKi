@@ -148,7 +148,8 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	hlsl_shader_desc shader_desc("../../data/shaders/shading_pass.hlsl");
 	shader_ = hlsl_shader(p_device_, shader_desc);
 
-	p_cb_vertex_shader_ = make_constant_buffer(p_device_, shading_pass::cb_byte_count);
+	p_cb_vertex_shader_ = make_constant_buffer(p_device_, cb_vertex_shader_component_count * sizeof(float));
+	p_cb_pixel_shader_ = make_constant_buffer(p_device_, cb_pixel_shader_component_count * sizeof(float));
 	init_pipeline_state();
 	init_textures();
 	init_geometry(); // shader_ must be initialized
@@ -224,20 +225,33 @@ void shading_pass::init_textures()
 	assert(hr == S_OK);
 }
 
-void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& camera_position)
+void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix,
+	const material& material, const float3& camera_position)
 {
 	const float4x4 model_matrix = float4x4::identity;
 	const float4x4 normal_matrix = float4x4::identity;
 	const float4x4 pvm_matrix = pv_matrix * model_matrix;
 	const float4 camera_position_ms = mul(inverse(model_matrix), camera_position);
 
-	float cb_data[shading_pass::cb_component_count];
-	to_array_column_major_order(pv_matrix, cb_data);
-	to_array_column_major_order(model_matrix, cb_data + 16);
-	to_array_column_major_order(normal_matrix, cb_data + 32);
-	std::memcpy(cb_data + 48, &camera_position.x, sizeof(float3));
-	std::memcpy(cb_data + 52, &camera_position_ms.x, sizeof(float3));
-	p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
+	{ // update vertex shader constant buffer
+		float cb_data[shading_pass::cb_vertex_shader_component_count];
+		to_array_column_major_order(pv_matrix, cb_data);
+		to_array_column_major_order(model_matrix, cb_data + 16);
+		to_array_column_major_order(normal_matrix, cb_data + 32);
+		std::memcpy(cb_data + 48, &camera_position.x, sizeof(float3));
+		std::memcpy(cb_data + 52, &camera_position_ms.x, sizeof(float3));
+		cb_data[56] = material.linear_roughness;
+		p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
+	}
+
+	{ // update pixel shader constant buffer
+		float cb_data[shading_pass::cb_pixel_shader_component_count];
+		std::memcpy(cb_data, &material.base_color.x, sizeof(float3));
+		std::memcpy(cb_data + 4, &material.reflect_color.x, sizeof(float3));
+		cb_data[8] = material.metallic_mask;
+		cb_data[9] = material.linear_roughness;
+		p_ctx_->UpdateSubresource(p_cb_pixel_shader_, 0, nullptr, cb_data, 0, 0);
+	}
 
 	// input layout
 	const UINT offset = 0;
@@ -252,6 +266,7 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix, co
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
+	p_ctx_->PSSetConstantBuffers(0, 1, &p_cb_pixel_shader_.ptr);
 	constexpr UINT srv_count = 3;
 	ID3D11ShaderResourceView* srv_list[srv_count] = { 
 		p_tex_diffuse_envmap_srv_, 
@@ -519,7 +534,7 @@ void render_system::draw_frame(frame& frame)
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
+	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.material, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// reset rtv bindings

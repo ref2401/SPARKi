@@ -2,21 +2,15 @@
 #include "common_pbr.hlsl"
 
 
-// NOTE(ref2401): material props are temporary here.
-static const float3 g_material_base_color = float3(0.04, 0.04, 0.04);
-static const float3 g_material_reflect_color = float3(1, 1, 1);
-static const float g_material_metallic_mask = 0.0f;
-static const float g_material_linear_roughness = 0.2f;
-
-
 // ----- vertex shader ------
 
 cbuffer cb_vertex_shader : register(b0) {
-	float4x4 g_pv_matrix		: packoffset(c0);
-	float4x4 g_model_matrix		: packoffset(c4);
-	float4x4 g_normal_matrix	: packoffset(c8);
-	float3 g_view_position_ws	: packoffset(c12.x);
-	float3 g_view_position_ms	: packoffset(c13.x);
+	float4x4 g_pv_matrix					: packoffset(c0);
+	float4x4 g_model_matrix					: packoffset(c4);
+	float4x4 g_normal_matrix				: packoffset(c8);
+	float3 g_view_position_ws				: packoffset(c12.x);
+	float3 g_view_position_ms				: packoffset(c13.x);
+	float g_material_vs_linear_roughness	: packoffset(c14.x);
 };
 
 struct vertex {
@@ -48,7 +42,7 @@ vs_output vs_main(vertex vertex)
 	vs_output o;
 	o.position_cs		= mul(g_pv_matrix, float4(p_ws, 1.0));
 	o.specular_cube_dir	= specular_dominant_dir(vertex.normal_ms, vertex.position_ms, 
-												g_view_position_ms, g_material_linear_roughness);
+												g_view_position_ms, g_material_vs_linear_roughness);
 	o.v_ts				= mul(world_to_tangent, v_ws);
 	o.uv				= vertex.uv;
 
@@ -56,6 +50,13 @@ vs_output vs_main(vertex vertex)
 }
 
 // ----- pixel shader -----
+
+cbuffer cb_pixel_shader : register(b0) {
+	float3 g_material_base_color		: packoffset(c0);
+	float3 g_material_reflect_color		: packoffset(c1);
+	float g_material_metallic_mask		: packoffset(c2.x);
+	float g_material_linear_roughness	: packoffset(c2.y);
+};
 
 TextureCube<float4> g_tex_diffuse_envmap	: register(t0);
 TextureCube<float4>	g_tex_specular_envmap	: register(t1);

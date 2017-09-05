@@ -9,7 +9,27 @@
 namespace sparki {
 namespace core {
 
+struct material final {
+
+	material() = default;
+
+	material(const float3& base_color, const float3& reflect_color,
+		float metallic_mask, float linear_roughness)
+		: base_color(base_color),
+		reflect_color(reflect_color),
+		metallic_mask(metallic_mask),
+		linear_roughness(linear_roughness)
+	{}
+
+	float3	base_color;
+	float3	reflect_color;
+	float	metallic_mask = 0.0f;
+	float	linear_roughness = 0.0f;
+};
+
+
 struct frame final {
+	material		material;
 	float4x4		projection_matrix;
 	float3			camera_position;
 	float3			camera_target;
@@ -68,12 +88,13 @@ public:
 	shading_pass& operator=(shading_pass&&) = delete;
 
 	
-	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix, const float3& camera_position);
+	void perform(const gbuffer& gbuffer, const float4x4& pv_matrix, 
+		const material& material, const float3& camera_position);
 
 private:
 
-	static constexpr size_t cb_component_count = 3 * 16 + 2 * 4;
-	static constexpr size_t cb_byte_count = cb_component_count * sizeof(float);
+	static constexpr size_t cb_vertex_shader_component_count = 3 * 16 + 3 * 4;
+	static constexpr size_t cb_pixel_shader_component_count = 3 * 4;
 
 
 	void init_geometry();
@@ -89,6 +110,7 @@ private:
 	hlsl_shader							shader_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
+	com_ptr<ID3D11Buffer>				p_cb_pixel_shader_;
 	com_ptr<ID3D11Texture2D>			p_tex_diffuse_envmap_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_diffuse_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_specular_envmap_;

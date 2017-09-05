@@ -14,6 +14,10 @@ game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::in
 	viewport_is_visible_(true),
 	camera_(float3::unit_z, float3::zero)
 {
+	frame_.material.base_color = float3(0.04f);
+	frame_.material.reflect_color = float3(1.0f);
+	frame_.material.metallic_mask = 0.0f;
+	frame_.material.linear_roughness = 0.2f;
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game_system::projection_fov, aspect_ratio(viewport_size),
 		game_system::projection_near, game_system::projection_far);
