@@ -35,28 +35,29 @@ public:
 		return p_hwnd_;
 	}
 
-	const mouse& mouse() const noexcept
+	const input_state& mouse() const noexcept
 	{
-		return mouse_;
+		return input_state_;
 	}
+
+	void before_main_loop();
 
 	// Processes all the system messages that are in the message queue at the moment.
 	// Returns true if the application has to terminate.
 	bool process_sys_messages(event_listener_i& listener);
 
-	void show_window() noexcept;
 
+	void enqueue_keypress(key k, key_state s);
 
-	void enqueue_mouse_button(const mouse_buttons& mb);
+	void enqueue_mouse_button(mouse_buttons mb);
 
-	void enqueue_mouse_enter(const mouse_buttons& mb, const uint2 p);
+	void enqueue_mouse_enter(mouse_buttons mb, const uint2& p);
 
 	void enqueue_mouse_leave();
 
 	void enqueue_mouse_move(const uint2& p);
 
 	void enqueue_window_resize();
-
 
 private:
 
@@ -66,6 +67,7 @@ private:
 	struct sys_message final {
 		enum class type : unsigned char {
 			none,
+			keypress,
 			mouse_button,
 			mouse_enter,
 			mouse_leave,
@@ -74,6 +76,8 @@ private:
 		};
 
 		type			type;
+		key				key;
+		key_state		key_state;
 		mouse_buttons	mouse_buttons;
 		uint2			uint2;
 	};
@@ -85,12 +89,13 @@ private:
 
 
 	std::vector<sys_message>	sys_messages_;
-	sparki::core::mouse			mouse_;
+	sparki::core::input_state	input_state_;
 	HWND						p_hwnd_;
 };
 
 
 bool is_valid_window_desc(const window_desc& desc) noexcept;
+
 
 } // namespace core
 } // namespace sparki

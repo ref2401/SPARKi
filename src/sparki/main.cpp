@@ -21,10 +21,9 @@ void sparki_main()
 	platform_system platform_system(wnd_desc);
 	game_system game(platform_system.p_hwnd(), wnd_desc.viewport_size, platform_system.mouse());
 
-	// before the main loop phase:
-	platform_system.show_window();
-
 	// the main loop:
+	platform_system.before_main_loop();
+
 	while (true) {
 		if (platform_system.process_sys_messages(game)) break;
 

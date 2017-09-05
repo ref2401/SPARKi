@@ -7,8 +7,8 @@ namespace sparki {
 
 // ----- game_system -----
 
-game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse)
-	:mouse_(mouse),
+game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::input_state& input_state)
+	:input_state_(input_state),
 	render_system_(p_hwnd, viewport_size),
 	imgui_io_(ImGui::GetIO()),
 	viewport_is_visible_(true),
@@ -74,17 +74,22 @@ void game_system::update()
 	camera_.roll_angles = float2::zero;
 }
 
+void game_system::on_keypress(core::key k, core::key_state s)
+{
+
+}
+
 void game_system::on_mouse_click()
 {
 }
 
 void game_system::on_mouse_move()
 {
-	const float2 curr_pos(float(mouse_.position.x), float(mouse_.position.y));
+	const float2 curr_pos(float(input_state_.mouse_position.x), float(input_state_.mouse_position.y));
 	const float2 diff = curr_pos - camera_.mouse_position_prev;
 	camera_.mouse_position_prev = curr_pos;
 
-	if (!middle_down(mouse_) || approx_equal(diff, float2::zero)) return;
+	if (!middle_down(input_state_) || approx_equal(diff, float2::zero)) return;
 
 	// mouse offset by x means rotation around OY (yaw)
 	const bool x_offset_sufficient = !approx_equal(diff.x, 0.0f, 0.01f);

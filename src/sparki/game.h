@@ -35,7 +35,7 @@ struct camera final {
 class game_system final : public core::event_listener_i {
 public:
 
-	game_system(HWND p_hwnd, const uint2& viewport_size, const core::mouse& mouse);
+	game_system(HWND p_hwnd, const uint2& viewport_size, const core::input_state& input_state);
 
 	game_system(game_system&&) = delete;
 	game_system& operator=(game_system&&) = delete;
@@ -44,6 +44,8 @@ public:
 	void draw_frame(float interpolation_factor);
 
 	void update();
+
+	void on_keypress(core::key k, core::key_state s) override;
 
 	void on_mouse_click() override;
 
@@ -61,13 +63,13 @@ private:
 
 
 	// __game context__
-	const core::mouse&		mouse_;
-	core::render_system		render_system_;
-	ImGuiIO&				imgui_io_;
-	bool					viewport_is_visible_;
+	const core::input_state&	input_state_;
+	core::render_system			render_system_;
+	ImGuiIO&					imgui_io_;
+	bool						viewport_is_visible_;
 	// __game state__
-	camera					camera_;
-	core::frame				frame_;
+	camera						camera_;
+	core::frame					frame_;
 };
 
 } // namespace sparki
