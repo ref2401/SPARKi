@@ -239,12 +239,14 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 // ----- keyboard -----
 		case WM_KEYDOWN:
 		{
+			if (w_param < 256) io.KeysDown[w_param] = true;
 			process_keyboard_message(key_state::down, w_param, l_param);
 			return 0;
 		}
 
 		case WM_KEYUP:
 		{
+			if (w_param < 256) io.KeysDown[w_param] = 0;
 			process_keyboard_message(key_state::released, w_param, l_param);
 			return 0;
 		}
@@ -335,7 +337,16 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 			io.MouseWheel += (GET_WHEEL_DELTA_WPARAM(w_param) > 0) ? 1.0f : -1.0f;
 			return 0;
 		}
-		
+
+// ----- other messages ------
+
+		case WM_CHAR:
+		{
+			if (w_param > 0 && w_param < 0x10000)
+				io.AddInputCharacter((unsigned short)w_param);
+			return 0;
+		}
+
 		case WM_DESTROY:
 		{
 			PostQuitMessage(0);
@@ -363,8 +374,29 @@ platform_system::platform_system(const window_desc& window_desc)
 	assert(is_valid_window_desc(window_desc));
 	sys_messages_.reserve(256);
 	init_window(window_desc);
-
 	gp_platform = this;
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.ImeWindowHandle = p_hwnd_;
+	io.KeyMap[ImGuiKey_Tab]			= VK_TAB;
+	io.KeyMap[ImGuiKey_LeftArrow]	= VK_LEFT;
+	io.KeyMap[ImGuiKey_RightArrow]	= VK_RIGHT;
+	io.KeyMap[ImGuiKey_UpArrow]		= VK_UP;
+	io.KeyMap[ImGuiKey_DownArrow]	= VK_DOWN;
+	io.KeyMap[ImGuiKey_PageUp]		= VK_PRIOR;
+	io.KeyMap[ImGuiKey_PageDown]	= VK_NEXT;
+	io.KeyMap[ImGuiKey_Home]		= VK_HOME;
+	io.KeyMap[ImGuiKey_End]			= VK_END;
+	io.KeyMap[ImGuiKey_Delete]		= VK_DELETE;
+	io.KeyMap[ImGuiKey_Backspace]	= VK_BACK;
+	io.KeyMap[ImGuiKey_Enter]		= VK_RETURN;
+	io.KeyMap[ImGuiKey_Escape]		= VK_ESCAPE;
+	io.KeyMap[ImGuiKey_A]			= 'A';
+	io.KeyMap[ImGuiKey_C]			= 'C';
+	io.KeyMap[ImGuiKey_V]			= 'V';
+	io.KeyMap[ImGuiKey_X]			= 'X';
+	io.KeyMap[ImGuiKey_Y]			= 'Y';
+	io.KeyMap[ImGuiKey_Z]			= 'Z';
 }
 
 platform_system::~platform_system() noexcept

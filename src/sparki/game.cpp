@@ -14,8 +14,6 @@ game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::in
 	viewport_is_visible_(true),
 	camera_(float3::unit_z, float3::zero)
 {
-	imgui_io_.ImeWindowHandle = p_hwnd;
-
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game_system::projection_fov, aspect_ratio(viewport_size),
 		game_system::projection_near, game_system::projection_far);
