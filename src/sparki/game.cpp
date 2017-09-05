@@ -16,7 +16,6 @@ game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::in
 {
 	imgui_io_.ImeWindowHandle = p_hwnd;
 
-
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game_system::projection_fov, aspect_ratio(viewport_size),
 		game_system::projection_near, game_system::projection_far);
@@ -89,7 +88,7 @@ void game_system::on_mouse_move()
 	const float2 diff = curr_pos - camera_.mouse_position_prev;
 	camera_.mouse_position_prev = curr_pos;
 
-	if (!middle_down(input_state_) || approx_equal(diff, float2::zero)) return;
+	if (!is_mouse_middle_down(input_state_) || approx_equal(diff, float2::zero)) return;
 
 	// mouse offset by x means rotation around OY (yaw)
 	const bool x_offset_sufficient = !approx_equal(diff.x, 0.0f, 0.01f);

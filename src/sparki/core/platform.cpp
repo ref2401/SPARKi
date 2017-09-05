@@ -1,6 +1,7 @@
 #include "sparki/core/platform.h"
 
 #include <cassert>
+#include "imgui/imgui.h"
 
 
 namespace {
@@ -162,6 +163,11 @@ void process_keyboard_message(key_state s, WPARAM w_param, LPARAM l_param)
 		gp_platform->enqueue_keypress(k, s);
 }
 
+inline void process_mouse_button_message()
+{
+
+}
+
 // Retrieves and dispatches all the system messages that are in the message queue at the moment.
 // Returns true if the application has to terminate.
 bool pump_sys_messages() noexcept
@@ -223,6 +229,7 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 	if (!gp_platform)
 		return DefWindowProc(p_hwnd, message, w_param, l_param);
 
+	ImGuiIO& io = ImGui::GetIO();
 	assert(p_hwnd == gp_platform->p_hwnd());
 
 	switch (message) {
@@ -244,14 +251,50 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 // ----- mouse -----
 
-		case WM_LBUTTONDOWN:
+		case WM_LBUTTONDOWN: 
+		{
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[0] = true;
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
+			return 0;
+		}
+
 		case WM_LBUTTONUP:
+		{
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[0] = false;
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
+			return 0;
+		}
+
 		case WM_MBUTTONDOWN:
+		{
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[1] = true;
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
+			return 0;
+		}
+
 		case WM_MBUTTONUP:
+		{
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[1] = false;
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
+			return 0;
+		}
+
 		case WM_RBUTTONDOWN:
+		{
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[2] = true;
+			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
+			return 0;
+		}
+
 		case WM_RBUTTONUP:
 		{
-			assert(!gp_platform->mouse().mouse_is_out);
+			assert(!gp_platform->input_state().mouse_is_out);
+			io.MouseDown[2] = false;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
 		}
@@ -264,10 +307,14 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 			// p0 is relative to the top-left window corner
 			// p is relative to the bottom-left window corner
 			const uint2 p0 = point_2d(l_param);
+			io.MousePos.x = float(p0.x);
+			io.MousePos.y = float(p0.y);
+
+
 			const uint2 vp = get_viewport_size(p_hwnd);
 			const uint2 p(p0.x, vp.y - p0.y - 1);
 
-			if (gp_platform->mouse().mouse_is_out)
+			if (gp_platform->input_state().mouse_is_out)
 				gp_platform->enqueue_mouse_enter(make_mouse_buttons(w_param), p);
 			else 
 				gp_platform->enqueue_mouse_move(p);
@@ -280,6 +327,12 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 		case WM_MOUSELEAVE:
 		{
 			gp_platform->enqueue_mouse_leave();
+			return 0;
+		}
+
+		case WM_MOUSEWHEEL:
+		{
+			io.MouseWheel += (GET_WHEEL_DELTA_WPARAM(w_param) > 0) ? 1.0f : -1.0f;
 			return 0;
 		}
 		

@@ -19,7 +19,7 @@ void sparki_main()
 	};
 
 	platform_system platform_system(wnd_desc);
-	game_system game(platform_system.p_hwnd(), wnd_desc.viewport_size, platform_system.mouse());
+	game_system game(platform_system.p_hwnd(), wnd_desc.viewport_size, platform_system.input_state());
 
 	// the main loop:
 	platform_system.before_main_loop();

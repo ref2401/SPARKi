@@ -35,7 +35,7 @@ public:
 		return p_hwnd_;
 	}
 
-	const input_state& mouse() const noexcept
+	const input_state& input_state() const noexcept
 	{
 		return input_state_;
 	}

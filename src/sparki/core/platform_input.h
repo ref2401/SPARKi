@@ -226,19 +226,19 @@ inline bool is_down(const input_state& s, key k)
 }
 
 // true if left mouse button has been pressed.
-inline bool left_down(const input_state& s) noexcept
+inline bool is_mouse_left_down(const input_state& s) noexcept
 {
 	return (s.mouse_buttons & mouse_buttons::left) == mouse_buttons::left;
 }
 
 // true if middle mouse button has been pressed.
-inline bool middle_down(const input_state& s) noexcept
+inline bool is_mouse_middle_down(const input_state& s) noexcept
 {
 	return (s.mouse_buttons & mouse_buttons::middle) == mouse_buttons::middle;
 }
 
 // true if right mouse button has been pressed.
-inline bool right_down(const input_state& s) noexcept
+inline bool is_mouse_right_down(const input_state& s) noexcept
 {
 	return (s.mouse_buttons & mouse_buttons::right) == mouse_buttons::right;
 }
