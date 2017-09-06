@@ -4,6 +4,10 @@ The main goal of SPARKi is education and experiments. Currently the demo represe
 
 ```.geo``` & ```.tex``` are SPARKi internal geometry & texture formats respectively.
 
+## Printscreens
+ [ ![r01m0](https://user-images.githubusercontent.com/10673999/30104334-00c54f0c-92fe-11e7-835e-f111043df981.png) ](https://user-images.githubusercontent.com/10673999/30104323-f953a2dc-92fd-11e7-9cd4-3b5c36193feb.png) | [ ![r041m0](https://user-images.githubusercontent.com/10673999/30104337-0502d03a-92fe-11e7-8b64-44559049f660.png) ](https://user-images.githubusercontent.com/10673999/30104340-06664b6e-92fe-11e7-96bf-d8da0be54ca2.png) | [ ![r1m0](https://user-images.githubusercontent.com/10673999/30104346-0853e9cc-92fe-11e7-8aa0-d24bcb5c4c55.png) ](https://user-images.githubusercontent.com/10673999/30104350-094038a4-92fe-11e7-9a69-8103310e75d4.png) |  [ ![gold_like](https://user-images.githubusercontent.com/10673999/30104352-0b58c07a-92fe-11e7-9573-6e2bc20baadc.png) ](https://user-images.githubusercontent.com/10673999/30104358-0d524522-92fe-11e7-957c-c31b4c7a123f.png) |
+| --- | --- | --- | --- |
+
 ## Dependencies & Build
 1) Visul Studio 2017 (Community Edition will do)
 2) [FBX SDK](https://www.autodesk.com/products/fbx/overview). After the installation is complete add FBX_SDK_DIR environmanet variable. It must point to the path where your fbx sdk has been installed. For example: ```c:\Program Files\Autodesk\FBX\FBX SDK\2018.1.1\```
