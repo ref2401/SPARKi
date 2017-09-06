@@ -456,6 +456,12 @@ void platform_system::init_window(const window_desc& desc)
 
 bool platform_system::process_sys_messages(event_listener_i& listener)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+	io.KeyShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+	io.KeyAlt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+	io.KeySuper = false;
+
 	if (pump_sys_messages()) return true; // NOTE(ref2401): true - app has to terminate.
 	if (sys_messages_.empty()) return false;
 
