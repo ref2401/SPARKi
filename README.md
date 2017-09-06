@@ -9,12 +9,13 @@ The main goal of SPARKi is education and experiments. Currently the demo represe
 | --- | --- | --- | --- |
 
 ## Dependencies & Build
-1) Visul Studio 2017 (Community Edition will do)
-2) [FBX SDK](https://www.autodesk.com/products/fbx/overview). After the installation is complete add FBX_SDK_DIR environmanet variable. It must point to the path where your fbx sdk has been installed. For example: ```c:\Program Files\Autodesk\FBX\FBX SDK\2018.1.1\```
-3) Clone the repository
-4) Get all the submodules (```git submodule init```, ```git submodule update```)
-5) Open the solution ```/msvc/SPARKi.sln```
-6) Go to SPARKi project properties > Debugging and set Working Directory to ```$(ProjectDir)..\bin\$(Configuration)\```
+1) DirectX SDK
+2) Visul Studio 2017 (Community Edition will do)
+3) [FBX SDK](https://www.autodesk.com/products/fbx/overview). After the installation is complete add FBX_SDK_DIR environmanet variable. It must point to the path where your fbx sdk has been installed. For example: ```c:\Program Files\Autodesk\FBX\FBX SDK\2018.1.1\```
+4) Clone the repository
+5) Get all the submodules (```git submodule init```, ```git submodule update```)
+6) Open the solution ```/msvc/SPARKi.sln```
+7) Go to SPARKi project properties > Debugging and set Working Directory to ```$(ProjectDir)..\bin\$(Configuration)\```
 
 # Bibliography
 - PBR
