@@ -87,7 +87,8 @@ ps_output ps_main(vs_output pixel)
 	const float3 v_ts	= normalize(pixel.v_ts);
 	const float	dot_nv	= saturate(dot(n_ts, v_ts));
 
-	const float3 f0 = lerp(pow(0.4 * g_material_reflect_color, 2), g_material_base_color, g_material_metallic_mask);
+	const float3 reflect_color = 0.16 * g_material_reflect_color * g_material_reflect_color;
+	const float3 f0 = lerp(reflect_color, g_material_base_color, g_material_metallic_mask);
 	const float3 fresnel = fresnel_schlick(f0, dot_nv);
 	const float3 diffuse_color = g_material_base_color * (1.0 - fresnel) * (1 - g_material_metallic_mask);
 

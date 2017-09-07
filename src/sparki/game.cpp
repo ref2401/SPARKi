@@ -29,14 +29,15 @@ void game_system::draw_frame(float interpolation_factor)
 	if (!viewport_is_visible_) return;
 
 	ImGui::NewFrame();
-	ImGui::Begin("Material params");
+	/*ImGui::Begin("Material params");
 	ImGui::ColorEdit3("base color", &frame_.material.base_color.x);
 	ImGui::ColorEdit3("reflect color", &frame_.material.reflect_color.x);
 	ImGui::DragFloat("roughness", &frame_.material.linear_roughness, 0.01f, 0.0f, 1.0f);
 	ImGui::DragFloat("metallic mask", &frame_.material.metallic_mask, 0.01f, 0.0f, 1.0f);
-	ImGui::End();
+	ImGui::End();*/
+	material_editor_view_.show();
 
-	//ImGui::ShowTestWindow();
+	ImGui::ShowTestWindow();
 
 	frame_.camera_position = lerp(camera_.position, camera_.prev_position, interpolation_factor);
 	frame_.camera_target = lerp(camera_.target, camera_.prev_target, interpolation_factor);
@@ -82,7 +83,7 @@ void game_system::update()
 	camera_.roll_angles = float2::zero;
 }
 
-void game_system::on_keypress(core::key k, core::key_state s)
+void game_system::on_keypress(core::key, core::key_state)
 {
 
 }

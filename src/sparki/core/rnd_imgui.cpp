@@ -254,7 +254,6 @@ void imgui_pass::perform(ImDrawData* p_draw_data, ID3D11SamplerState* p_sampler)
 	}
 }
 
-
 } // namespace core
 } // namespace sparki
 
