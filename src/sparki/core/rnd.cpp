@@ -149,7 +149,6 @@ shading_pass::shading_pass(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, I
 	shader_ = hlsl_shader(p_device_, shader_desc);
 
 	p_cb_vertex_shader_ = make_constant_buffer(p_device_, cb_vertex_shader_component_count * sizeof(float));
-	p_cb_pixel_shader_ = make_constant_buffer(p_device_, cb_pixel_shader_component_count * sizeof(float));
 	init_pipeline_state();
 	init_textures();
 	init_geometry(); // shader_ must be initialized
@@ -240,17 +239,7 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix,
 		to_array_column_major_order(normal_matrix, cb_data + 32);
 		std::memcpy(cb_data + 48, &camera_position.x, sizeof(float3));
 		std::memcpy(cb_data + 52, &camera_position_ms.x, sizeof(float3));
-		cb_data[56] = material.linear_roughness;
 		p_ctx_->UpdateSubresource(p_cb_vertex_shader_, 0, nullptr, cb_data, 0, 0);
-	}
-
-	{ // update pixel shader constant buffer
-		float cb_data[shading_pass::cb_pixel_shader_component_count];
-		std::memcpy(cb_data, &material.base_color.x, sizeof(float3));
-		std::memcpy(cb_data + 4, &material.reflect_color.x, sizeof(float3));
-		cb_data[8] = material.metallic_mask;
-		cb_data[9] = material.linear_roughness;
-		p_ctx_->UpdateSubresource(p_cb_pixel_shader_, 0, nullptr, cb_data, 0, 0);
 	}
 
 	// input layout
@@ -266,12 +255,13 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix,
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	p_ctx_->PSSetConstantBuffers(0, 1, &p_cb_pixel_shader_.ptr);
-	constexpr UINT srv_count = 3;
+	constexpr UINT srv_count = 5;
 	ID3D11ShaderResourceView* srv_list[srv_count] = { 
 		p_tex_diffuse_envmap_srv_, 
 		p_tex_specular_envmap_srv_, 
-		p_tex_specular_brdf_srv_ 
+		p_tex_specular_brdf_srv_,
+		material.p_tex_base_color_srv,
+		material.p_tex_reflect_color_srv
 	};
 	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler_linear.ptr);
@@ -449,8 +439,9 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	p_gbuffer_ = std::make_unique<gbuffer>(p_device_);
 
 	std::atomic_size_t wc;
-	ts::run([this] { init_passes_and_tools(); }, wc);
+	ts::run([this] { init_passes_and_utilities(); }, wc);
 
+	init_materials();
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
@@ -508,7 +499,38 @@ void render_system::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 #endif
 }
 
-void render_system::init_passes_and_tools()
+void render_system::init_materials()
+{
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width = 1;
+	tex_desc.Height = 1;
+	tex_desc.MipLevels = 1;
+	tex_desc.ArraySize = 1;
+	tex_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	tex_desc.SampleDesc.Count = 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	
+	// base_color
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem = &float4::unit_xyzw.x;
+	tex_data.SysMemPitch = vector_traits<float4>::byte_count;
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &material_.p_tex_base_color.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(material_.p_tex_base_color, nullptr, &material_.p_tex_base_color_srv.ptr);
+	assert(hr == S_OK);
+
+	// reflect_color
+	const float4 reflect_color(1.0f, 1.0f, 1.0f, 0.53f);
+	tex_data.pSysMem = &reflect_color.x;
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &material_.p_tex_reflect_color.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(material_.p_tex_reflect_color, nullptr, &material_.p_tex_reflect_color_srv.ptr);
+	assert(hr == S_OK);
+}
+
+void render_system::init_passes_and_utilities()
 {
 	assert(p_gbuffer_);
 
@@ -520,6 +542,8 @@ void render_system::init_passes_and_tools()
 	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
 	p_postproc_pass_ = std::make_unique<postproc_pass>(p_device_, p_ctx_, p_debug_);
 	p_imgui_pass_ = std::make_unique<imgui_pass>(p_device_, p_ctx_, p_debug_);
+
+
 }
 
 void render_system::draw_frame(frame& frame)
@@ -534,7 +558,7 @@ void render_system::draw_frame(frame& frame)
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.material, frame.camera_position);
+	p_light_pass_->perform(*p_gbuffer_, pv_matrix, material_, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// reset rtv bindings

@@ -9,11 +9,11 @@
 namespace sparki {
 namespace core {
 
-struct material final {
+struct material_old final {
 
-	material() = default;
+	material_old() = default;
 
-	material(const float3& base_color, const float3& reflect_color,
+	material_old(const float3& base_color, const float3& reflect_color,
 		float metallic_mask, float linear_roughness)
 		: base_color(base_color),
 		reflect_color(reflect_color),
@@ -27,9 +27,19 @@ struct material final {
 	float	linear_roughness = 0.0f;
 };
 
+struct material final {
+	// rgb: base_color
+	// a: metallic mask.
+	com_ptr<ID3D11Texture2D>			p_tex_base_color;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_srv;
+	// rgb: reflect color
+	// a: linear roughness
+	com_ptr<ID3D11Texture2D>			p_tex_reflect_color;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_srv;
+};
 
 struct frame final {
-	material		material;
+	material_old	material;
 	float4x4		projection_matrix;
 	float3			camera_position;
 	float3			camera_target;
@@ -93,8 +103,7 @@ public:
 
 private:
 
-	static constexpr size_t cb_vertex_shader_component_count = 3 * 16 + 3 * 4;
-	static constexpr size_t cb_pixel_shader_component_count = 3 * 4;
+	static constexpr size_t cb_vertex_shader_component_count = 3 * 16 + 2 * 4;
 
 
 	void init_geometry();
@@ -110,7 +119,6 @@ private:
 	hlsl_shader							shader_;
 	com_ptr<ID3D11DepthStencilState>	p_depth_stencil_state_;
 	com_ptr<ID3D11Buffer>				p_cb_vertex_shader_;
-	com_ptr<ID3D11Buffer>				p_cb_pixel_shader_;
 	com_ptr<ID3D11Texture2D>			p_tex_diffuse_envmap_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_diffuse_envmap_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_specular_envmap_;
@@ -202,7 +210,9 @@ private:
 
 	void init_dx_device(HWND p_hwnd, const uint2& viewport_size);
 
-	void init_passes_and_tools();
+	void init_materials();
+
+	void init_passes_and_utilities();
 
 
 	// __device stuff__
@@ -223,8 +233,9 @@ private:
 	std::unique_ptr<shading_pass>	p_light_pass_;
 	std::unique_ptr<postproc_pass>	p_postproc_pass_;
 	std::unique_ptr<imgui_pass>		p_imgui_pass_;
+	// __temporary here___
+	material material_;
 };
-
 
 } // namespace core
 } // namespace sparki

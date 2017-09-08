@@ -152,16 +152,10 @@ float4 importance_sample_ggx(float2 xi, float linear_roughness)
 	return float4(h, ggx * cos_theta);
 }
 
-float3 specular_dominant_dir(float3 n_ms, float3 position_ms, float3 view_position_ms, float linear_roughness)
+float3 specular_dominant_dir(float3 n_ms, float3 rv_ms, float linear_roughness)
 {
 	// see Moving Frostbite to Physically Based Rendering 3.0
-
-	// lerp factor
 	const float s = saturate(1 - linear_roughness);
 	const float factor = s * (sqrt(s) + linear_roughness);
-	// reflected view vector
-	const float3 v_ms = normalize(position_ms - view_position_ms); // direction is reversed by purpose.
-	const float3 r_ms = reflect(v_ms, n_ms);
-
-	return lerp(n_ms, r_ms, factor);
+	return lerp(n_ms, rv_ms, factor);
 }
