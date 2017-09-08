@@ -506,23 +506,24 @@ void render_system::init_materials()
 	tex_desc.Height = 1;
 	tex_desc.MipLevels = 1;
 	tex_desc.ArraySize = 1;
-	tex_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	tex_desc.SampleDesc.Count = 1;
 	tex_desc.SampleDesc.Quality = 0;
 	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
 	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	
 	// base_color
+	const ubyte4 base_color = unpack_unorm_8_8_8_8<ubyte4>(0xff00ffff);
 	D3D11_SUBRESOURCE_DATA tex_data = {};
-	tex_data.pSysMem = &float4::unit_xyzw.x;
-	tex_data.SysMemPitch = vector_traits<float4>::byte_count;
+	tex_data.pSysMem = &base_color.x;
+	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
 	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &material_.p_tex_base_color.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(material_.p_tex_base_color, nullptr, &material_.p_tex_base_color_srv.ptr);
 	assert(hr == S_OK);
 
 	// reflect_color
-	const float4 reflect_color(1.0f, 1.0f, 1.0f, 0.53f);
+	const ubyte4 reflect_color(0xff, 0xff, 0xff, uint8_t(0.23f * 0xff));
 	tex_data.pSysMem = &reflect_color.x;
 	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &material_.p_tex_reflect_color.ptr);
 	assert(hr == S_OK);
