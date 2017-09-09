@@ -3,7 +3,7 @@
 #include "sparki/core/platform_input.h"
 #include "sparki/core/rnd.h"
 #include "sparki/core/rnd_imgui.h"
-#include "sparki/ui/material_editor.h"
+#include "sparki/ui.h"
 
 
 namespace sparki {
@@ -66,10 +66,9 @@ private:
 	// __game context__
 	const core::input_state&	input_state_;
 	core::render_system			render_system_;
-	ImGuiIO&					imgui_io_;
 	bool						viewport_is_visible_;
 	// __ui__
-	ui::material_editor_view	material_editor_view_;
+	std::unique_ptr<material_editor_view>	p_material_editor_view_;
 	// __game state__
 	camera						camera_;
 	core::frame					frame_;

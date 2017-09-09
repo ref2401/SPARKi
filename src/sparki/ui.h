@@ -1,20 +1,21 @@
 #pragma once
 
+#include "sparki/core/rnd_tool.h"
 
 
 namespace sparki {
-namespace ui {
 
 
 class material_editor_view final {
 public:
 
-	material_editor_view();
+	explicit material_editor_view(core::material_editor_tool& met);
 
 	void show();
 
 private:
+
+	core::material_editor_tool& met_;
 };
 
-} // namespace ui
 } // namespace sparki

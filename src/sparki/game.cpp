@@ -10,10 +10,11 @@ namespace sparki {
 game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::input_state& input_state)
 	:input_state_(input_state),
 	render_system_(p_hwnd, viewport_size),
-	imgui_io_(ImGui::GetIO()),
 	viewport_is_visible_(true),
 	camera_(float3::unit_z, float3::zero)
 {
+	p_material_editor_view_ = std::make_unique<material_editor_view>(render_system_.material_editor_tool());
+
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game_system::projection_fov, aspect_ratio(viewport_size),
 		game_system::projection_near, game_system::projection_far);
@@ -25,16 +26,11 @@ void game_system::draw_frame(float interpolation_factor)
 	if (!viewport_is_visible_) return;
 
 	ImGui::NewFrame();
-	/*ImGui::Begin("Material params");
-	ImGui::ColorEdit3("base color", &frame_.material.base_color.x);
-	ImGui::ColorEdit3("reflect color", &frame_.material.reflect_color.x);
-	ImGui::DragFloat("roughness", &frame_.material.linear_roughness, 0.01f, 0.0f, 1.0f);
-	ImGui::DragFloat("metallic mask", &frame_.material.metallic_mask, 0.01f, 0.0f, 1.0f);
-	ImGui::End();*/
-	material_editor_view_.show();
+	p_material_editor_view_->show();
 
 	ImGui::ShowTestWindow();
 
+	frame_.material = render_system_.material_editor_tool().current_material(); // NOTE(ref2401): this crap is temporary.
 	frame_.camera_position = lerp(camera_.position, camera_.prev_position, interpolation_factor);
 	frame_.camera_target = lerp(camera_.target, camera_.prev_target, interpolation_factor);
 	frame_.camera_up = lerp(camera_.up, camera_.prev_up, interpolation_factor);
@@ -114,7 +110,7 @@ void game_system::on_resize_viewport(const uint2& size)
 		return;
 	}
 
-	imgui_io_.DisplaySize = ImVec2(float(size.x), float(size.y));
+	ImGui::GetIO().DisplaySize = ImVec2(float(size.x), float(size.y));
 
 	viewport_is_visible_ = true;
 	frame_.projection_matrix = math::perspective_matrix_directx(game_system::projection_fov, 

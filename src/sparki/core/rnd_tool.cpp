@@ -298,12 +298,44 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 
 // ----- material_editor_tool -----
 
+const ubyte4 material_editor_tool::defualt_color_value		= ubyte4(0x7f, 0x7f, 0x7f, 0xff);
+const ubyte4 material_editor_tool::defualt_texture_value	= ubyte4(0xff);
+
+
 material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
 {
 	assert(p_device);
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width = 1;
+	tex_desc.Height = 1;
+	tex_desc.MipLevels = 1;
+	tex_desc.ArraySize = 1;
+	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count = 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage = D3D11_USAGE_DEFAULT;
+	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem = &material_editor_tool::defualt_color_value.x;
+	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_base_color_output_color_, nullptr, &p_tex_base_color_output_color_srv_.ptr);
+	assert(hr == S_OK);
+
+	const ubyte4 reflect_color(0xff, 0xff, 0xff, uint8_t(0.23f * 0xff));
+	tex_data.pSysMem = &reflect_color.x;
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_output_color_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_output_color_, nullptr, &p_tex_reflect_color_output_color_srv_.ptr);
+	assert(hr == S_OK);
+
+	material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_;
+	material_.p_tex_reflect_color_srv = p_tex_reflect_color_output_color_srv_;
 }
 
 } // namespace core

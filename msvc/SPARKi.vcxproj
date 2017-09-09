@@ -150,7 +150,7 @@
     <ClCompile Include="..\src\sparki\core\utility.cpp" />
     <ClCompile Include="..\src\sparki\game.cpp" />
     <ClCompile Include="..\src\sparki\main.cpp" />
-    <ClCompile Include="..\src\sparki\ui\material_editor.cpp" />
+    <ClCompile Include="..\src\sparki\ui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extern\imgui\imconfig.h" />
@@ -171,7 +171,7 @@
     <ClInclude Include="..\src\sparki\core\rnd_tool.h" />
     <ClInclude Include="..\src\sparki\core\utility.h" />
     <ClInclude Include="..\src\sparki\game.h" />
-    <ClInclude Include="..\src\sparki\ui\material_editor.h" />
+    <ClInclude Include="..\src\sparki\ui.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

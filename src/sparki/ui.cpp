@@ -1,4 +1,4 @@
-#include "sparki/ui/material_editor.h"
+#include "sparki/ui.h"
 
 #include <cassert>
 #include <string>
@@ -7,9 +7,9 @@
 
 
 namespace sparki {
-namespace ui {
 
-material_editor_view::material_editor_view()
+material_editor_view::material_editor_view(core::material_editor_tool& met)
+	: met_(met)
 {
 }
 
@@ -34,5 +34,4 @@ void material_editor_view::show()
 	ImGui::End();
 }
 
-} // namespace ui
 } // namespace sparki

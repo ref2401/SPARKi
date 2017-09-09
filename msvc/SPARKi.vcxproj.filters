@@ -7,9 +7,6 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{838806c3-30c1-41f3-9d0f-83fa5feb79be}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ui">
-      <UniqueIdentifier>{9fe4a53e-e9e7-41d4-b1d4-e2c3d08be055}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\sparki\main.cpp" />
@@ -50,15 +47,13 @@
     <ClCompile Include="..\extern\imgui\imgui_draw.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\sparki\ui\material_editor.cpp">
-      <Filter>ui</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\sparki\core\rnd_pass.cpp">
       <Filter>core</Filter>
     </ClCompile>
     <ClCompile Include="..\src\sparki\core\rnd_tool.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sparki\ui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sparki\core\asset.h">
@@ -107,14 +102,12 @@
     <ClInclude Include="..\extern\imgui\stb_truetype.h">
       <Filter>imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\sparki\ui\material_editor.h">
-      <Filter>ui</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\sparki\core\rnd_pass.h">
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\src\sparki\core\rnd_tool.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\sparki\ui.h" />
   </ItemGroup>
 </Project>

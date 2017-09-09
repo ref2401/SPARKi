@@ -21,7 +21,6 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	std::atomic_size_t wc;
 	ts::run([this] { init_passes_and_tools(); }, wc);
 
-	init_materials();
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
@@ -79,61 +78,19 @@ void render_system::init_dx_device(HWND p_hwnd, const uint2& viewport_size)
 #endif
 }
 
-void render_system::init_materials()
-{
-	D3D11_TEXTURE2D_DESC tex_desc = {};
-	tex_desc.Width = 1;
-	tex_desc.Height = 1;
-	tex_desc.MipLevels = 1;
-	tex_desc.ArraySize = 1;
-	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	tex_desc.SampleDesc.Count = 1;
-	tex_desc.SampleDesc.Quality = 0;
-	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	
-	// base_color
-	const ubyte4 base_color = unpack_unorm_8_8_8_8<ubyte4>(0xff00ffff);
-	D3D11_SUBRESOURCE_DATA tex_data = {};
-	tex_data.pSysMem = &base_color.x;
-	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_base_color_, nullptr, &p_tex_base_color_srv_.ptr);
-	assert(hr == S_OK);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC view_desc = {};
-	view_desc.Format = DXGI_FORMAT_B8G8R8X8_UNORM;
-	view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	view_desc.Texture2D.MostDetailedMip = 0;
-	view_desc.Texture2D.MipLevels = 1;
-	hr = p_device_->CreateShaderResourceView(p_tex_base_color_, &view_desc, &p_tex_base_color_tmp_srv_.ptr);
-	assert(hr == S_OK);
-
-	// reflect_color
-	const ubyte4 reflect_color(0xff, 0xff, 0xff, uint8_t(0.23f * 0xff));
-	tex_data.pSysMem = &reflect_color.x;
-	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_, nullptr, &p_tex_reflect_color_srv_.ptr);
-	assert(hr == S_OK);
-
-	material_.p_tex_base_color_srv = p_tex_base_color_srv_;
-	material_.p_tex_reflect_color_srv = p_tex_reflect_color_srv_;
-}
-
 void render_system::init_passes_and_tools()
 {
 	assert(p_gbuffer_);
 
 	// rnd tools
-	p_envmap_builder_ = std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler_linear);
-	p_brdf_integrator_ = std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
+	p_brdf_integrator_		= std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
+	p_envmap_builder_		= std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler_linear);
+	p_material_editor_tool_ = std::make_unique<core::material_editor_tool>(p_device_, p_ctx_, p_debug_);
 	// rnd passes
-	p_skybox_pass_ = std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
-	p_light_pass_ = std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
-	p_postproc_pass_ = std::make_unique<postproc_pass>(p_device_, p_ctx_, p_debug_);
-	p_imgui_pass_ = std::make_unique<imgui_pass>(p_device_, p_ctx_, p_debug_);
+	p_skybox_pass_		= std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
+	p_light_pass_		= std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
+	p_postproc_pass_	= std::make_unique<postproc_pass>(p_device_, p_ctx_, p_debug_);
+	p_imgui_pass_		= std::make_unique<imgui_pass>(p_device_, p_ctx_, p_debug_);
 }
 
 void render_system::draw_frame(frame& frame)
@@ -148,7 +105,7 @@ void render_system::draw_frame(frame& frame)
 	p_ctx_->ClearRenderTargetView(p_gbuffer_->p_tex_color_rtv, &float4::zero.x);
 	p_ctx_->ClearDepthStencilView(p_gbuffer_->p_tex_depth_dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	p_light_pass_->perform(*p_gbuffer_, pv_matrix, material_, frame.camera_position);
+	p_light_pass_->perform(*p_gbuffer_, pv_matrix, frame.material, frame.camera_position);
 	p_skybox_pass_->perform(*p_gbuffer_, pv_matrix, frame.camera_position);
 
 	// reset rtv bindings

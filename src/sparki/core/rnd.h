@@ -11,6 +11,7 @@ namespace sparki {
 namespace core {
 
 struct frame final {
+	material		material;
 	float4x4		projection_matrix;
 	float3			camera_position;
 	float3			camera_target;
@@ -29,20 +30,20 @@ public:
 	~render_system() noexcept;
 
 
+	material_editor_tool& material_editor_tool() noexcept
+	{
+		return *p_material_editor_tool_;
+	}
+
+
 	void draw_frame(frame& frame);
 
 	void resize_viewport(const uint2& size);
 
-	ID3D11ShaderResourceView* p_tex_base_color_tmp_srv() noexcept
-	{
-		return p_tex_base_color_tmp_srv_;
-	}
 
 private:
 
 	void init_dx_device(HWND p_hwnd, const uint2& viewport_size);
-
-	void init_materials();
 
 	void init_passes_and_tools();
 
@@ -58,20 +59,14 @@ private:
 	com_ptr<ID3D11RenderTargetView>		p_tex_window_rtv_;
 	com_ptr<ID3D11UnorderedAccessView>	p_tex_window_uav_;
 	// rnd tools ---
-	std::unique_ptr<envmap_texture_builder> p_envmap_builder_;
-	std::unique_ptr<brdf_integrator>		p_brdf_integrator_;
+	std::unique_ptr<brdf_integrator>			p_brdf_integrator_;
+	std::unique_ptr<envmap_texture_builder>		p_envmap_builder_;
+	std::unique_ptr<core::material_editor_tool>	p_material_editor_tool_;
 	// render stuff ---
 	std::unique_ptr<skybox_pass>	p_skybox_pass_;
 	std::unique_ptr<shading_pass>	p_light_pass_;
 	std::unique_ptr<postproc_pass>	p_postproc_pass_;
 	std::unique_ptr<imgui_pass>		p_imgui_pass_;
-	// temporary here ---
-	material material_;
-	com_ptr<ID3D11Texture2D>			p_tex_base_color_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_srv_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_tmp_srv_;
-	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_srv_;
 };
 
 } // namespace core
