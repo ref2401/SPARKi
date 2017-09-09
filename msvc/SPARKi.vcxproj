@@ -145,7 +145,8 @@
     <ClCompile Include="..\src\sparki\core\rnd.cpp" />
     <ClCompile Include="..\src\sparki\core\rnd_base.cpp" />
     <ClCompile Include="..\src\sparki\core\rnd_imgui.cpp" />
-    <ClCompile Include="..\src\sparki\core\rnd_utility.cpp" />
+    <ClCompile Include="..\src\sparki\core\rnd_pass.cpp" />
+    <ClCompile Include="..\src\sparki\core\rnd_tool.cpp" />
     <ClCompile Include="..\src\sparki\core\utility.cpp" />
     <ClCompile Include="..\src\sparki\game.cpp" />
     <ClCompile Include="..\src\sparki\main.cpp" />
@@ -166,7 +167,8 @@
     <ClInclude Include="..\src\sparki\core\rnd.h" />
     <ClInclude Include="..\src\sparki\core\rnd_base.h" />
     <ClInclude Include="..\src\sparki\core\rnd_imgui.h" />
-    <ClInclude Include="..\src\sparki\core\rnd_utility.h" />
+    <ClInclude Include="..\src\sparki\core\rnd_pass.h" />
+    <ClInclude Include="..\src\sparki\core\rnd_tool.h" />
     <ClInclude Include="..\src\sparki\core\utility.h" />
     <ClInclude Include="..\src\sparki\game.h" />
     <ClInclude Include="..\src\sparki\ui\material_editor.h" />

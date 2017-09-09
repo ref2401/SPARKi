@@ -133,6 +133,134 @@ void hlsl_shader::init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_de
 	}
 }
 
+// ----- gbuffer -----
+
+gbuffer::gbuffer(ID3D11Device* p_device)
+{
+	assert(p_device);
+
+	D3D11_BLEND_DESC blend_desc = {};
+	blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	HRESULT hr = p_device->CreateBlendState(&blend_desc, &p_blend_state_no_blend.ptr);
+	assert(hr == S_OK);
+
+	D3D11_RASTERIZER_DESC rastr_desc = {};
+	rastr_desc.FillMode = D3D11_FILL_SOLID;
+	rastr_desc.CullMode = D3D11_CULL_BACK;
+	rastr_desc.FrontCounterClockwise = true;
+	hr = p_device->CreateRasterizerState(&rastr_desc, &p_rasterizer_state.ptr);
+	assert(hr == S_OK);
+
+	D3D11_SAMPLER_DESC sampler_desc = {};
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_linear.ptr);
+	assert(hr == S_OK);
+
+	sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	hr = p_device->CreateSamplerState(&sampler_desc, &p_sampler_point.ptr);
+	assert(hr == S_OK);
+}
+
+void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
+{
+	assert(size > 0);
+
+	const UINT width = UINT(size.x * gbuffer::viewport_factor);
+	const UINT height = UINT(size.y * gbuffer::viewport_factor);
+
+	p_tex_color.dispose();
+	p_tex_color_srv.dispose();
+	p_tex_color_rtv.dispose();
+	p_tex_tone_mapping.dispose();
+	p_tex_tone_mapping_srv.dispose();
+	p_tex_tone_mapping_uav.dispose();
+	p_tex_aa.dispose();
+	p_tex_aa_srv.dispose();
+	p_tex_aa_uav.dispose();
+	p_tex_depth.dispose();
+	p_tex_depth_dsv.dispose();
+
+	// update color texture & its views
+	D3D11_TEXTURE2D_DESC color_desc = {};
+	color_desc.Width = width;
+	color_desc.Height = height;
+	color_desc.MipLevels = 1;
+	color_desc.ArraySize = 1;
+	color_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	color_desc.SampleDesc.Count = 1;
+	color_desc.SampleDesc.Quality = 0;
+	color_desc.Usage = D3D11_USAGE_DEFAULT;
+	color_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	HRESULT hr = p_device->CreateTexture2D(&color_desc, nullptr, &p_tex_color.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_color, nullptr, &p_tex_color_srv.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateRenderTargetView(p_tex_color, nullptr, &p_tex_color_rtv.ptr);
+	assert(hr == S_OK);
+
+	// update postproc textures & its view
+	D3D11_TEXTURE2D_DESC pp_desc = {};
+	pp_desc.Width = width;
+	pp_desc.Height = height;
+	pp_desc.MipLevels = 1;
+	pp_desc.ArraySize = 1;
+	pp_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	pp_desc.SampleDesc.Count = 1;
+	pp_desc.SampleDesc.Quality = 0;
+	pp_desc.Usage = D3D11_USAGE_DEFAULT;
+	pp_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	hr = p_device->CreateTexture2D(&pp_desc, nullptr, &p_tex_tone_mapping.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_srv.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateUnorderedAccessView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_uav.ptr);
+	assert(hr == S_OK);
+
+	// update aa texture & its view
+	hr = p_device->CreateTexture2D(&pp_desc, nullptr, &p_tex_aa.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateShaderResourceView(p_tex_aa, nullptr, &p_tex_aa_srv.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateUnorderedAccessView(p_tex_aa, nullptr, &p_tex_aa_uav.ptr);
+	assert(hr == S_OK);
+
+	// update depth texture & its views
+	D3D11_TEXTURE2D_DESC ds_desc = {};
+	ds_desc.Width = width;
+	ds_desc.Height = height;
+	ds_desc.MipLevels = 1;
+	ds_desc.ArraySize = 1;
+	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	ds_desc.SampleDesc.Count = 1;
+	ds_desc.SampleDesc.Quality = 0;
+	ds_desc.Usage = D3D11_USAGE_DEFAULT;
+	ds_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	hr = p_device->CreateTexture2D(&ds_desc, nullptr, &p_tex_depth.ptr);
+	assert(hr == S_OK);
+	hr = p_device->CreateDepthStencilView(p_tex_depth, nullptr, &p_tex_depth_dsv.ptr);
+	assert(hr == S_OK);
+
+	// rnd viewport
+	rnd_viewport.TopLeftX = 0;
+	rnd_viewport.TopLeftY = 0;
+	rnd_viewport.Width = float(width);
+	rnd_viewport.Height = float(height);
+	rnd_viewport.MinDepth = 0.0;
+	rnd_viewport.MaxDepth = 1.0f;
+
+	// update viewport
+	window_viewport.TopLeftX = 0;
+	window_viewport.TopLeftY = 0;
+	window_viewport.Width = float(size.x);
+	window_viewport.Height = float(size.y);
+	window_viewport.MinDepth = 0.0;
+	window_viewport.MaxDepth = 1.0f;
+}
+
 // ----- funcs -----
 
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,

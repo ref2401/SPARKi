@@ -84,6 +84,32 @@ private:
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 
+class material_editor_tool final {
+public:
+
+	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	material_editor_tool(material_editor_tool&&) = delete;
+	material_editor_tool& operator=(material_editor_tool&&) = delete;
+
+
+	const material& current_material() const noexcept
+	{
+		return material_;
+	}
+
+private:
+
+	ID3D11Device*			p_device_;
+	ID3D11DeviceContext*	p_ctx_;
+	ID3D11Debug*			p_debug_;
+	// current material stuff ---
+	material							material_;
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_color_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_output_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_output_color_srv_;
+};
 
 } // namespace core
 } // namespace sparki

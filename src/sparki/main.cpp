@@ -61,7 +61,7 @@ int main()
 		std::cout << "----- Exception -----" << std::endl << msg << std::endl;
 	}
 
-	if (keep_console_shown)
+	if (keep_console_shown) 
 		std::cin.get();
 
 	return 0;

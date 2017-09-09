@@ -4,6 +4,13 @@
 #include <sstream>
 
 
+#if defined(_DEBUG)
+	#define SPARKI_DEBUG 1
+#else
+	#define NDEBUG 1
+	#define SPARKI_RELEASE 1
+#endif // !defined(NDEBUG)
+
 #define EXCEPTION_MSG(...) sparki::core::concat(__FILE__, '(', __LINE__, "): ", __VA_ARGS__)
 
 #define ENFORCE(expression, ...)								\

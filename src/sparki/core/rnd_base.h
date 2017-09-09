@@ -10,13 +10,6 @@
 using namespace math;
 
 
-#if !defined(NDEBUG)
-	#define SPARKI_DEBUG 1
-#elif
-	#define SPARKI_RELEASE 1
-#endif // !defined(NDEBUG)
-
-
 namespace sparki {
 namespace core {
 
@@ -159,6 +152,57 @@ private:
 	void init_pixel_shader(ID3D11Device* p_device, const hlsl_shader_desc& desc);
 };
 
+struct material final {
+	// rgb: base_color
+	// a: metallic mask.
+	ID3D11ShaderResourceView*	p_tex_base_color_srv = nullptr;
+	// rgb: reflect color
+	// a: linear roughness
+	ID3D11ShaderResourceView*	p_tex_reflect_color_srv = nullptr;
+};
+
+struct gbuffer final {
+
+	static constexpr float viewport_factor = 1.333f;
+
+
+	explicit gbuffer(ID3D11Device* p_device);
+
+	gbuffer(gbuffer&&) = delete;
+	gbuffer& operator=(gbuffer&&) = delete;
+
+
+	void resize(ID3D11Device* p_device, const uint2 size);
+
+
+	// color texture
+	com_ptr<ID3D11Texture2D>			p_tex_color;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_color_srv;
+	com_ptr<ID3D11RenderTargetView>		p_tex_color_rtv;
+	// post processing
+	com_ptr<ID3D11Texture2D>			p_tex_tone_mapping;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_tone_mapping_srv;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_tone_mapping_uav;
+	com_ptr<ID3D11Texture2D>			p_tex_aa;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_aa_srv;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_aa_uav;
+	// depth texture
+	com_ptr<ID3D11Texture2D>			p_tex_depth;
+	com_ptr<ID3D11DepthStencilView>		p_tex_depth_dsv;
+
+	// other stuff:
+
+	com_ptr<ID3D11BlendState>			p_blend_state_no_blend;
+	// Common rasterizer state. FrontCounterClockwise, CULL_BACK
+	com_ptr<ID3D11RasterizerState>		p_rasterizer_state;
+	// Sampler: MIN_MAG_MIP_LINEAR, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
+	com_ptr<ID3D11SamplerState>			p_sampler_linear;
+	// Sampler: MIN_MAG_MIP_POINT, ADDRESS_CLAMP, LOD in [0, D3D11_FLOAT32_MAX]
+	com_ptr<ID3D11SamplerState>			p_sampler_point;
+	D3D11_VIEWPORT						rnd_viewport = { 0, 0, 0, 0, 0, 1 };
+	D3D11_VIEWPORT						window_viewport = { 0, 0, 0, 0, 0, 1 };
+};
+
 
 template<typename T>
 inline bool operator==(const com_ptr<T>& l, const com_ptr<T>& r) noexcept
@@ -198,6 +242,13 @@ inline bool operator!=(nullptr_t, const com_ptr<T>& com_ptr) noexcept
 
 com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::string& source_filename,
 	uint32_t compile_flags, const char* p_entry_point_name, const char* p_shader_model);
+
+// Returns true is the given material object is valid (may be used during rendering).
+inline bool is_valid_material(const material& m) noexcept
+{
+	return (m.p_tex_base_color_srv != nullptr)
+		&& (m.p_tex_reflect_color_srv != nullptr);
+}
 
 // Creates an unitialized a constant buffer object.
 com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, size_t byte_count);

@@ -1,4 +1,4 @@
-#include "sparki/core/rnd_utility.h"
+#include "sparki/core/rnd_tool.h"
 
 #include <cassert>
 
@@ -294,6 +294,16 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 	const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
 		texture_type::texture_cube, p_tex_skybox_tmp);
 	save_to_tex_file(p_filename, td);
+}
+
+// ----- material_editor_tool -----
+
+material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
 }
 
 } // namespace core
