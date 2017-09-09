@@ -102,6 +102,8 @@ public:
 		return material_;
 	}
 
+	void update_base_color_color(const ubyte4& value);
+
 private:
 
 	ID3D11Device*			p_device_;

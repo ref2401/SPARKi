@@ -15,7 +15,11 @@ public:
 
 private:
 
-	core::material_editor_tool& met_;
+	static constexpr size_t material_name_max_length = 256;
+
+	core::material_editor_tool&	met_;
+	char						name_[material_name_max_length];
+	float3						base_color_color_;
 };
 
 } // namespace sparki

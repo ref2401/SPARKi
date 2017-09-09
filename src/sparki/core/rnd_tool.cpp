@@ -338,5 +338,11 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	material_.p_tex_reflect_color_srv = p_tex_reflect_color_output_color_srv_;
 }
 
+void material_editor_tool::update_base_color_color(const ubyte4& value)
+{
+	p_ctx_->UpdateSubresource(p_tex_base_color_output_color_, 0, nullptr,
+		&value.x, vector_traits<ubyte4>::byte_count, 0);
+}
+
 } // namespace core
 } // namespace sparki
