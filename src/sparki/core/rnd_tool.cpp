@@ -322,11 +322,7 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	D3D11_SUBRESOURCE_DATA tex_data = {};
 	tex_data.pSysMem = &material_editor_tool::defualt_color_value.x;
 	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_input_color_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_color_, nullptr, &p_tex_base_color_input_color_srv_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_base_color_output_color_, nullptr, &p_tex_base_color_output_color_srv_.ptr);
 	assert(hr == S_OK);
@@ -352,8 +348,6 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)
 {
-	p_ctx_->UpdateSubresource(p_tex_base_color_input_color_, 0, nullptr,
-		&value.x, vector_traits<ubyte4>::byte_count, 0);
 	p_ctx_->UpdateSubresource(p_tex_base_color_output_color_, 0, nullptr,
 		&value.x, vector_traits<ubyte4>::byte_count, 0);
 }

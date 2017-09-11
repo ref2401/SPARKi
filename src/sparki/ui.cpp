@@ -30,7 +30,7 @@ inline ubyte4 make_color_ubyte4(const float3& rgb, float alpha = 1.0f)
 	return ubyte4(num_t(rgb.x * max), num_t(rgb.y * max), num_t(rgb.z * max), num_t(alpha * max));
 }
 
-void show_open_file_dialog(HWND p_hwnd, std::string& filename)
+bool show_open_file_dialog(HWND p_hwnd, std::string& filename)
 {
 	assert(p_hwnd);
 	assert(filename.capacity() > 0);
@@ -55,7 +55,7 @@ void show_open_file_dialog(HWND p_hwnd, std::string& filename)
 	ofn.lpstrTitle = "Base Color Texture";
 	ofn.Flags = OFN_ENABLESIZING | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 
-	GetOpenFileName(&ofn);
+	return GetOpenFileName(&ofn);
 }
 
 } // namespace
@@ -115,8 +115,7 @@ void material_editor_view::show_base_color_ui()
 		ImGui::TextColored(bct_color, "Texture");
 		if (ImGui::ImageButton(met_.p_tex_base_color_input_texture(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 			if (!base_color_color_active_) {
-				show_open_file_dialog(p_hwnd_, base_color_texture_filename_);
-				if (base_color_texture_filename_.length() > 0)
+				if (show_open_file_dialog(p_hwnd_, base_color_texture_filename_))
 					met_.reload_base_color_input_texture(base_color_texture_filename_.c_str());
 			}
 			base_color_color_active_ = false;

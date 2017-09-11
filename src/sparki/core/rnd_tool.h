@@ -102,11 +102,6 @@ public:
 		return material_;
 	}
 
-	ID3D11ShaderResourceView* p_tex_base_color_input_color()
-	{
-		return p_tex_base_color_input_color_srv_;
-	}
-
 	ID3D11ShaderResourceView* p_tex_base_color_input_texture() noexcept
 	{
 		return p_tex_base_color_input_texture_srv_;
@@ -135,8 +130,6 @@ private:
 	// current material stuff ---
 	material							material_;
 	// base color
-	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_color_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_color_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_base_color_output_color_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_output_color_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_texture_;
