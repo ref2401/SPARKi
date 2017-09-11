@@ -102,6 +102,29 @@ public:
 		return material_;
 	}
 
+	ID3D11ShaderResourceView* p_tex_base_color_input_color()
+	{
+		return p_tex_base_color_input_color_srv_;
+	}
+
+	ID3D11ShaderResourceView* p_tex_base_color_input_texture() noexcept
+	{
+		return p_tex_base_color_input_texture_srv_;
+	}
+
+
+	void activate_base_color_color() 
+	{ 
+		material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_; 
+	}
+
+	void activate_base_color_texture() 
+	{
+		material_.p_tex_base_color_srv = p_tex_base_color_input_texture_srv_;
+	}
+
+	void reload_base_color_input_texture(const char* p_filename);
+
 	void update_base_color_color(const ubyte4& value);
 
 private:
@@ -111,8 +134,14 @@ private:
 	ID3D11Debug*			p_debug_;
 	// current material stuff ---
 	material							material_;
+	// base color
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_color_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_base_color_output_color_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_output_color_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_texture_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_texture_srv_;
+	// reflect color color
 	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_output_color_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_output_color_srv_;
 };

@@ -322,7 +322,11 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	D3D11_SUBRESOURCE_DATA tex_data = {};
 	tex_data.pSysMem = &material_editor_tool::defualt_color_value.x;
 	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_input_color_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_color_, nullptr, &p_tex_base_color_input_color_srv_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_base_color_output_color_, nullptr, &p_tex_base_color_output_color_srv_.ptr);
 	assert(hr == S_OK);
@@ -334,14 +338,39 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_output_color_, nullptr, &p_tex_reflect_color_output_color_srv_.ptr);
 	assert(hr == S_OK);
 
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_data.pSysMem = &material_editor_tool::defualt_texture_value;
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_input_texture_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
+		&p_tex_base_color_input_texture_srv_.ptr);
+	assert(hr == S_OK);
+
 	material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_;
 	material_.p_tex_reflect_color_srv = p_tex_reflect_color_output_color_srv_;
 }
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)
 {
+	p_ctx_->UpdateSubresource(p_tex_base_color_input_color_, 0, nullptr,
+		&value.x, vector_traits<ubyte4>::byte_count, 0);
 	p_ctx_->UpdateSubresource(p_tex_base_color_output_color_, 0, nullptr,
 		&value.x, vector_traits<ubyte4>::byte_count, 0);
+}
+
+void material_editor_tool::reload_base_color_input_texture(const char* p_filename)
+{
+	assert(p_filename);
+
+	p_tex_base_color_input_texture_srv_.dispose();
+	p_tex_base_color_input_texture_.dispose();
+
+	const texture_data td = load_from_image_file(p_filename, 4);
+	p_tex_base_color_input_texture_ = make_texture_2d(p_device_, td, 
+		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
+		&p_tex_base_color_input_texture_srv_.ptr);
+	assert(hr == S_OK);
 }
 
 } // namespace core

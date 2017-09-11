@@ -13,7 +13,7 @@ game_system::game_system(HWND p_hwnd, const uint2& viewport_size, const core::in
 	viewport_is_visible_(true),
 	camera_(float3::unit_z, float3::zero)
 {
-	p_material_editor_view_ = std::make_unique<material_editor_view>(render_system_.material_editor_tool());
+	p_material_editor_view_ = std::make_unique<material_editor_view>(p_hwnd, render_system_.material_editor_tool());
 
 	frame_.projection_matrix = math::perspective_matrix_directx(
 		game_system::projection_fov, aspect_ratio(viewport_size),
