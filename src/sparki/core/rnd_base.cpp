@@ -292,16 +292,17 @@ com_ptr<ID3DBlob> compile_shader(const std::string& source_code, const std::stri
 	return p_bytecode;
 }
 
-com_ptr<ID3D11Buffer> make_buffer(ID3D11Device* p_device, UINT byte_count, D3D11_USAGE usage,
-	UINT bing_flags)
+com_ptr<ID3D11Buffer> make_buffer(ID3D11Device* p_device, UINT byte_count, 
+	D3D11_USAGE usage, UINT bing_flags, UINT cpu_access_flags)
 {
 	assert(p_device);
 	assert(byte_count > 0);
 
 	D3D11_BUFFER_DESC desc = {};
-	desc.ByteWidth = byte_count;
-	desc.Usage = usage;
-	desc.BindFlags = bing_flags;
+	desc.ByteWidth		= byte_count;
+	desc.Usage			= usage;
+	desc.BindFlags		= bing_flags;
+	desc.CPUAccessFlags	= cpu_access_flags;
 
 	com_ptr<ID3D11Buffer> buffer;
 	HRESULT hr = p_device->CreateBuffer(&desc, nullptr, &buffer.ptr);
@@ -319,6 +320,27 @@ com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, UINT byte_cou
 	desc.ByteWidth = byte_count;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	com_ptr<ID3D11Buffer> buffer;
+	HRESULT hr = p_device->CreateBuffer(&desc, nullptr, &buffer.ptr);
+	assert(hr == S_OK);
+
+	return buffer;
+}
+
+com_ptr<ID3D11Buffer> make_structured_buffer(ID3D11Device* p_device, UINT item_byte_count, UINT item_count,
+	D3D11_USAGE usage, UINT bing_flags)
+{
+	assert(p_device);
+	assert(item_byte_count > 0);
+	assert(item_count > 0);
+
+	D3D11_BUFFER_DESC desc = {};
+	desc.ByteWidth = item_byte_count * item_count;
+	desc.Usage = usage;
+	desc.BindFlags = bing_flags;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	desc.StructureByteStride = item_byte_count;
 
 	com_ptr<ID3D11Buffer> buffer;
 	HRESULT hr = p_device->CreateBuffer(&desc, nullptr, &buffer.ptr);
@@ -474,7 +496,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_siz
 	return p_tex;
 }
 
-texture_data make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
 	texture_type type, ID3D11Texture2D* p_tex)
 {
 	assert(p_device);

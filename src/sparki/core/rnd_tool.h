@@ -149,13 +149,17 @@ public:
 	unique_color_miner& operator=(unique_color_miner&&) = delete;
 
 
-	void perform(const char* p_image_filename);
+	void perform(const char* p_image_filename, std::vector<uint32_t>& out_colors);
 
 private:
 
-	static constexpr UINT compute_group_x_size = 32;
-	static constexpr UINT compute_group_y_size = 32;
-	static constexpr UINT hash_buffer_count = 0x1'00'00'00; // 0xffffff + 1, or 2^24
+	static constexpr UINT c_compute_group_x_size		= 32;
+	static constexpr UINT c_compute_group_y_size		= 32;
+	static constexpr UINT c_color_buffer_count			= 32;
+	static constexpr UINT c_color_buffer_byte_count		= sizeof(uint32_t) * c_color_buffer_count;
+	static constexpr UINT c_hash_buffer_count			= 0x1'00'00'00; // 0xffffff + 1, or 2^24
+	static constexpr UINT c_result_buffer_count			= c_color_buffer_count + 1; // + 1 stands for color_buffer counter value.
+	static constexpr UINT c_result_buffer_byte_count	= sizeof(uint32_t) * c_result_buffer_count;
 
 
 	ID3D11Device*						p_device_;
@@ -164,6 +168,9 @@ private:
 	hlsl_compute						hash_colors_compute_;
 	com_ptr<ID3D11Buffer>				p_hash_buffer_;
 	com_ptr<ID3D11UnorderedAccessView>	p_hash_buffer_uav_;
+	com_ptr<ID3D11Buffer>				p_color_buffer_;
+	com_ptr<ID3D11UnorderedAccessView>	p_color_buffer_uav_;
+	com_ptr<ID3D11Buffer>				p_result_buffer_;
 };
 
 } // namespace core

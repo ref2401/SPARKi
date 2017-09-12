@@ -60,7 +60,7 @@ void brdf_integrator::perform(const char* p_specular_brdf_filename)
 
 	// write brdf lut to a file
 	{
-		const texture_data td = make_texture_data_new(p_device_, p_ctx_, texture_type::texture_2d, p_tex);
+		const texture_data td = make_texture_data(p_device_, p_ctx_, texture_type::texture_2d, p_tex);
 		save_to_tex_file(p_specular_brdf_filename, td);
 	}
 }
@@ -256,7 +256,7 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 	// make diffuse envmap and save it to a file
 	{
 		com_ptr<ID3D11Texture2D> p_tex_diffuse_envmap = make_diffuse_envmap(p_tex_skybox_srv);
-		const texture_data td = make_texture_data_new(p_device_, p_ctx_,
+		const texture_data td = make_texture_data(p_device_, p_ctx_,
 			texture_type::texture_cube, p_tex_diffuse_envmap);
 		save_to_tex_file(p_diffuse_envmap_filename, td);
 	}
@@ -264,7 +264,7 @@ void envmap_texture_builder::perform(const char* p_hdr_filename, const char* p_s
 	// make specular envmap and save it to a file
 	{
 		com_ptr<ID3D11Texture2D> p_tex_specular_envmap = make_specular_envmap(p_tex_skybox, p_tex_skybox_srv);
-		const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
+		const texture_data td = make_texture_data(p_device_, p_ctx_, 
 			texture_type::texture_cube, p_tex_specular_envmap);
 		save_to_tex_file(p_specular_envmap_filename, td);
 	}
@@ -292,7 +292,7 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 	}
 
 	// save p_tex_skybox_tmp to a file
-	const texture_data td = make_texture_data_new(p_device_, p_ctx_, 
+	const texture_data td = make_texture_data(p_device_, p_ctx_, 
 		texture_type::texture_cube, p_tex_skybox_tmp);
 	save_to_tex_file(p_filename, td);
 }
@@ -381,18 +381,33 @@ unique_color_miner::unique_color_miner(ID3D11Device* p_device, ID3D11DeviceConte
 	hash_colors_compute_ = hlsl_compute(p_device_, hc);
 
 	// p_hash_buffer_ & uav
-	const UINT bc = sizeof(uint32_t) * unique_color_miner::hash_buffer_count;
+	const UINT bc = sizeof(uint32_t) * unique_color_miner::c_hash_buffer_count;
 	p_hash_buffer_ = make_buffer(p_device_, bc, D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
 	D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
-	uav_desc.Format = DXGI_FORMAT_R32_UINT;
-	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-	uav_desc.Buffer.FirstElement = 0;
-	uav_desc.Buffer.NumElements = unique_color_miner::hash_buffer_count;
+	uav_desc.Format					= DXGI_FORMAT_R32_UINT;
+	uav_desc.ViewDimension			= D3D11_UAV_DIMENSION_BUFFER;
+	uav_desc.Buffer.FirstElement	= 0;
+	uav_desc.Buffer.NumElements		= c_hash_buffer_count;
 	HRESULT hr = p_device_->CreateUnorderedAccessView(p_hash_buffer_, &uav_desc, &p_hash_buffer_uav_.ptr);
 	assert(hr == S_OK);
+
+	// p_color_buffer & uav
+	p_color_buffer_ = make_structured_buffer(p_device_, sizeof(uint32_t), c_color_buffer_count,
+		D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
+	uav_desc.Format					= DXGI_FORMAT_UNKNOWN;
+	uav_desc.ViewDimension			= D3D11_UAV_DIMENSION_BUFFER;
+	uav_desc.Buffer.FirstElement	= 0;
+	uav_desc.Buffer.NumElements		= c_color_buffer_count;
+	uav_desc.Buffer.Flags			= D3D11_BUFFER_UAV_FLAG_COUNTER;
+	hr = p_device_->CreateUnorderedAccessView(p_color_buffer_, &uav_desc, &p_color_buffer_uav_.ptr);
+	assert(hr == S_OK);
+
+	// p_color_buffer_counter_
+	p_result_buffer_ = make_buffer(p_device_, c_result_buffer_byte_count, 
+		D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ);
 }
 
-void unique_color_miner::perform(const char* p_image_filename)
+void unique_color_miner::perform(const char* p_image_filename, std::vector<uint32_t>& out_colors)
 {
 	assert(p_image_filename);
 
@@ -404,8 +419,8 @@ void unique_color_miner::perform(const char* p_image_filename)
 	std::atomic_size_t wc;
 	ts::run([p_device = p_device_, p_image_filename, &gx, &gy, &p_tex_image, &p_tex_image_srv] {
 		const auto td = load_from_image_file(p_image_filename, 4);
-		gx = UINT(std::ceil(float(td.size.x) / unique_color_miner::compute_group_x_size));
-		gy = UINT(std::ceil(float(td.size.y) / unique_color_miner::compute_group_y_size));
+		gx = UINT(std::ceil(float(td.size.x) / c_compute_group_x_size));
+		gy = UINT(std::ceil(float(td.size.y) / c_compute_group_y_size));
 		
 		p_tex_image = make_texture_2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 		
@@ -414,14 +429,16 @@ void unique_color_miner::perform(const char* p_image_filename)
 	}, wc);
 
 
-	// clear hash_buffer & setup compute pipeline
+	// clear buffers & setup compute pipeline ---
 	p_ctx_->ClearUnorderedAccessViewUint(p_hash_buffer_uav_, &uint4::zero.x);
+	p_ctx_->ClearUnorderedAccessViewUint(p_color_buffer_uav_, &uint4::zero.x);
 	p_ctx_->CSSetShader(hash_colors_compute_.p_compute_shader, nullptr, 0);
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_hash_buffer_uav_.ptr, nullptr);
+	constexpr UINT c_uav_count = 2;
+	ID3D11UnorderedAccessView* uav_list[c_uav_count] = { p_hash_buffer_uav_, p_color_buffer_uav_ };
+	p_ctx_->CSSetUnorderedAccessViews(0, c_uav_count, uav_list, nullptr);
 
-	// wait until the image is loaded and dispatch work
+	// wait until the image is loaded and dispatch work ---
 	ts::wait_for(wc);
-
 	assert(gx);
 	assert(gy);
 	p_ctx_->CSSetShaderResources(0, 1, &p_tex_image_srv.ptr);
@@ -430,13 +447,36 @@ void unique_color_miner::perform(const char* p_image_filename)
 	assert(hr == S_OK);
 #endif
 
-	
 	p_ctx_->Dispatch(gx, gy, 1);
 
-	// reset uav binding
+	// reset uav binding ---
 	p_ctx_->CSSetShader(nullptr, nullptr, 0);
-	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
-	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
+	uav_list[0] = nullptr;
+	uav_list[1] = nullptr;
+	p_ctx_->CSSetUnorderedAccessViews(0, c_uav_count, uav_list, nullptr);
+
+
+	// copy results to staging buffer ---
+	// p_result_buffer_[0] - color count
+	// p_result_buffer_[1, color count] - unique colors
+	p_ctx_->CopyStructureCount(p_result_buffer_, 0, p_color_buffer_uav_);
+	const D3D11_BOX box = { 0, 0, 0, c_color_buffer_byte_count, 1, 1 };
+	p_ctx_->CopySubresourceRegion(p_result_buffer_, 0, sizeof(uint32_t), 0, 0, p_color_buffer_, 0, &box);
+
+	// map the staging buffer and copy data
+	D3D11_MAPPED_SUBRESOURCE map;
+	hr = p_ctx_->Map(p_result_buffer_, 0, D3D11_MAP_READ, 0, &map);
+	assert(hr == S_OK);
+
+	const uint32_t* p_data = reinterpret_cast<const uint32_t*>(map.pData);
+	const uint32_t color_count = *p_data;
+	++p_data; // now it points to the first color if any.
+	if (color_count) {
+		out_colors.resize(out_colors.size() + color_count);
+		std::memcpy(out_colors.data(), p_data, color_count * sizeof(uint32_t));
+	}
+
+	p_ctx_->Unmap(p_result_buffer_, 0);
 }
 
 } // namespace core

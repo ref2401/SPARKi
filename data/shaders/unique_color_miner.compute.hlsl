@@ -1,6 +1,7 @@
 
-Texture2D<float4>	g_tex_image		: register(t0);
-RWBuffer<uint>		g_hash_buffer	: register(u0);
+Texture2D<float4>			g_tex_image		: register(t0);
+RWBuffer<uint>				g_hash_buffer	: register(u0);
+RWStructuredBuffer<uint>	g_color_buffer	: register(u1);
 
 
 // Returns a hash value for the given rgb color.
@@ -14,17 +15,22 @@ float make_hash_key(float3 rgb)
 [numthreads(32, 32, 1)]
 void cs_main(uint3 dt_id : SV_DispatchThreadId)
 {
-	static const uint hash_buffer_count = 31; // unique_color_miner::hash_buffer_count - 1
+	static const uint c_color_buffer_count = 32; // unique_color_miner::color_buffer_count
 
 	uint w, h;
 	g_tex_image.GetDimensions(w, h);
 	if (dt_id.x >= w || dt_id.y >= h) return;
 
-	// Compute hash key for the given rgb. The key lies in the range [0, hash_buffer_count]
+	// Compute hash key for the given rgb.
 	const float3	rgb		= g_tex_image.Load(uint3(dt_id.xy, 0)).rgb;
 	const uint		key		= make_hash_key(rgb);
 
 	// Check if the color has already been hashed.
 	uint prev;
 	InterlockedExchange(g_hash_buffer[key], 1, prev);
+	if (prev) return; // the color has already been added.
+
+	const uint index = g_color_buffer.IncrementCounter();
+	if (index < c_color_buffer_count)
+		g_color_buffer[index] = key;
 }

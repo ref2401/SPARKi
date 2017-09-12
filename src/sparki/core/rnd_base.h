@@ -252,10 +252,14 @@ inline bool is_valid_material(const material& m) noexcept
 
 // Creates a standard buffer resource.
 com_ptr<ID3D11Buffer> make_buffer(ID3D11Device* p_device, UINT byte_count, 
-	D3D11_USAGE usage, UINT bing_flags);
+	D3D11_USAGE usage, UINT bing_flags, UINT cpu_access_flags = 0);
 
 // Creates an unitialized a constant buffer object.
 com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, UINT byte_count);
+
+// Creates a structured buffer resource.
+com_ptr<ID3D11Buffer> make_structured_buffer(ID3D11Device* p_device, UINT item_byte_count, UINT item_count,
+	D3D11_USAGE usage, UINT bing_flags);
 
 DXGI_FORMAT make_dxgi_format(pixel_format fmt) noexcept;
 
@@ -271,7 +275,7 @@ com_ptr<ID3D11Texture2D> make_texture_cube(ID3D11Device* p_device, UINT side_siz
 	DXGI_FORMAT format, D3D11_USAGE usage, UINT bing_flags, UINT misc_flags = 0);
 
 // Returns texture_data object which stores all the array slices of the specified texture.
-texture_data make_texture_data_new(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+texture_data make_texture_data(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
 	texture_type type, ID3D11Texture2D* p_tex);
 
 } // namespace core
