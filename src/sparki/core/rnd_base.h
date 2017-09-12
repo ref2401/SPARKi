@@ -250,8 +250,12 @@ inline bool is_valid_material(const material& m) noexcept
 		&& (m.p_tex_reflect_color_srv != nullptr);
 }
 
+// Creates a standard buffer resource.
+com_ptr<ID3D11Buffer> make_buffer(ID3D11Device* p_device, UINT byte_count, 
+	D3D11_USAGE usage, UINT bing_flags);
+
 // Creates an unitialized a constant buffer object.
-com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, size_t byte_count);
+com_ptr<ID3D11Buffer> make_constant_buffer(ID3D11Device* p_device, UINT byte_count);
 
 DXGI_FORMAT make_dxgi_format(pixel_format fmt) noexcept;
 

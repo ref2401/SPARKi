@@ -20,6 +20,8 @@ private:
 
 	void show_base_color_ui();
 
+	void show_metal_roughness_ui();
+
 	// core stuff ---
 	HWND						p_hwnd_;
 	core::material_editor_tool&	met_;

@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shaders", "shaders", "{645E
 		..\data\shaders\specular_brdf_integrator.compute.hlsl = ..\data\shaders\specular_brdf_integrator.compute.hlsl
 		..\data\shaders\specular_envmap.compute.hlsl = ..\data\shaders\specular_envmap.compute.hlsl
 		..\data\shaders\tone_mapping_pass.compute.hlsl = ..\data\shaders\tone_mapping_pass.compute.hlsl
+		..\data\shaders\unique_color_miner.compute.hlsl = ..\data\shaders\unique_color_miner.compute.hlsl
 	EndProjectSection
 EndProject
 Global

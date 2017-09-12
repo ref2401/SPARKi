@@ -1,6 +1,7 @@
 #include "sparki/core/rnd_tool.h"
 
 #include <cassert>
+#include "ts/task_system.h"
 
 
 namespace sparki {
@@ -365,6 +366,77 @@ void material_editor_tool::reload_base_color_input_texture(const char* p_filenam
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
 		&p_tex_base_color_input_texture_srv_.ptr);
 	assert(hr == S_OK);
+}
+
+// ----- unique_color_miner -----
+
+unique_color_miner::unique_color_miner(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	const hlsl_compute_desc hc("../../data/shaders/unique_color_miner.compute.hlsl");
+	hash_colors_compute_ = hlsl_compute(p_device_, hc);
+
+	// p_hash_buffer_ & uav
+	const UINT bc = sizeof(uint32_t) * unique_color_miner::hash_buffer_count;
+	p_hash_buffer_ = make_buffer(p_device_, bc, D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+	uav_desc.Format = DXGI_FORMAT_R32_UINT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.NumElements = unique_color_miner::hash_buffer_count;
+	HRESULT hr = p_device_->CreateUnorderedAccessView(p_hash_buffer_, &uav_desc, &p_hash_buffer_uav_.ptr);
+	assert(hr == S_OK);
+}
+
+void unique_color_miner::perform(const char* p_image_filename)
+{
+	assert(p_image_filename);
+
+	UINT gx = 0;
+	UINT gy = 0;
+	com_ptr<ID3D11Texture2D> p_tex_image;
+	com_ptr<ID3D11ShaderResourceView> p_tex_image_srv;
+
+	std::atomic_size_t wc;
+	ts::run([p_device = p_device_, p_image_filename, &gx, &gy, &p_tex_image, &p_tex_image_srv] {
+		const auto td = load_from_image_file(p_image_filename, 4);
+		gx = UINT(std::ceil(float(td.size.x) / unique_color_miner::compute_group_x_size));
+		gy = UINT(std::ceil(float(td.size.y) / unique_color_miner::compute_group_y_size));
+		
+		p_tex_image = make_texture_2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+		
+		HRESULT hr = p_device->CreateShaderResourceView(p_tex_image, nullptr, &p_tex_image_srv.ptr);
+		assert(hr == S_OK);
+	}, wc);
+
+
+	// clear hash_buffer & setup compute pipeline
+	p_ctx_->ClearUnorderedAccessViewUint(p_hash_buffer_uav_, &uint4::zero.x);
+	p_ctx_->CSSetShader(hash_colors_compute_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_hash_buffer_uav_.ptr, nullptr);
+
+	// wait until the image is loaded and dispatch work
+	ts::wait_for(wc);
+
+	assert(gx);
+	assert(gy);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_image_srv.ptr);
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+
+	
+	p_ctx_->Dispatch(gx, gy, 1);
+
+	// reset uav binding
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 }
 
 } // namespace core

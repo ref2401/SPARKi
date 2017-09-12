@@ -24,9 +24,10 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
-	//envmap_builder.perform("../../data/pisa.hdr", "../../data/pisa_skybox.tex",
-	//	"../../data/pisa_diffuse_envmap.tex", "../../data/pisa_specular_envmap.tex");
-	//bi.perform("../../data/specular_brdf.tex");
+
+
+	unique_color_miner m(p_device_, p_ctx_, p_debug_);
+	m.perform("../../data/test_unique_color_miner.png");
 }
 
 render_system::~render_system() noexcept

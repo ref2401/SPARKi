@@ -78,10 +78,12 @@ void material_editor_view::show()
 {
 	ImGui::Begin("Material Properties");
 	ImGui::InputText("Name", name_, material_editor_view::material_name_max_length);
+	ImGui::Spacing(); 
 	ImGui::Spacing();
 	
 	// base color ---
-	if (ImGui::CollapsingHeader("Base Color")) show_base_color_ui();
+	if (ImGui::CollapsingHeader("Base Color", ImGuiTreeNodeFlags_DefaultOpen)) show_base_color_ui();
+	if (ImGui::CollapsingHeader("Metal & Roughness", ImGuiTreeNodeFlags_DefaultOpen)) show_metal_roughness_ui();
 
 	ImGui::End();
 }
@@ -123,9 +125,15 @@ void material_editor_view::show_base_color_ui()
 		ImGui::EndGroup();
 
 	ImGui::EndGroup();
+	ImGui::Spacing();
 
 	if (base_color_color_active_) met_.activate_base_color_color();
 	else met_.activate_base_color_texture();
+}
+
+void material_editor_view::show_metal_roughness_ui()
+{
+
 }
 
 } // namespace sparki

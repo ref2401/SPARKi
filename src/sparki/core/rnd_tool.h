@@ -139,5 +139,32 @@ private:
 	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_output_color_srv_;
 };
 
+// Returns a list of unique colors in the specified image.
+class unique_color_miner final {
+public:
+
+	unique_color_miner(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	unique_color_miner(unique_color_miner&&) = delete;
+	unique_color_miner& operator=(unique_color_miner&&) = delete;
+
+
+	void perform(const char* p_image_filename);
+
+private:
+
+	static constexpr UINT compute_group_x_size = 32;
+	static constexpr UINT compute_group_y_size = 32;
+	static constexpr UINT hash_buffer_count = 0x1'00'00'00; // 0xffffff + 1, or 2^24
+
+
+	ID3D11Device*						p_device_;
+	ID3D11DeviceContext*				p_ctx_;
+	ID3D11Debug*						p_debug_;
+	hlsl_compute						hash_colors_compute_;
+	com_ptr<ID3D11Buffer>				p_hash_buffer_;
+	com_ptr<ID3D11UnorderedAccessView>	p_hash_buffer_uav_;
+};
+
 } // namespace core
 } // namespace sparki
