@@ -44,7 +44,7 @@ inline math::float4 make_float4(const FbxVector4& v) noexcept
 inline uint32_t pack_tangent_space_unorm_10_10_10_2(const FbxVector4& v)
 {
 	const math::float4 v_unorm = make_float4(v) * 0.5f + 0.5f;
-	return math::pack_unorm_10_10_10_2(v_unorm);
+	return math::pack_unorm_into_10_10_10_2(v_unorm);
 }
 
 fbx_ptr<FbxScene> read_fbx_scene(FbxManager* manager, const char* filename)

@@ -5,7 +5,7 @@ RWStructuredBuffer<uint>	g_color_buffer	: register(u1);
 
 
 // Returns a hash value for the given rgb color.
-float make_hash_key(float3 rgb)
+float pack_float3_unorm_as_8_8_8(float3 rgb)
 {
 	return (uint(rgb.r * 255) << 16) 
 		| (uint(rgb.g * 255) << 8)
@@ -23,7 +23,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 	// Compute hash key for the given rgb.
 	const float3	rgb		= g_tex_image.Load(uint3(dt_id.xy, 0)).rgb;
-	const uint		key		= make_hash_key(rgb);
+	const uint		key		= pack_float3_unorm_as_8_8_8(rgb);
 
 	// Check if the color has already been hashed.
 	uint prev;

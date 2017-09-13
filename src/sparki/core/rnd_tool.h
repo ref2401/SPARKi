@@ -44,24 +44,24 @@ public:
 
 private:
 
-	// skybox
-	static constexpr UINT skybox_side_size = 512;
-	static constexpr UINT skybox_mipmap_count = 10;
-	static constexpr UINT skybox_compute_group_x_size = 512;
-	static constexpr UINT skybox_compute_group_y_size = 2;
-	static constexpr UINT skybox_compute_gx = skybox_side_size / skybox_compute_group_x_size;
-	static constexpr UINT skybox_compute_gy = skybox_side_size / skybox_compute_group_y_size;
-	// diffuse envmap
-	static constexpr UINT diffuse_envmap_side_size = 64;
-	static constexpr UINT diffuse_compute_group_x_size = 64;
-	static constexpr UINT diffuse_compute_group_y_size = 16;
-	static constexpr UINT diffuse_compute_gx = diffuse_envmap_side_size / diffuse_compute_group_x_size;
-	static constexpr UINT diffuse_compute_gy = diffuse_envmap_side_size / diffuse_compute_group_y_size;
-	// specular envmap
-	static constexpr UINT specular_envmap_side_size = 128;
-	static constexpr UINT specular_envmap_mipmap_count = 5;
-	static constexpr UINT specular_envmap_compute_group_x_size = 8;
-	static constexpr UINT specular_envmap_compute_group_y_size = 8;
+	// skybox ---
+	static constexpr UINT c_skybox_side_size = 512;
+	static constexpr UINT c_skybox_mipmap_count = 10;
+	static constexpr UINT c_skybox_compute_group_x_size = 512;
+	static constexpr UINT c_skybox_compute_group_y_size = 2;
+	static constexpr UINT c_skybox_compute_gx = c_skybox_side_size / c_skybox_compute_group_x_size;
+	static constexpr UINT c_skybox_compute_gy = c_skybox_side_size / c_skybox_compute_group_y_size;
+	// diffuse envmap ---
+	static constexpr UINT c_diffuse_envmap_side_size = 64;
+	static constexpr UINT c_diffuse_compute_group_x_size = 64;
+	static constexpr UINT c_diffuse_compute_group_y_size = 16;
+	static constexpr UINT c_diffuse_compute_gx = c_diffuse_envmap_side_size / c_diffuse_compute_group_x_size;
+	static constexpr UINT c_diffuse_compute_gy = c_diffuse_envmap_side_size / c_diffuse_compute_group_y_size;
+	// specular envmap ---
+	static constexpr UINT c_specular_envmap_side_size = 128;
+	static constexpr UINT c_specular_envmap_mipmap_count = 5;
+	static constexpr UINT c_specular_envmap_compute_group_x_size = 8;
+	static constexpr UINT c_specular_envmap_compute_group_y_size = 8;
 
 
 	com_ptr<ID3D11Texture2D> make_skybox(const char* p_hdr_filename);
@@ -84,62 +84,8 @@ private:
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 
-class material_editor_tool final {
-public:
-
-	static const ubyte4 defualt_color_value;
-	static const ubyte4 defualt_texture_value;
-
-
-	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
-
-	material_editor_tool(material_editor_tool&&) = delete;
-	material_editor_tool& operator=(material_editor_tool&&) = delete;
-
-
-	const material& current_material() const noexcept
-	{
-		return material_;
-	}
-
-	ID3D11ShaderResourceView* p_tex_base_color_input_texture() noexcept
-	{
-		return p_tex_base_color_input_texture_srv_;
-	}
-
-
-	void activate_base_color_color() 
-	{ 
-		material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_; 
-	}
-
-	void activate_base_color_texture() 
-	{
-		material_.p_tex_base_color_srv = p_tex_base_color_input_texture_srv_;
-	}
-
-	void reload_base_color_input_texture(const char* p_filename);
-
-	void update_base_color_color(const ubyte4& value);
-
-private:
-
-	ID3D11Device*			p_device_;
-	ID3D11DeviceContext*	p_ctx_;
-	ID3D11Debug*			p_debug_;
-	// current material stuff ---
-	material							material_;
-	// base color
-	com_ptr<ID3D11Texture2D>			p_tex_base_color_output_color_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_output_color_srv_;
-	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_texture_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_texture_srv_;
-	// reflect color color
-	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_output_color_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_output_color_srv_;
-};
-
-// Returns a list of unique colors in the specified image.
+// Retrieves a list of unique colors from the specified image (up to 32 colors)
+// The colors are sorted and stored in color_buffer_cpu() & p_color_buffers().
 class unique_color_miner final {
 public:
 
@@ -149,7 +95,12 @@ public:
 	unique_color_miner& operator=(unique_color_miner&&) = delete;
 
 
-	void perform(const char* p_image_filename, std::vector<uint32_t>& out_colors);
+	const std::vector<uint32_t>& color_buffer_cpu() const noexcept
+	{
+		return color_buffer_cpu_;
+	}
+
+	void perform(const char* p_image_filename);
 
 private:
 
@@ -171,6 +122,81 @@ private:
 	com_ptr<ID3D11Buffer>				p_color_buffer_;
 	com_ptr<ID3D11UnorderedAccessView>	p_color_buffer_uav_;
 	com_ptr<ID3D11Buffer>				p_result_buffer_;
+	std::vector<uint32_t>				color_buffer_cpu_;
+};
+
+class material_editor_tool final {
+public:
+
+	static const ubyte4 c_default_color_value;
+	static const ubyte4 c_default_texture_value;
+	static const ubyte4 c_default_param_mask_value;
+
+
+	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+
+	material_editor_tool(material_editor_tool&&) = delete;
+	material_editor_tool& operator=(material_editor_tool&&) = delete;
+
+
+	const material& current_material() const noexcept
+	{
+		return material_;
+	}
+
+	const std::vector<uint32_t>& param_mask_color_buffer() const noexcept
+	{
+		return color_miner_.color_buffer_cpu();
+	}
+
+	ID3D11ShaderResourceView* p_tex_base_color_input_texture_srv() noexcept
+	{
+		return p_tex_base_color_input_texture_srv_;
+	}
+
+	ID3D11ShaderResourceView* p_tex_param_mask_srv() noexcept
+	{
+		return p_tex_param_mask_srv_;
+	}
+
+
+
+
+	void activate_base_color_color() 
+	{ 
+		material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_; 
+	}
+
+	void activate_base_color_texture() 
+	{
+		material_.p_tex_base_color_srv = p_tex_base_color_input_texture_srv_;
+	}
+
+	void reload_base_color_input_texture(const char* p_filename);
+
+	void reload_param_mask_texture(const char* p_filename);
+
+	void update_base_color_color(const ubyte4& value);
+
+private:
+
+	ID3D11Device*			p_device_;
+	ID3D11DeviceContext*	p_ctx_;
+	ID3D11Debug*			p_debug_;
+	unique_color_miner		color_miner_;
+	// current material stuff ---
+	material							material_;
+	// base color ---
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_output_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_output_color_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_base_color_input_texture_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_base_color_input_texture_srv_;
+	// reflect color color ---
+	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_output_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_output_color_srv_;
+	// parameter mask ---
+	com_ptr<ID3D11Texture2D>			p_tex_param_mask_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_param_mask_srv_;
 };
 
 } // namespace core

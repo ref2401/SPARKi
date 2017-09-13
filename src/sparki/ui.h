@@ -30,6 +30,7 @@ private:
 	float3			base_color_color_;
 	bool			base_color_color_active_;
 	std::string		base_color_texture_filename_;
+	std::string		param_mask_texture_filename_;
 };
 
 } // namespace sparki

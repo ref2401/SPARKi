@@ -24,12 +24,6 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
-
-
-	std::vector<uint32_t> v;
-	v.reserve(32);
-	unique_color_miner m(p_device_, p_ctx_, p_debug_);
-	m.perform("../../data/test_unique_color_miner.png", v);
 }
 
 render_system::~render_system() noexcept

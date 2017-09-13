@@ -67,9 +67,10 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	: p_hwnd_(p_hwnd),
 	met_(met),
 	name_("My Material #1"),
-	base_color_color_(make_color_float3(core::material_editor_tool::defualt_color_value)),
+	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color_value)),
 	base_color_color_active_(true),
-	base_color_texture_filename_(512, '\0')
+	base_color_texture_filename_(512, '\0'),
+	param_mask_texture_filename_(512, '\0')
 {
 	assert(p_hwnd);
 }
@@ -115,7 +116,7 @@ void material_editor_view::show_base_color_ui()
 		// texture ---
 		ImGui::BeginGroup();
 		ImGui::TextColored(bct_color, "Texture");
-		if (ImGui::ImageButton(met_.p_tex_base_color_input_texture(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (ImGui::ImageButton(met_.p_tex_base_color_input_texture_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 			if (!base_color_color_active_) {
 				if (show_open_file_dialog(p_hwnd_, base_color_texture_filename_))
 					met_.reload_base_color_input_texture(base_color_texture_filename_.c_str());
@@ -133,7 +134,22 @@ void material_editor_view::show_base_color_ui()
 
 void material_editor_view::show_metal_roughness_ui()
 {
+	if (ImGui::ImageButton(met_.p_tex_param_mask_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (show_open_file_dialog(p_hwnd_, param_mask_texture_filename_))
+			met_.reload_param_mask_texture(param_mask_texture_filename_.c_str());
+	}
 
+	ImGui::SameLine();
+	ImGui::BeginGroup();
+	ImGui::Button("Clear param mask");
+	ImGui::EndGroup();
+
+	if (met_.param_mask_color_buffer().size() == 1) {
+		static bool is_metal;
+		static float roughness;
+		ImGui::Checkbox("Metal", &is_metal);
+		ImGui::SliderFloat("Roughness##-1", &roughness, 0.0f, 1.0f);
+	}
 }
 
 } // namespace sparki
