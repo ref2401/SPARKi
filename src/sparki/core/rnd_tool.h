@@ -100,7 +100,7 @@ public:
 		return color_buffer_cpu_;
 	}
 
-	void perform(const char* p_image_filename);
+	void perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size);
 
 private:
 
@@ -116,7 +116,7 @@ private:
 	ID3D11Device*						p_device_;
 	ID3D11DeviceContext*				p_ctx_;
 	ID3D11Debug*						p_debug_;
-	hlsl_compute						hash_colors_compute_;
+	hlsl_compute						compute_shader_;
 	com_ptr<ID3D11Buffer>				p_hash_buffer_;
 	com_ptr<ID3D11UnorderedAccessView>	p_hash_buffer_uav_;
 	com_ptr<ID3D11Buffer>				p_color_buffer_;
@@ -158,8 +158,6 @@ public:
 	{
 		return p_tex_param_mask_srv_;
 	}
-
-
 
 
 	void activate_base_color_color() 

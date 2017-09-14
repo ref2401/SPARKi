@@ -10,7 +10,7 @@
 
 namespace {
 
-static constexpr ImGuiColorEditFlags flags_color_button = ImGuiColorEditFlags_NoInputs
+static constexpr ImGuiColorEditFlags c_flags_color_button = ImGuiColorEditFlags_NoInputs
 	| ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoTooltip;
 
 
@@ -28,6 +28,12 @@ inline ubyte4 make_color_ubyte4(const float3& rgb, float alpha = 1.0f)
 	using num_t = ubyte4::component_type;
 	constexpr float max = float(std::numeric_limits<num_t>::max());
 	return ubyte4(num_t(rgb.x * max), num_t(rgb.y * max), num_t(rgb.z * max), num_t(alpha * max));
+}
+
+inline ImVec4 make_color_imvec4(uint32_t v)
+{
+	const float4 c4 = unpack_8_8_8_8_into_unorm(v);
+	return ImVec4(c4.x, c4.y, c4.z, c4.w);
 }
 
 bool show_open_file_dialog(HWND p_hwnd, std::string& filename)
@@ -78,7 +84,7 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 void material_editor_view::show()
 {
 	ImGui::Begin("Material Properties");
-	ImGui::InputText("Name", name_, material_editor_view::material_name_max_length);
+	ImGui::InputText("Name", name_, c_material_name_max_length);
 	ImGui::Spacing(); 
 	ImGui::Spacing();
 	
@@ -100,7 +106,7 @@ void material_editor_view::show_base_color_ui()
 		ImGui::BeginGroup();
 		const ImVec4 bcc(base_color_color_.x, base_color_color_.y, base_color_color_.z, 1.0f);
 		ImGui::TextColored(bcc_color, "Color");
-		if (ImGui::ColorButton("##bcc_color_button", bcc, flags_color_button, ImVec2(64, 64))) {
+		if (ImGui::ColorButton("##bcc_color_button", bcc, c_flags_color_button, ImVec2(64, 64))) {
 			if (base_color_color_active_) ImGui::OpenPopup("bcc_popup");
 			base_color_color_active_ = true;
 		}
@@ -144,11 +150,18 @@ void material_editor_view::show_metal_roughness_ui()
 	ImGui::Button("Clear param mask");
 	ImGui::EndGroup();
 
-	if (met_.param_mask_color_buffer().size() == 1) {
+	if (met_.param_mask_color_buffer().size() <= 1) {
 		static bool is_metal;
 		static float roughness;
 		ImGui::Checkbox("Metal", &is_metal);
+		ImGui::SameLine();
 		ImGui::SliderFloat("Roughness##-1", &roughness, 0.0f, 1.0f);
+	} 
+	else {
+		for (uint32_t rgba : met_.param_mask_color_buffer()) {
+			const ImVec4 c = make_color_imvec4(rgba);
+			ImGui::ColorButton("", c, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+		}
 	}
 }
 

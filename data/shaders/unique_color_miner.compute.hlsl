@@ -32,5 +32,5 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 
 	const uint index = g_color_buffer.IncrementCounter();
 	if (index < c_color_buffer_count)
-		g_color_buffer[index] = key;
+		g_color_buffer[index] = (key << 8) | 255;
 }

@@ -306,7 +306,7 @@ unique_color_miner::unique_color_miner(ID3D11Device* p_device,
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
 	const hlsl_compute_desc hc("../../data/shaders/unique_color_miner.compute.hlsl");
-	hash_colors_compute_ = hlsl_compute(p_device_, hc);
+	compute_shader_ = hlsl_compute(p_device_, hc);
 
 	// p_hash_buffer_ & uav
 	const UINT bc = sizeof(uint32_t) * unique_color_miner::c_hash_buffer_count;
@@ -334,51 +334,34 @@ unique_color_miner::unique_color_miner(ID3D11Device* p_device,
 	p_result_buffer_ = make_buffer(p_device_, c_result_buffer_byte_count,
 		D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ);
 	color_buffer_cpu_.reserve(c_color_buffer_count);
-	//color_buffer_cpu_.push_back();
 }
 
-void unique_color_miner::perform(const char* p_image_filename)
+void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size)
 {
-	assert(p_image_filename);
+	assert(p_tex_image_srv);
+	assert(image_size > 0);
 
-	UINT gx = 0;
-	UINT gy = 0;
-	com_ptr<ID3D11Texture2D> p_tex_image;
-	com_ptr<ID3D11ShaderResourceView> p_tex_image_srv;
-
-	std::atomic_size_t wc;
-	ts::run([p_device = p_device_, p_image_filename, &gx, &gy, &p_tex_image, &p_tex_image_srv] {
-		const auto td = load_from_image_file(p_image_filename, 4);
-		gx = UINT(std::ceil(float(td.size.x) / c_compute_group_x_size));
-		gy = UINT(std::ceil(float(td.size.y) / c_compute_group_y_size));
-
-		p_tex_image = make_texture_2d(p_device, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-
-		HRESULT hr = p_device->CreateShaderResourceView(p_tex_image, nullptr, &p_tex_image_srv.ptr);
-		assert(hr == S_OK);
-	}, wc);
-
-
-	// clear buffers & setup compute pipeline ---
+	// clear buffers ---
 	p_ctx_->ClearUnorderedAccessViewUint(p_hash_buffer_uav_, &uint4::zero.x);
 	p_ctx_->ClearUnorderedAccessViewUint(p_color_buffer_uav_, &uint4::zero.x);
-	p_ctx_->CSSetShader(hash_colors_compute_.p_compute_shader, nullptr, 0);
 	color_buffer_cpu_.clear();
-	
+
+	// setup compute pipeline ---
+	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_image_srv);
 	constexpr UINT c_uav_count = 2;
 	ID3D11UnorderedAccessView* uav_list[c_uav_count] = { p_hash_buffer_uav_, p_color_buffer_uav_ };
-	p_ctx_->CSSetUnorderedAccessViews(0, c_uav_count, uav_list, nullptr);
+	UINT uav_init_counters[c_uav_count] = { 0, 0 };
+	p_ctx_->CSSetUnorderedAccessViews(0, c_uav_count, uav_list, uav_init_counters);
 
-	// wait until the image is loaded and dispatch work ---
-	ts::wait_for(wc);
-	assert(gx);
-	assert(gy);
-	p_ctx_->CSSetShaderResources(0, 1, &p_tex_image_srv.ptr);
+	// dispatch work ---
 #ifdef SPARKI_DEBUG
 	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
 	assert(hr == S_OK);
 #endif
 
+	const UINT gx = UINT(std::ceil(float(image_size.x) / c_compute_group_x_size));
+	const UINT gy = UINT(std::ceil(float(image_size.y) / c_compute_group_y_size));
 	p_ctx_->Dispatch(gx, gy, 1);
 
 	// reset uav binding ---
@@ -401,11 +384,12 @@ void unique_color_miner::perform(const char* p_image_filename)
 	assert(hr == S_OK);
 
 	const uint32_t* p_data = reinterpret_cast<const uint32_t*>(map.pData);
-	const uint32_t color_count = *p_data;
+	const uint32_t color_count = (*p_data <= c_color_buffer_count) ? (*p_data) : (c_color_buffer_count);
 	++p_data; // now it points to the first color if any.
-	if (color_count) {
+	if (color_count > 0) {
 		color_buffer_cpu_.resize(color_count);
 		std::memcpy(color_buffer_cpu_.data(), p_data, color_count * sizeof(uint32_t));
+		std::sort(color_buffer_cpu_.begin(), color_buffer_cpu_.end());
 	}
 
 	p_ctx_->Unmap(p_result_buffer_, 0);
@@ -491,10 +475,11 @@ void material_editor_tool::reload_param_mask_texture(const char* p_filename)
 	p_tex_param_mask_.dispose();
 
 	const texture_data td = load_from_image_file(p_filename, 4);
-	p_tex_param_mask_ = make_texture_2d(p_device_, td,
-		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	p_tex_param_mask_ = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_param_mask_, nullptr, &p_tex_param_mask_srv_.ptr);
 	assert(hr == S_OK);
+
+	color_miner_.perform(p_tex_param_mask_srv_, xy(td.size));
 }
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)

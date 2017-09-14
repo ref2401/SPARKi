@@ -503,6 +503,7 @@ bool platform_system::process_sys_messages(event_listener_i& listener)
 
 			case sys_message::type::mouse_move:
 			{
+				input_state_.mouse_is_out = false;
 				input_state_.mouse_position = msg.uint2;
 				listener.on_mouse_move();
 				break;

@@ -16,7 +16,8 @@ public:
 
 private:
 
-	static constexpr size_t material_name_max_length = 256;
+	static constexpr size_t c_material_name_max_length = 256;
+
 
 	void show_base_color_ui();
 
@@ -26,7 +27,7 @@ private:
 	HWND						p_hwnd_;
 	core::material_editor_tool&	met_;
 	// user settings ---
-	char			name_[material_name_max_length];
+	char			name_[c_material_name_max_length];
 	float3			base_color_color_;
 	bool			base_color_color_active_;
 	std::string		base_color_texture_filename_;
