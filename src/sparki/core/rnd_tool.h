@@ -144,7 +144,7 @@ public:
 		return material_;
 	}
 
-	const std::vector<uint32_t>& param_mask_color_buffer() const noexcept
+	const std::vector<uint32_t>& property_colors() const noexcept
 	{
 		return color_miner_.color_buffer_cpu();
 	}
@@ -172,7 +172,7 @@ public:
 
 	void reload_base_color_input_texture(const char* p_filename);
 
-	void reload_param_mask_texture(const char* p_filename);
+	void reload_property_mask_texture(const char* p_filename);
 
 	void update_base_color_color(const ubyte4& value);
 

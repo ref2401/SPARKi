@@ -467,7 +467,7 @@ void material_editor_tool::reload_base_color_input_texture(const char* p_filenam
 	assert(hr == S_OK);
 }
 
-void material_editor_tool::reload_param_mask_texture(const char* p_filename)
+void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 {
 	assert(p_filename);
 

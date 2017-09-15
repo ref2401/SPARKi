@@ -10,8 +10,23 @@
 
 namespace {
 
-static constexpr ImGuiColorEditFlags c_flags_color_button = ImGuiColorEditFlags_NoInputs
+constexpr ImGuiColorEditFlags c_flags_color_button = ImGuiColorEditFlags_NoInputs
 	| ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoTooltip;
+
+constexpr size_t c_property_mapping_max_count = 32;
+
+const char* property_mapping_widget_names[2 * c_property_mapping_max_count] = {
+	"##m00", "##r00", "##m01", "##r01", "##m02", "##r02", "##m03", "##r03", "##m04", "##r04",
+	"##m05", "##r05", "##m06", "##r06", "##m07", "##r07", "##m08", "##r08", "##m09", "##r09",
+	
+	"##m10", "##r10", "##m11", "##r11", "##m12", "##r12", "##m13", "##r13", "##m14", "##r14",
+	"##m15", "##r15", "##m16", "##r16", "##m17", "##r17", "##m18", "##r18",	"##m19", "##r19",
+
+	"##m20", "##r20", "##m21", "##r21", "##m22", "##r22", "##m23", "##r23", "##m24", "##r24",
+	"##m25", "##r25", "##m26", "##r26",	"##m27", "##r27", "##m28", "##r28", "##m29", "##r29",
+
+	"##m30", "##r30", "##m31", "##r31"
+};
 
 
 inline float3 make_color_float3(const ubyte4& rgba)
@@ -69,6 +84,9 @@ bool show_open_file_dialog(HWND p_hwnd, std::string& filename)
 
 namespace sparki {
 
+
+
+
 material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_tool& met)
 	: p_hwnd_(p_hwnd),
 	met_(met),
@@ -76,9 +94,21 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color_value)),
 	base_color_color_active_(true),
 	base_color_texture_filename_(512, '\0'),
-	param_mask_texture_filename_(512, '\0')
+	param_mask_texture_filename_(512, '\0'),
+	property_mappings_(32),
+	property_mapping_count_(0)
 {
 	assert(p_hwnd);
+}
+
+void material_editor_view::update_property_mappings()
+{
+	const auto& colors = met_.property_colors();
+	property_mapping_count_ = colors.size();
+
+	property_mappings_.resize(property_mapping_count_);
+	for (size_t i = 0; i < property_mapping_count_; ++i)
+		property_mappings_[i].color = colors[i];
 }
 
 void material_editor_view::show()
@@ -141,8 +171,10 @@ void material_editor_view::show_base_color_ui()
 void material_editor_view::show_metal_roughness_ui()
 {
 	if (ImGui::ImageButton(met_.p_tex_param_mask_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
-		if (show_open_file_dialog(p_hwnd_, param_mask_texture_filename_))
-			met_.reload_param_mask_texture(param_mask_texture_filename_.c_str());
+		if (show_open_file_dialog(p_hwnd_, param_mask_texture_filename_)) {
+			met_.reload_property_mask_texture(param_mask_texture_filename_.c_str());
+			update_property_mappings();
+		}
 	}
 
 	ImGui::SameLine();
@@ -150,17 +182,21 @@ void material_editor_view::show_metal_roughness_ui()
 	ImGui::Button("Clear param mask");
 	ImGui::EndGroup();
 
-	if (met_.param_mask_color_buffer().size() <= 1) {
-		static bool is_metal;
-		static float roughness;
-		ImGui::Checkbox("Metal", &is_metal);
+	if (property_mapping_count_ <= 1) {
+		ImGui::Checkbox("Metal", &property_mappings_[0].metallic_mask);
 		ImGui::SameLine();
-		ImGui::SliderFloat("Roughness##-1", &roughness, 0.0f, 1.0f);
+		ImGui::SliderFloat("Roughness##-1", &property_mappings_[0].roughness, 0.0f, 1.0f);
 	} 
 	else {
-		for (uint32_t rgba : met_.param_mask_color_buffer()) {
-			const ImVec4 c = make_color_imvec4(rgba);
+		for (size_t i = 0; i < property_mapping_count_; ++i) {
+			auto& mp = property_mappings_[i];
+			const ImVec4 c = make_color_imvec4(mp.color);
+
 			ImGui::ColorButton("", c, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+			ImGui::SameLine();
+			ImGui::Checkbox(property_mapping_widget_names[i * 2], &mp.metallic_mask);
+			ImGui::SameLine();
+			ImGui::SliderFloat(property_mapping_widget_names[i * 2 + 1], &mp.roughness, 0.0f, 1.0f);
 		}
 	}
 }
