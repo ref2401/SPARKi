@@ -333,10 +333,10 @@ unique_color_miner::unique_color_miner(ID3D11Device* p_device,
 	// p_result_buffer_
 	p_result_buffer_ = make_buffer(p_device_, c_result_buffer_byte_count,
 		D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ);
-	color_buffer_cpu_.reserve(c_color_buffer_count);
 }
 
-void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size)
+void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size,
+	std::vector<uint32_t>& out_colors)
 {
 	assert(p_tex_image_srv);
 	assert(image_size > 0);
@@ -344,7 +344,7 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 	// clear buffers ---
 	p_ctx_->ClearUnorderedAccessViewUint(p_hash_buffer_uav_, &uint4::zero.x);
 	p_ctx_->ClearUnorderedAccessViewUint(p_color_buffer_uav_, &uint4::zero.x);
-	color_buffer_cpu_.clear();
+	out_colors.clear();
 
 	// setup compute pipeline ---
 	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
@@ -387,9 +387,9 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 	const uint32_t color_count = (*p_data <= c_color_buffer_count) ? (*p_data) : (c_color_buffer_count);
 	++p_data; // now it points to the first color if any.
 	if (color_count > 0) {
-		color_buffer_cpu_.resize(color_count);
-		std::memcpy(color_buffer_cpu_.data(), p_data, color_count * sizeof(uint32_t));
-		std::sort(color_buffer_cpu_.begin(), color_buffer_cpu_.end());
+		out_colors.resize(color_count);
+		std::memcpy(out_colors.data(), p_data, color_count * sizeof(uint32_t));
+		std::sort(out_colors.begin(), out_colors.end());
 	}
 
 	p_ctx_->Unmap(p_result_buffer_, 0);
@@ -441,15 +441,42 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
 		&p_tex_base_color_input_texture_srv_.ptr);
 	assert(hr == S_OK);
-	// p_tex_param_mask_ ---
-	tex_data.pSysMem = &c_default_param_mask_value.x;
-	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_param_mask_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_param_mask_, nullptr, &p_tex_param_mask_srv_.ptr);
-	assert(hr == S_OK);
+	
+	// property mask stuff
+	property_mask_colors_.reserve(32);
+	reset_property_mask_texutre();
 
 	material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_;
 	material_.p_tex_reflect_color_srv = p_tex_reflect_color_output_color_srv_;
+}
+
+void material_editor_tool::reset_property_mask_texutre()
+{
+	assert(property_mask_colors_.capacity() > 0);
+
+	p_tex_property_mask_srv_.dispose();
+	p_tex_property_mask_.dispose();
+	property_mask_colors_.clear();
+
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width = 1;
+	tex_desc.Height = 1;
+	tex_desc.MipLevels = 1;
+	tex_desc.ArraySize = 1;
+	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count = 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem = &c_default_param_mask_value.x;
+	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
+
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_property_mask_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
+	assert(hr == S_OK);
 }
 
 void material_editor_tool::reload_base_color_input_texture(const char* p_filename)
@@ -471,15 +498,15 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 {
 	assert(p_filename);
 
-	p_tex_param_mask_srv_.dispose();
-	p_tex_param_mask_.dispose();
+	p_tex_property_mask_srv_.dispose();
+	p_tex_property_mask_.dispose();
 
 	const texture_data td = load_from_image_file(p_filename, 4);
-	p_tex_param_mask_ = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_param_mask_, nullptr, &p_tex_param_mask_srv_.ptr);
+	p_tex_property_mask_ = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
 	assert(hr == S_OK);
 
-	color_miner_.perform(p_tex_param_mask_srv_, xy(td.size));
+	color_miner_.perform(p_tex_property_mask_srv_, xy(td.size), property_mask_colors_);
 }
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)

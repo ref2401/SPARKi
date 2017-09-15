@@ -40,7 +40,7 @@ private:
 	float3							base_color_color_;
 	bool							base_color_color_active_;
 	std::string						base_color_texture_filename_;
-	std::string						param_mask_texture_filename_;
+	std::string						property_mask_texture_filename_;
 	std::vector<property_mapping>	property_mappings_;
 	size_t							property_mapping_count_;
 };

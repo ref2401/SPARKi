@@ -95,12 +95,8 @@ public:
 	unique_color_miner& operator=(unique_color_miner&&) = delete;
 
 
-	const std::vector<uint32_t>& color_buffer_cpu() const noexcept
-	{
-		return color_buffer_cpu_;
-	}
-
-	void perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size);
+	void perform(ID3D11ShaderResourceView* p_tex_image_srv, const uint2& image_size,
+		std::vector<uint32_t>& out_colors);
 
 private:
 
@@ -122,9 +118,9 @@ private:
 	com_ptr<ID3D11Buffer>				p_color_buffer_;
 	com_ptr<ID3D11UnorderedAccessView>	p_color_buffer_uav_;
 	com_ptr<ID3D11Buffer>				p_result_buffer_;
-	std::vector<uint32_t>				color_buffer_cpu_;
 };
 
+// 
 class material_editor_tool final {
 public:
 
@@ -144,9 +140,9 @@ public:
 		return material_;
 	}
 
-	const std::vector<uint32_t>& property_colors() const noexcept
+	const std::vector<uint32_t>& property_mask_colors() const noexcept
 	{
-		return color_miner_.color_buffer_cpu();
+		return property_mask_colors_;
 	}
 
 	ID3D11ShaderResourceView* p_tex_base_color_input_texture_srv() noexcept
@@ -154,9 +150,9 @@ public:
 		return p_tex_base_color_input_texture_srv_;
 	}
 
-	ID3D11ShaderResourceView* p_tex_param_mask_srv() noexcept
+	ID3D11ShaderResourceView* p_tex_property_mask_srv() noexcept
 	{
-		return p_tex_param_mask_srv_;
+		return p_tex_property_mask_srv_;
 	}
 
 
@@ -169,6 +165,8 @@ public:
 	{
 		material_.p_tex_base_color_srv = p_tex_base_color_input_texture_srv_;
 	}
+
+	void reset_property_mask_texutre();
 
 	void reload_base_color_input_texture(const char* p_filename);
 
@@ -193,8 +191,9 @@ private:
 	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_output_color_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_output_color_srv_;
 	// parameter mask ---
-	com_ptr<ID3D11Texture2D>			p_tex_param_mask_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_param_mask_srv_;
+	std::vector<uint32_t>				property_mask_colors_;
+	com_ptr<ID3D11Texture2D>			p_tex_property_mask_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_property_mask_srv_;
 };
 
 } // namespace core
