@@ -409,9 +409,8 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 
 // ----- material_editor_tool -----
 
-const ubyte4 material_editor_tool::c_default_color_value		= ubyte4(0x7f, 0x7f, 0x7f, 0xff);
-const ubyte4 material_editor_tool::c_default_texture_value		= ubyte4(0xff);
-const ubyte4 material_editor_tool::c_default_param_mask_value	= ubyte4(0x00, 0x00, 0x00, 0xff);
+const ubyte4 material_editor_tool::c_default_color = ubyte4(0x7f, 0x7f, 0x7f, 0xff);
+
 
 material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug), color_miner_(p_device, p_ctx, p_debug)
@@ -420,46 +419,80 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
 
-	D3D11_TEXTURE2D_DESC tex_desc = {};
-	tex_desc.Width = 1;
-	tex_desc.Height = 1;
-	tex_desc.MipLevels = 1;
-	tex_desc.ArraySize = 1;
-	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	tex_desc.SampleDesc.Count = 1;
-	tex_desc.SampleDesc.Quality = 0;
-	tex_desc.Usage = D3D11_USAGE_DEFAULT;
-	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	D3D11_SUBRESOURCE_DATA tex_data = {};
-	// p_tex_base_color_output_color_ ---
-	tex_data.pSysMem = &material_editor_tool::c_default_color_value.x;
-	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_output_color_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_base_color_output_color_, nullptr, &p_tex_base_color_output_color_srv_.ptr);
-	assert(hr == S_OK);
-	// p_tex_reflect_color_output_color_ ---
-	const ubyte4 reflect_color(0xff, 0xff, 0xff, uint8_t(0.23f * 0xff));
-	tex_data.pSysMem = &reflect_color.x;
-	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_output_color_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_output_color_, nullptr, &p_tex_reflect_color_output_color_srv_.ptr);
-	assert(hr == S_OK);
-	// p_tex_base_color_input_texture_ ---
-	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_data.pSysMem = &material_editor_tool::c_default_texture_value;
-	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_input_texture_.ptr);
-	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
-		&p_tex_base_color_input_texture_srv_.ptr);
-	assert(hr == S_OK);
-	
-	// property mask stuff
+	init_base_color_textures();
+	init_reflect_color_textures();
 	property_mask_colors_.reserve(material_composer::c_property_mapping_max_count);
 	reset_property_mask_texutre();
 
-	material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_;
-	material_.p_tex_reflect_color_srv = p_tex_reflect_color_output_color_srv_;
+	material_.p_tex_base_color_srv		= p_tex_base_color_color_srv_;
+	material_.p_tex_reflect_color_srv	= p_tex_reflect_color_color_srv_;
+}
+
+void material_editor_tool::init_base_color_textures()
+{
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count	= 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem		= &c_default_color.x;
+	tex_data.SysMemPitch	= vector_traits<ubyte4>::byte_count;
+
+	// base_color_color ---
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_color_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_base_color_color_, nullptr, &p_tex_base_color_color_srv_.ptr);
+	assert(hr == S_OK);
+
+	// base_color_texture ---
+	const ubyte4 default_texture(0xff);
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_data.pSysMem = &default_texture;
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_texture_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_base_color_texture_, nullptr, &p_tex_base_color_texture_srv_.ptr);
+	assert(hr == S_OK);
+}
+
+void material_editor_tool::init_reflect_color_textures()
+{
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count	= 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+
+	const ubyte4 default_color(0x7f, 0x7f, 0x7f, 0xff);
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem		= &default_color.x;
+	tex_data.SysMemPitch	= vector_traits<ubyte4>::byte_count;
+
+	// reflect_color_color ---
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_color_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_color_, nullptr, &p_tex_reflect_color_color_srv_.ptr);
+	assert(hr == S_OK);
+
+	// reflect_color_texture ---
+	const ubyte4 default_texture(0xff);
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_data.pSysMem = &default_texture;
+	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_texture_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_texture_, nullptr, &p_tex_reflect_color_texture_srv_.ptr);
+	assert(hr == S_OK);
 }
 
 void material_editor_tool::reset_property_mask_texutre()
@@ -468,41 +501,47 @@ void material_editor_tool::reset_property_mask_texutre()
 
 	p_tex_property_mask_srv_.dispose();
 	p_tex_property_mask_.dispose();
+	p_tex_properties_srv_.dispose();
+	p_tex_properties_.dispose();
 	property_mask_colors_.clear();
 
 	D3D11_TEXTURE2D_DESC tex_desc = {};
-	tex_desc.Width = 1;
-	tex_desc.Height = 1;
-	tex_desc.MipLevels = 1;
-	tex_desc.ArraySize = 1;
-	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	tex_desc.SampleDesc.Count = 1;
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R32G32B32_FLOAT;
+	tex_desc.SampleDesc.Count	= 1;
 	tex_desc.SampleDesc.Quality = 0;
-	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	tex_desc.Usage				= D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
 
+	const float2 default_mask(0, 0.5f);
 	D3D11_SUBRESOURCE_DATA tex_data = {};
-	tex_data.pSysMem = &c_default_param_mask_value.x;
-	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
+	tex_data.pSysMem = &default_mask.x;
+	tex_data.SysMemPitch = vector_traits<float2>::byte_count;
 
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_property_mask_.ptr);
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_properties_.ptr);
 	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
+	hr = p_device_->CreateShaderResourceView(p_tex_properties_, nullptr, &p_tex_properties_srv_.ptr);
 	assert(hr == S_OK);
+
+	//property_mask_colors_.push_back(pack_into_8_8_8_8(default_mask));
+	//material_.p_tex_properties_srv = p_tex_properties_srv_;
 }
 
 void material_editor_tool::reload_base_color_input_texture(const char* p_filename)
 {
 	assert(p_filename);
 
-	p_tex_base_color_input_texture_srv_.dispose();
-	p_tex_base_color_input_texture_.dispose();
+	p_tex_base_color_texture_srv_.dispose();
+	p_tex_base_color_texture_.dispose();
 
 	const texture_data td = load_from_image_file(p_filename, 4);
-	p_tex_base_color_input_texture_ = make_texture_2d(p_device_, td, 
+	p_tex_base_color_texture_ = make_texture_2d(p_device_, td, 
 		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_input_texture_, nullptr, 
-		&p_tex_base_color_input_texture_srv_.ptr);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_texture_, nullptr, 
+		&p_tex_base_color_texture_srv_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -523,7 +562,7 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)
 {
-	p_ctx_->UpdateSubresource(p_tex_base_color_output_color_, 0, nullptr,
+	p_ctx_->UpdateSubresource(p_tex_base_color_color_, 0, nullptr,
 		&value.x, vector_traits<ubyte4>::byte_count, 0);
 }
 

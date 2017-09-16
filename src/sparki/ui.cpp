@@ -88,7 +88,7 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	: p_hwnd_(p_hwnd),
 	met_(met),
 	name_("My Material #1"),
-	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color_value)),
+	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color)),
 	base_color_color_active_(true),
 	base_color_texture_filename_(512, '\0'),
 	property_mask_texture_filename_(512, '\0'),
@@ -131,9 +131,8 @@ void material_editor_view::show_base_color_ui()
 	ImGui::BeginGroup();
 		// color ---
 		ImGui::BeginGroup();
-		const ImVec4 bcc(base_color_color_.x, base_color_color_.y, base_color_color_.z, 1.0f);
 		ImGui::TextColored(bcc_color, "Color");
-		if (ImGui::ColorButton("##bcc_color_button", bcc, c_flags_color_button, ImVec2(64, 64))) {
+		if (ImGui::ImageButton(met_.p_tex_base_color_color_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 			if (base_color_color_active_) ImGui::OpenPopup("bcc_popup");
 			base_color_color_active_ = true;
 		}
@@ -149,7 +148,7 @@ void material_editor_view::show_base_color_ui()
 		// texture ---
 		ImGui::BeginGroup();
 		ImGui::TextColored(bct_color, "Texture");
-		if (ImGui::ImageButton(met_.p_tex_base_color_input_texture_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (ImGui::ImageButton(met_.p_tex_base_color_texture_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 			if (!base_color_color_active_) {
 				if (show_open_file_dialog(p_hwnd_, base_color_texture_filename_))
 					met_.reload_base_color_input_texture(base_color_texture_filename_.c_str());
