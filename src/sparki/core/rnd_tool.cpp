@@ -295,10 +295,22 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 	save_to_tex_file(p_filename, td);
 }
 
+// ----- material_composer -----
+
+material_composer::material_composer(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+{
+	assert(p_device);
+	assert(p_ctx);
+	assert(p_debug); // p_debug == nullptr in Release mode.
+
+	const hlsl_compute_desc hc("../../data/shaders/material_composer.compute.hlsl");
+	compute_shader_ = hlsl_compute(p_device_, hc);
+}
+
 // ----- unique_color_miner -----
 
-unique_color_miner::unique_color_miner(ID3D11Device* p_device, 
-	ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
+unique_color_miner::unique_color_miner(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
 	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
 {
 	assert(p_device);
@@ -443,7 +455,7 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	assert(hr == S_OK);
 	
 	// property mask stuff
-	property_mask_colors_.reserve(32);
+	property_mask_colors_.reserve(material_composer::c_property_mapping_max_count);
 	reset_property_mask_texutre();
 
 	material_.p_tex_base_color_srv = p_tex_base_color_output_color_srv_;

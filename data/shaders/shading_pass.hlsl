@@ -59,6 +59,7 @@ TextureCube<float4>	g_tex_specular_envmap	: register(t1);
 Texture2D<float2>	g_tex_specular_brdf		: register(t2);
 Texture2D<float4>	g_tex_base_color		: register(t3);
 Texture2D<float4>	g_tex_reflect_color		: register(t4);
+Texture2D<float2>	g_tex_properties		: register(t5);
 SamplerState		g_sampler				: register(s0);
 
 
@@ -88,18 +89,17 @@ ps_output ps_main(vs_output pixel)
 	const float3 rv_ms	= normalize(pixel.refleced_view_ms);
 
 	// material properties
-	const float4	base_color_mm		= g_tex_base_color.Sample(g_sampler, pixel.uv);
-	const float3	base_color			= base_color_mm.rgb;
-	const float		metallic_maks		= base_color_mm.a;
-	const float4	reflect_color_lr	= g_tex_reflect_color.Sample(g_sampler, pixel.uv);
-	const float3	reflect_color		= 0.16 * reflect_color_lr.rgb * reflect_color_lr.rgb;
-	const float		linear_roughness	= reflect_color_lr.a;
+	const float4	base_color			= g_tex_base_color.Sample(g_sampler, pixel.uv);
+	const float3	reflect_color		= 0.16 * pow(g_tex_reflect_color.Sample(g_sampler, pixel.uv).rgb, 2);
+	const float2	pops				= g_tex_properties.Sample(g_sampler, pixel.uv);
+	const float		metallic_mask		= pops.x;
+	const float		linear_roughness	= pops.y;
 
 	// eval brdf
 	const float3 cube_dir_ms	= specular_dominant_dir(n_ms, rv_ms, linear_roughness);
-	const float3 f0				= lerp(reflect_color, base_color, metallic_maks);
+	const float3 f0				= lerp(reflect_color, base_color, metallic_mask);
 	const float3 fresnel		= fresnel_schlick(f0, dot_nv);
-	const float3 diffuse_color	= base_color * (1.0 - fresnel) * (1 - metallic_maks);
+	const float3 diffuse_color	= base_color * (1.0 - fresnel) * (1 - metallic_mask);
 
 	float3 color = 0;
 	color += eval_ibl(cube_dir_ms, dot_nv, linear_roughness, f0, diffuse_color);

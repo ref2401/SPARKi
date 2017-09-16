@@ -123,13 +123,14 @@ void shading_pass::perform(const gbuffer& gbuffer, const float4x4& pv_matrix,
 	p_ctx_->VSSetShader(shader_.p_vertex_shader, nullptr, 0);
 	p_ctx_->VSSetConstantBuffers(0, 1, &p_cb_vertex_shader_.ptr);
 	p_ctx_->PSSetShader(shader_.p_pixel_shader, nullptr, 0);
-	constexpr UINT srv_count = 5;
+	constexpr UINT srv_count = 6;
 	ID3D11ShaderResourceView* srv_list[srv_count] = {
 		p_tex_diffuse_envmap_srv_,
 		p_tex_specular_envmap_srv_,
 		p_tex_specular_brdf_srv_,
 		material.p_tex_base_color_srv,
-		material.p_tex_reflect_color_srv
+		material.p_tex_reflect_color_srv,
+		material.p_tex_properties_srv
 	};
 	p_ctx_->PSSetShaderResources(0, srv_count, srv_list);
 	p_ctx_->PSSetSamplers(0, 1, &gbuffer.p_sampler_linear.ptr);

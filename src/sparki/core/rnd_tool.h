@@ -84,6 +84,26 @@ private:
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 
+class material_composer final {
+public:
+
+	static constexpr size_t c_property_mapping_max_count = 32;
+
+
+	material_composer(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_degub);
+
+	material_composer(material_composer&&) = delete;
+	material_composer& operator=(material_composer&&) = delete;
+
+
+private:
+
+	ID3D11Device*			p_device_;
+	ID3D11DeviceContext*	p_ctx_;
+	ID3D11Debug*			p_debug_;
+	hlsl_compute			compute_shader_;
+};
+
 // Retrieves a list of unique colors from the specified image (up to 32 colors)
 // The colors are sorted and stored in color_buffer_cpu() & p_color_buffers().
 class unique_color_miner final {
@@ -120,7 +140,6 @@ private:
 	com_ptr<ID3D11Buffer>				p_result_buffer_;
 };
 
-// 
 class material_editor_tool final {
 public:
 

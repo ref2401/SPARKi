@@ -24,6 +24,8 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
+
+	//material_composer mc(p_device_, p_ctx_, p_debug_);
 }
 
 render_system::~render_system() noexcept

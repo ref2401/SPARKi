@@ -4,6 +4,21 @@ static const float c_2pi = 2.0f * c_pi;
 static const float c_1_pi = 1.0f / c_pi;
 
 
+uint pack_unorm_into_8_8_8(float3 rgb)
+{
+	return (uint(rgb.r * 255) << 16)
+		| (uint(rgb.g * 255) << 8)
+		| (uint(rgb.b * 255));
+}
+
+uint pack_unorm_into_8_8_8_8(float4 rgba)
+{
+	return (uint(rgba.r * 255) << 24)
+		| (uint(rgba.g * 255) << 16)
+		| (uint(rgba.b * 255) << 8)
+		| (uint(rgba.a * 255));
+}
+
 float3x3 tangent_to_world_matrix(float3 oz)
 {
 	// see Unreal engine GetTangentBasis():

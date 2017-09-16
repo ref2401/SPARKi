@@ -153,12 +153,9 @@ private:
 };
 
 struct material final {
-	// rgb: base_color
-	// a: metallic mask.
 	ID3D11ShaderResourceView*	p_tex_base_color_srv = nullptr;
-	// rgb: reflect color
-	// a: linear roughness
 	ID3D11ShaderResourceView*	p_tex_reflect_color_srv = nullptr;
+	ID3D11ShaderResourceView*	p_tex_properties_srv = nullptr;
 };
 
 struct gbuffer final {
