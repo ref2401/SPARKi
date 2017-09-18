@@ -73,7 +73,7 @@ float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3
 	const float3 diffuse_envmap = g_tex_diffuse_envmap.SampleLevel(g_sampler, cube_dir_ms, 0).rgb;
 
 	// specular envmap & brdf
-	const float lvl = linear_roughness * 4.0f; // 4.0 == (envmap_texture_builder::envmap_mipmap_count - 1)
+	const float lvl = linear_roughness * linear_roughness * 4.0f; // 4.0 == (envmap_texture_builder::envmap_mipmap_count - 1)
 	const float3 specular_envmap = g_tex_specular_envmap.SampleLevel(g_sampler, cube_dir_ms, lvl).rgb;
 	const float2 brdf = g_tex_specular_brdf.SampleLevel(g_sampler, float2(dot_nv, linear_roughness), 0);
 
@@ -91,9 +91,9 @@ ps_output ps_main(vs_output pixel)
 	// material properties
 	const float4	base_color			= g_tex_base_color.Sample(g_sampler, pixel.uv);
 	const float3	reflect_color		= 0.16 * pow(g_tex_reflect_color.Sample(g_sampler, pixel.uv).rgb, 2);
-	const float2	pops				= g_tex_properties.Sample(g_sampler, pixel.uv);
-	const float		metallic_mask		= pops.x;
-	const float		linear_roughness	= pops.y;
+	const float2	props				= g_tex_properties.Sample(g_sampler, pixel.uv);
+	const float		metallic_mask		= props.x;
+	const float		linear_roughness	= props.y;
 
 	// eval brdf
 	const float3 cube_dir_ms	= specular_dominant_dir(n_ms, rv_ms, linear_roughness);

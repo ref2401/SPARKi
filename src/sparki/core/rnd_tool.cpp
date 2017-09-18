@@ -421,11 +421,15 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 	init_base_color_textures();
 	init_reflect_color_textures();
-	property_mask_colors_.reserve(material_composer::c_property_mapping_max_count);
-	reset_property_mask_texutre();
+	init_property_mask_textures();
+
+	property_colors_.reserve(material_composer::c_property_mapping_max_count);
+	properties_.resize(material_composer::c_property_mapping_max_count);
+	properties_[0] = float2(c_default_metallic_mask, c_default_roughness);
 
 	material_.p_tex_base_color_srv		= p_tex_base_color_color_srv_;
 	material_.p_tex_reflect_color_srv	= p_tex_reflect_color_color_srv_;
+	material_.p_tex_properties_srv		= p_tex_properties_color_srv_;
 }
 
 void material_editor_tool::init_base_color_textures()
@@ -495,39 +499,29 @@ void material_editor_tool::init_reflect_color_textures()
 	assert(hr == S_OK);
 }
 
-void material_editor_tool::reset_property_mask_texutre()
+void material_editor_tool::init_property_mask_textures()
 {
-	assert(property_mask_colors_.capacity() > 0);
-
-	p_tex_property_mask_srv_.dispose();
-	p_tex_property_mask_.dispose();
-	p_tex_properties_srv_.dispose();
-	p_tex_properties_.dispose();
-	property_mask_colors_.clear();
+	reset_property_mask_texture();
 
 	D3D11_TEXTURE2D_DESC tex_desc = {};
 	tex_desc.Width				= 1;
 	tex_desc.Height				= 1;
 	tex_desc.MipLevels			= 1;
 	tex_desc.ArraySize			= 1;
-	tex_desc.Format				= DXGI_FORMAT_R32G32B32_FLOAT;
+	tex_desc.Format				= DXGI_FORMAT_R32G32_FLOAT;
 	tex_desc.SampleDesc.Count	= 1;
 	tex_desc.SampleDesc.Quality = 0;
-	tex_desc.Usage				= D3D11_USAGE_IMMUTABLE;
+	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
 	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
 
-	const float2 default_mask(0, 0.5f);
+	const float2 dv(c_default_metallic_mask, c_default_roughness);
 	D3D11_SUBRESOURCE_DATA tex_data = {};
-	tex_data.pSysMem = &default_mask.x;
-	tex_data.SysMemPitch = vector_traits<float2>::byte_count;
-
-	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_properties_.ptr);
+	tex_data.pSysMem		= &dv.x;
+	tex_data.SysMemPitch	= vector_traits<float2>::byte_count;
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_properties_color_.ptr);
 	assert(hr == S_OK);
-	hr = p_device_->CreateShaderResourceView(p_tex_properties_, nullptr, &p_tex_properties_srv_.ptr);
+	hr = p_device_->CreateShaderResourceView(p_tex_properties_color_, nullptr, &p_tex_properties_color_srv_.ptr);
 	assert(hr == S_OK);
-
-	//property_mask_colors_.push_back(pack_into_8_8_8_8(default_mask));
-	//material_.p_tex_properties_srv = p_tex_properties_srv_;
 }
 
 void material_editor_tool::reload_base_color_input_texture(const char* p_filename)
@@ -551,13 +545,57 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 
 	p_tex_property_mask_srv_.dispose();
 	p_tex_property_mask_.dispose();
+	p_tex_properties_texture_srv_.dispose();
+	p_tex_properties_texture_.dispose();
 
 	const texture_data td = load_from_image_file(p_filename, 4);
 	p_tex_property_mask_ = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
 	assert(hr == S_OK);
 
-	color_miner_.perform(p_tex_property_mask_srv_, xy(td.size), property_mask_colors_);
+	color_miner_.perform(p_tex_property_mask_srv_, xy(td.size), property_colors_);
+
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R32G32_FLOAT;
+	tex_desc.SampleDesc.Count	= 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+	hr = p_device_->CreateTexture2D(&tex_desc, nullptr, &p_tex_properties_texture_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_properties_texture_, nullptr, &p_tex_properties_texture_srv_.ptr);
+	assert(hr == S_OK);
+}
+
+void material_editor_tool::reset_property_mask_texture()
+{
+	p_tex_property_mask_srv_.dispose();
+	p_tex_property_mask_.dispose();
+	property_colors_.clear();
+
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width = 1;
+	tex_desc.Height = 1;
+	tex_desc.MipLevels = 1;
+	tex_desc.ArraySize = 1;
+	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count = 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	const ubyte4 dc = unpack_8_8_8_8_into<ubyte4>(c_defualt_property_mask_color);
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem = &dc.x;
+	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_property_mask_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
+	assert(hr == S_OK);
 }
 
 void material_editor_tool::update_base_color_color(const ubyte4& value)
@@ -566,6 +604,17 @@ void material_editor_tool::update_base_color_color(const ubyte4& value)
 		&value.x, vector_traits<ubyte4>::byte_count, 0);
 }
 
+void material_editor_tool::update_properties_color()
+{
+	const float2 v = properties_[0];
+	p_ctx_->UpdateSubresource(p_tex_properties_color_, 0, nullptr,
+		&v.x, vector_traits<float2>::byte_count, 0);
+}
+
+void material_editor_tool::update_properties_texture()
+{
+
+}
 
 } // namespace core
 } // namespace sparki

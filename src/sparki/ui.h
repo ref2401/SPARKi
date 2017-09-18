@@ -18,15 +18,6 @@ private:
 
 	static constexpr size_t c_material_name_max_length = 256;
 
-	struct property_mapping final {
-		uint32_t 	color;
-		bool 		metallic_mask;
-		float 		roughness;
-	};
-
-
-
-	void update_property_mappings();
 
 	void show_base_color_ui();
 
@@ -41,8 +32,6 @@ private:
 	bool							base_color_color_active_;
 	std::string						base_color_texture_filename_;
 	std::string						property_mask_texture_filename_;
-	std::vector<property_mapping>	property_mappings_;
-	size_t							property_mapping_count_;
 };
 
 } // namespace sparki

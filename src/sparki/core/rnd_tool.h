@@ -143,7 +143,7 @@ private:
 class material_editor_tool final {
 public:
 
-	static const ubyte4 c_default_color;
+	static const ubyte4			c_default_color;
 
 
 	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
@@ -157,10 +157,20 @@ public:
 		return material_;
 	}
 
-	const std::vector<uint32_t>& property_mask_colors() const noexcept
+	size_t property_count() const noexcept
 	{
-		return property_mask_colors_;
+		return property_colors_.size();
 	}
+
+	std::vector<float2>& properties() noexcept
+	{
+		return properties_;
+	}
+
+	const std::vector<uint32_t>& property_colors() const noexcept
+	{
+		return property_colors_;
+	};
 
 	ID3D11ShaderResourceView* p_tex_base_color_color_srv() noexcept
 	{
@@ -198,21 +208,40 @@ public:
 		material_.p_tex_base_color_srv = p_tex_base_color_texture_srv_;
 	}
 
-	void reset_property_mask_texutre();
+	void activate_properties_color() noexcept
+	{
+		material_.p_tex_properties_srv = p_tex_properties_color_srv_;
+	}
+
+	void activate_properties_texture() noexcept
+	{
+		material_.p_tex_properties_srv = p_tex_properties_texture_srv_;
+	}
 
 	void reload_base_color_input_texture(const char* p_filename);
 
 	void reload_property_mask_texture(const char* p_filename);
 
+	void reset_property_mask_texture();
+
 	void update_base_color_color(const ubyte4& value);
 
+	void update_properties_color();
+
+	void update_properties_texture();
+
 private:
+
+	static constexpr uint32_t	c_defualt_property_mask_color = 0x00'00'00'ff;
+	static constexpr float		c_default_metallic_mask = 1.0f;
+	static constexpr float		c_default_roughness = 0.0f;
+
 
 	void init_base_color_textures();
 
 	void init_reflect_color_textures();
 
-	void init_property_mask_texture();
+	void init_property_mask_textures();
 
 
 	ID3D11Device*			p_device_;
@@ -234,9 +263,12 @@ private:
 	// parameter mask ---
 	com_ptr<ID3D11Texture2D>			p_tex_property_mask_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_property_mask_srv_;
-	com_ptr<ID3D11Texture2D>			p_tex_properties_;
-	com_ptr<ID3D11ShaderResourceView>	p_tex_properties_srv_;
-	std::vector<uint32_t>				property_mask_colors_;
+	com_ptr<ID3D11Texture2D>			p_tex_properties_color_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_properties_color_srv_;
+	com_ptr<ID3D11Texture2D>			p_tex_properties_texture_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_properties_texture_srv_;
+	std::vector<float2>					properties_;
+	std::vector<uint32_t>				property_colors_;
 };
 
 } // namespace core

@@ -91,22 +91,11 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color)),
 	base_color_color_active_(true),
 	base_color_texture_filename_(512, '\0'),
-	property_mask_texture_filename_(512, '\0'),
-	property_mappings_(32),
-	property_mapping_count_(0)
+	property_mask_texture_filename_(512, '\0')
 {
 	assert(p_hwnd);
 }
 
-void material_editor_view::update_property_mappings()
-{
-	const auto& colors = met_.property_mask_colors();
-	property_mapping_count_ = colors.size();
-	assert(property_mapping_count_ <= property_mappings_.size());
-	
-	for (size_t i = 0; i < property_mapping_count_; ++i)
-		property_mappings_[i].color = colors[i];
-}
 
 void material_editor_view::show()
 {
@@ -169,30 +158,45 @@ void material_editor_view::show_metal_roughness_ui()
 	if (ImGui::ImageButton(met_.p_tex_property_mask_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 		if (show_open_file_dialog(p_hwnd_, property_mask_texture_filename_)) {
 			met_.reload_property_mask_texture(property_mask_texture_filename_.c_str());
-			update_property_mappings();
+			met_.activate_properties_texture();
 		}
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("Reset")) {
-		met_.reset_property_mask_texutre();
-		update_property_mappings();
+		property_mask_texture_filename_[0] = '\0';
+		met_.reset_property_mask_texture();
+		met_.update_properties_color();
+		met_.activate_properties_color();
 	}
 
-	if (property_mapping_count_ <= 1) {
-		ImGui::Checkbox("Metal", &property_mappings_[0].metallic_mask);
-		ImGui::DragFloat("Roughness", &property_mappings_[0].roughness, 0.01f, 0.0f, 1.0f);
+	if (met_.property_count() <= 1) {
+		float2& props = met_.properties()[0];
+
+		bool upd = false;
+		bool check = props.x;
+		upd |= ImGui::Checkbox("Metal", &check);
+		upd |= ImGui::SliderFloat("Roughness", &props.y, 0.0f, 1.0f);
+		if (upd) {
+			props.x = (check) ? 1.0f : 0.0f;
+			met_.update_properties_color();
+		}
 	} 
 	else {
-		for (size_t i = 0; i < property_mapping_count_; ++i) {
-			auto& mp = property_mappings_[i];
-			const ImVec4 c = make_color_imvec4(mp.color);
+		bool upd = false;
+		for (size_t i = 0; i < met_.property_count(); ++i) {
+			const ImVec4 c = make_color_imvec4(met_.property_colors()[i]);
+			float2& props = met_.properties()[i];
 
 			ImGui::ColorButton("", c, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
 			ImGui::SameLine();
-			ImGui::Checkbox(property_mapping_widget_names[i * 2], &mp.metallic_mask);
+			bool check = props.x;
+			if (ImGui::Checkbox(property_mapping_widget_names[i * 2], &check)) {
+				upd = true;
+				props.x = (check) ? 1.0f : 0.0f;
+			}
 			ImGui::SameLine();
-			ImGui::DragFloat(property_mapping_widget_names[i * 2 + 1], &mp.roughness, 0.01f, 0.0f, 1.0f);
+			upd |= ImGui::SliderFloat(property_mapping_widget_names[i * 2 + 1], &props.y, 0.0f, 1.0f);
 		}
 	}
 }
