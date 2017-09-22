@@ -295,17 +295,70 @@ void envmap_texture_builder::save_skybox_to_file(const char* p_filename, ID3D11T
 	save_to_tex_file(p_filename, td);
 }
 
-// ----- material_composer -----
+// ----- material_properties_composer -----
 
-material_composer::material_composer(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
-	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug)
+material_properties_composer::material_properties_composer(ID3D11Device* p_device, 
+	ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler_point)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug), p_sampler_point_(p_sampler_point)
 {
 	assert(p_device);
 	assert(p_ctx);
 	assert(p_debug); // p_debug == nullptr in Release mode.
+	assert(p_sampler_point);
 
-	const hlsl_compute_desc hc("../../data/shaders/material_composer.compute.hlsl");
+	const hlsl_compute_desc hc("../../data/shaders/material_properties_composer.compute.hlsl");
 	compute_shader_ = hlsl_compute(p_device_, hc);
+	p_constant_buffer_ = make_constant_buffer(p_device, c_constant_buffer_max_byte_count);
+}
+
+void material_properties_composer::perform(const uint2& tex_properties_size, uint32_t property_count, 
+	const std::vector<uint32_t>& property_colors, const std::vector<float2>& property_values, 
+	ID3D11ShaderResourceView* p_tex_propery_mask_srv, ID3D11UnorderedAccessView* p_tex_properties_uav)
+{
+	assert(tex_properties_size > 0);
+	assert(property_count > 0);
+	assert(property_colors.size() >= property_count);
+	assert(property_values.size() >= property_count);
+	assert(p_tex_propery_mask_srv);
+	assert(p_tex_properties_uav);
+
+	// fill constant buffer ---
+	uint8_t cb[c_constant_buffer_max_byte_count];
+	// g_tex_properties_size
+	uint8_t* ptr = cb;
+	std::memcpy(ptr, &tex_properties_size.x, sizeof(uint2));
+	// g_property_count
+	ptr += sizeof(uint2);
+	std::memcpy(ptr, &property_count, sizeof(uint32_t));
+	// g_property_colors
+	ptr += 2 * sizeof(uint32_t);
+	std::memcpy(ptr, property_colors.data(), property_count * sizeof(uint32_t));
+	// g_property_values
+	ptr += c_property_max_count * sizeof(uint32_t);
+	std::memcpy(ptr, property_values.data(), property_count * sizeof(float2));
+	p_ctx_->UpdateSubresource(p_constant_buffer_, 0, nullptr, cb, 0, 0);
+
+	// setup compute pipeline & dispatch work ---
+	p_ctx_->CSSetShader(compute_shader_.p_compute_shader, nullptr, 0);
+	p_ctx_->CSSetConstantBuffers(0, 1, &p_constant_buffer_.ptr);
+	p_ctx_->CSSetSamplers(0, 1, &p_sampler_point_);
+	p_ctx_->CSSetShaderResources(0, 1, &p_tex_propery_mask_srv);
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, &p_tex_properties_uav, nullptr);
+
+#ifdef SPARKI_DEBUG
+	HRESULT hr = p_debug_->ValidateContextForDispatch(p_ctx_);
+	assert(hr == S_OK);
+#endif
+	const UINT gx = UINT(std::ceil(float(tex_properties_size.x) / c_compute_group_x_size));
+	const UINT gy = UINT(std::ceil(float(tex_properties_size.y) / c_compute_group_y_size));
+	p_ctx_->Dispatch(gx, gy, 1);
+
+	// reset srv & uav bindings ---
+	p_ctx_->CSSetShader(nullptr, nullptr, 0);
+	ID3D11ShaderResourceView* srv_list[1] = { nullptr };
+	p_ctx_->CSSetShaderResources(0, 1, srv_list);
+	ID3D11UnorderedAccessView* uav_list[1] = { nullptr };
+	p_ctx_->CSSetUnorderedAccessViews(0, 1, uav_list, nullptr);
 }
 
 // ----- unique_color_miner -----
@@ -332,13 +385,13 @@ unique_color_miner::unique_color_miner(ID3D11Device* p_device, ID3D11DeviceConte
 	assert(hr == S_OK);
 
 	// p_color_buffer & uav
-	p_color_buffer_ = make_structured_buffer(p_device_, sizeof(uint32_t), c_color_buffer_count,
+	p_color_buffer_ = make_structured_buffer(p_device_, sizeof(uint32_t), c_color_buffer_max_count,
 		D3D11_USAGE_DEFAULT, D3D11_BIND_UNORDERED_ACCESS);
-	uav_desc.Format = DXGI_FORMAT_UNKNOWN;
-	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-	uav_desc.Buffer.FirstElement = 0;
-	uav_desc.Buffer.NumElements = c_color_buffer_count;
-	uav_desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_COUNTER;
+	uav_desc.Format					= DXGI_FORMAT_UNKNOWN;
+	uav_desc.ViewDimension			= D3D11_UAV_DIMENSION_BUFFER;
+	uav_desc.Buffer.FirstElement	= 0;
+	uav_desc.Buffer.NumElements		= c_color_buffer_max_count;
+	uav_desc.Buffer.Flags			= D3D11_BUFFER_UAV_FLAG_COUNTER;
 	hr = p_device_->CreateUnorderedAccessView(p_color_buffer_, &uav_desc, &p_color_buffer_uav_.ptr);
 	assert(hr == S_OK);
 
@@ -396,7 +449,7 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 	assert(hr == S_OK);
 
 	const uint32_t* p_data = reinterpret_cast<const uint32_t*>(map.pData);
-	const uint32_t color_count = (*p_data <= c_color_buffer_count) ? (*p_data) : (c_color_buffer_count);
+	const uint32_t color_count = (*p_data <= c_color_buffer_max_count) ? (*p_data) : (c_color_buffer_max_count);
 	++p_data; // now it points to the first color if any.
 	if (color_count > 0) {
 		out_colors.resize(color_count);
@@ -412,8 +465,11 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 const ubyte4 material_editor_tool::c_default_color = ubyte4(0x7f, 0x7f, 0x7f, 0xff);
 
 
-material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug)
-	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug), color_miner_(p_device, p_ctx, p_debug)
+material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+	ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler_point)
+	: p_device_(p_device), p_ctx_(p_ctx), p_debug_(p_debug), 
+	color_miner_(p_device, p_ctx, p_debug),
+	properties_composer_(p_device, p_ctx, p_debug, p_sampler_point)
 {
 	assert(p_device);
 	assert(p_ctx);
@@ -423,9 +479,9 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 	init_reflect_color_textures();
 	init_property_mask_textures();
 
-	property_colors_.reserve(material_composer::c_property_mapping_max_count);
-	properties_.resize(material_composer::c_property_mapping_max_count);
-	properties_[0] = float2(c_default_metallic_mask, c_default_roughness);
+	property_colors_.reserve(material_properties_composer::c_property_max_count);
+	property_values_.resize(material_properties_composer::c_property_max_count);
+	property_values_[0] = float2(c_default_metallic_mask, c_default_roughness);
 
 	material_.p_tex_base_color_srv		= p_tex_base_color_color_srv_;
 	material_.p_tex_reflect_color_srv	= p_tex_reflect_color_color_srv_;
@@ -556,18 +612,20 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 	color_miner_.perform(p_tex_property_mask_srv_, xy(td.size), property_colors_);
 
 	D3D11_TEXTURE2D_DESC tex_desc = {};
-	tex_desc.Width				= 1;
-	tex_desc.Height				= 1;
+	tex_desc.Width				= UINT(td.size.x);
+	tex_desc.Height				= UINT(td.size.y);
 	tex_desc.MipLevels			= 1;
 	tex_desc.ArraySize			= 1;
 	tex_desc.Format				= DXGI_FORMAT_R32G32_FLOAT;
 	tex_desc.SampleDesc.Count	= 1;
 	tex_desc.SampleDesc.Quality = 0;
 	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
-	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	hr = p_device_->CreateTexture2D(&tex_desc, nullptr, &p_tex_properties_texture_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_properties_texture_, nullptr, &p_tex_properties_texture_srv_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateUnorderedAccessView(p_tex_properties_texture_, nullptr, &p_tex_properties_texture_uav_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -578,15 +636,15 @@ void material_editor_tool::reset_property_mask_texture()
 	property_colors_.clear();
 
 	D3D11_TEXTURE2D_DESC tex_desc = {};
-	tex_desc.Width = 1;
-	tex_desc.Height = 1;
-	tex_desc.MipLevels = 1;
-	tex_desc.ArraySize = 1;
-	tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	tex_desc.SampleDesc.Count = 1;
-	tex_desc.SampleDesc.Quality = 0;
-	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count	= 1;
+	tex_desc.SampleDesc.Quality	= 0;
+	tex_desc.Usage				= D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
 
 	const ubyte4 dc = unpack_8_8_8_8_into<ubyte4>(c_defualt_property_mask_color);
 	D3D11_SUBRESOURCE_DATA tex_data = {};
@@ -606,14 +664,20 @@ void material_editor_tool::update_base_color_color(const ubyte4& value)
 
 void material_editor_tool::update_properties_color()
 {
-	const float2 v = properties_[0];
+	const float2 v = property_values_[0];
 	p_ctx_->UpdateSubresource(p_tex_properties_color_, 0, nullptr,
 		&v.x, vector_traits<float2>::byte_count, 0);
 }
 
 void material_editor_tool::update_properties_texture()
 {
-
+	assert(p_tex_properties_texture_);
+	
+	D3D11_TEXTURE2D_DESC td;
+	p_tex_property_mask_->GetDesc(&td);
+	const uint2 size(td.Width, td.Height);
+	properties_composer_.perform(size, uint32_t(property_count()), property_colors_,
+		property_values_, p_tex_property_mask_srv_, p_tex_properties_texture_uav_);
 }
 
 } // namespace core

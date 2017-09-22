@@ -24,8 +24,6 @@ render_system::render_system(HWND p_hwnd, const uint2& viewport_size)
 	resize_viewport(viewport_size);
 	
 	ts::wait_for(wc);
-
-	//material_composer mc(p_device_, p_ctx_, p_debug_);
 }
 
 render_system::~render_system() noexcept
@@ -83,8 +81,10 @@ void render_system::init_passes_and_tools()
 
 	// rnd tools
 	p_brdf_integrator_		= std::make_unique<brdf_integrator>(p_device_, p_ctx_, p_debug_);
-	p_envmap_builder_		= std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, p_debug_, p_gbuffer_->p_sampler_linear);
-	p_material_editor_tool_ = std::make_unique<core::material_editor_tool>(p_device_, p_ctx_, p_debug_);
+	p_envmap_builder_		= std::make_unique<envmap_texture_builder>(p_device_, p_ctx_, 
+		p_debug_, p_gbuffer_->p_sampler_linear);
+	p_material_editor_tool_ = std::make_unique<core::material_editor_tool>(p_device_, p_ctx_, 
+		p_debug_, p_gbuffer_->p_sampler_point);
 	// rnd passes
 	p_skybox_pass_		= std::make_unique<skybox_pass>(p_device_, p_ctx_, p_debug_);
 	p_light_pass_		= std::make_unique<shading_pass>(p_device_, p_ctx_, p_debug_);
@@ -121,7 +121,12 @@ void render_system::draw_frame(frame& frame)
 	}
 
 	// present frame ---
-	p_swap_chain_->Present(0, 0);
+	p_swap_chain_->Present(1, 0);
+
+	constexpr UINT c_srv_count = 6;
+	ID3D11ShaderResourceView* srv_list[c_srv_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+	p_ctx_->VSSetShaderResources(0, c_srv_count, srv_list);
+	p_ctx_->PSSetShaderResources(0, c_srv_count, srv_list);
 }
 
 void render_system::resize_viewport(const uint2& size)

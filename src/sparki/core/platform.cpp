@@ -255,7 +255,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 		case WM_LBUTTONDOWN: 
 		{
-			assert(!gp_platform->input_state().mouse_is_out);
 			io.MouseDown[0] = true;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
@@ -263,7 +262,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 		case WM_LBUTTONUP:
 		{
-			assert(!gp_platform->input_state().mouse_is_out);
 			io.MouseDown[0] = false;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
@@ -271,7 +269,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 		case WM_MBUTTONDOWN:
 		{
-			assert(!gp_platform->input_state().mouse_is_out);
 			io.MouseDown[1] = true;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
@@ -279,7 +276,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 		case WM_MBUTTONUP:
 		{
-			assert(!gp_platform->input_state().mouse_is_out);
 			io.MouseDown[1] = false;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
@@ -287,7 +283,6 @@ LRESULT CALLBACK window_proc(HWND p_hwnd, UINT message, WPARAM w_param, LPARAM l
 
 		case WM_RBUTTONDOWN:
 		{
-			assert(!gp_platform->input_state().mouse_is_out);
 			io.MouseDown[2] = true;
 			gp_platform->enqueue_mouse_button(make_mouse_buttons(w_param));
 			return 0;
@@ -482,6 +477,7 @@ bool platform_system::process_sys_messages(event_listener_i& listener)
 
 			case sys_message::type::mouse_button:
 			{
+				input_state_.mouse_is_out = false;
 				input_state_.mouse_buttons = msg.mouse_buttons;
 				listener.on_mouse_click();
 				break;

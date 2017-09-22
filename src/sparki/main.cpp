@@ -14,7 +14,7 @@ void sparki_main()
 	const window_desc wnd_desc = {
 		/* title */			"SPARKi",
 		/* position */		uint2(90, 50),
-		/* viewport_size */	uint2(960, 540),
+		/* viewport_size */	uint2(1152, 648),
 		/* fullscreen */	false // NOTE(ref2401): true won't work cos it's not been implemented yet.
 	};
 

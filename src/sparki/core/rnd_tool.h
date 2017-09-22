@@ -84,24 +84,36 @@ private:
 	com_ptr<ID3D11Buffer>		p_cb_prefilter_envmap_;
 };
 
-class material_composer final {
+class material_properties_composer final {
 public:
 
-	static constexpr size_t c_property_mapping_max_count = 32;
+	static constexpr size_t c_property_max_count = 32;
 
 
-	material_composer(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_degub);
+	material_properties_composer(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+		ID3D11Debug* p_degub, ID3D11SamplerState* p_sampler_point);
 
-	material_composer(material_composer&&) = delete;
-	material_composer& operator=(material_composer&&) = delete;
+	material_properties_composer(material_properties_composer&&) = delete;
+	material_properties_composer& operator=(material_properties_composer&&) = delete;
 
+
+	void perform(const uint2& tex_properties_size, uint32_t property_count, 
+		const std::vector<uint32_t>& property_colors, const std::vector<float2>& property_values, 
+		ID3D11ShaderResourceView* p_tex_propery_mask_srv, ID3D11UnorderedAccessView* p_tex_properties_uav);
 
 private:
+
+	static constexpr size_t c_compute_group_x_size = 32;
+	static constexpr size_t c_compute_group_y_size = 32;
+	static constexpr size_t c_constant_buffer_max_byte_count = 4 * sizeof(uint32_t) 
+		+ c_property_max_count * (sizeof(uint32_t) + sizeof(float2));
 
 	ID3D11Device*			p_device_;
 	ID3D11DeviceContext*	p_ctx_;
 	ID3D11Debug*			p_debug_;
+	ID3D11SamplerState*		p_sampler_point_;
 	hlsl_compute			compute_shader_;
+	com_ptr<ID3D11Buffer>	p_constant_buffer_;
 };
 
 // Retrieves a list of unique colors from the specified image (up to 32 colors)
@@ -122,11 +134,10 @@ private:
 
 	static constexpr UINT c_compute_group_x_size		= 32;
 	static constexpr UINT c_compute_group_y_size		= 32;
-	static constexpr UINT c_color_buffer_count			= 32;
-	static constexpr UINT c_color_buffer_byte_count		= sizeof(uint32_t) * c_color_buffer_count;
+	static constexpr UINT c_color_buffer_max_count		= 32;
+	static constexpr UINT c_color_buffer_byte_count		= sizeof(uint32_t) * c_color_buffer_max_count;
 	static constexpr UINT c_hash_buffer_count			= 0x1'00'00'00; // 0xffffff + 1, or 2^24
-	static constexpr UINT c_result_buffer_count			= c_color_buffer_count + 1; // + 1 stands for color_buffer counter value.
-	static constexpr UINT c_result_buffer_byte_count	= sizeof(uint32_t) * c_result_buffer_count;
+	static constexpr UINT c_result_buffer_byte_count	= sizeof(uint32_t) * (c_color_buffer_max_count + 1); // + 1 stands for result_buffer counter value.
 
 
 	ID3D11Device*						p_device_;
@@ -146,7 +157,8 @@ public:
 	static const ubyte4			c_default_color;
 
 
-	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, ID3D11Debug* p_debug);
+	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
+		ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler_point);
 
 	material_editor_tool(material_editor_tool&&) = delete;
 	material_editor_tool& operator=(material_editor_tool&&) = delete;
@@ -162,15 +174,15 @@ public:
 		return property_colors_.size();
 	}
 
-	std::vector<float2>& properties() noexcept
-	{
-		return properties_;
-	}
-
 	const std::vector<uint32_t>& property_colors() const noexcept
 	{
 		return property_colors_;
 	};
+
+	std::vector<float2>& property_values() noexcept
+	{
+		return property_values_;
+	}
 
 	ID3D11ShaderResourceView* p_tex_base_color_color_srv() noexcept
 	{
@@ -244,10 +256,11 @@ private:
 	void init_property_mask_textures();
 
 
-	ID3D11Device*			p_device_;
-	ID3D11DeviceContext*	p_ctx_;
-	ID3D11Debug*			p_debug_;
-	unique_color_miner		color_miner_;
+	ID3D11Device*					p_device_;
+	ID3D11DeviceContext*			p_ctx_;
+	ID3D11Debug*					p_debug_;
+	unique_color_miner				color_miner_;
+	material_properties_composer	properties_composer_;
 	// current material stuff ---
 	material							material_;
 	// base color ---
@@ -267,8 +280,9 @@ private:
 	com_ptr<ID3D11ShaderResourceView>	p_tex_properties_color_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_properties_texture_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_properties_texture_srv_;
-	std::vector<float2>					properties_;
+	com_ptr<ID3D11UnorderedAccessView>	p_tex_properties_texture_uav_;
 	std::vector<uint32_t>				property_colors_;
+	std::vector<float2>					property_values_;
 };
 
 } // namespace core

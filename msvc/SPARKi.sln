@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.4
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SPARKi", "SPARKi.vcxproj", "{B914CE57-AB1B-45C9-8ACA-9F5BED648015}"
 EndProject
@@ -19,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shaders", "shaders", "{645E
 		..\data\shaders\downsample.compute.hlsl = ..\data\shaders\downsample.compute.hlsl
 		..\data\shaders\equirect_to_skybox.compute.hlsl = ..\data\shaders\equirect_to_skybox.compute.hlsl
 		..\data\shaders\fxaa_pass.compute.hlsl = ..\data\shaders\fxaa_pass.compute.hlsl
-		..\data\shaders\material_composer.compute.hlsl = ..\data\shaders\material_composer.compute.hlsl
+		..\data\shaders\material_properties_composer.compute.hlsl = ..\data\shaders\material_properties_composer.compute.hlsl
 		..\data\shaders\shading_pass.hlsl = ..\data\shaders\shading_pass.hlsl
 		..\data\shaders\skybox_pass.hlsl = ..\data\shaders\skybox_pass.hlsl
 		..\data\shaders\specular_brdf_integrator.compute.hlsl = ..\data\shaders\specular_brdf_integrator.compute.hlsl
@@ -67,5 +67,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{86920BEB-F256-41EC-AC89-5EE139753123} = {895BC849-EE28-44A5-A8CF-B20889198FB4}
 		{8536E6B6-7C5B-4820-B10E-9757E06D20FB} = {895BC849-EE28-44A5-A8CF-B20889198FB4}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E7204749-3248-449A-B022-53A96E7C87D5}
 	EndGlobalSection
 EndGlobal
