@@ -154,7 +154,8 @@ private:
 class material_editor_tool final {
 public:
 
-	static const ubyte4			c_default_color;
+	// default base or reflect color value
+	static const ubyte4		c_default_color;
 
 
 	material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
@@ -220,6 +221,16 @@ public:
 		material_.p_tex_base_color_srv = p_tex_base_color_texture_srv_;
 	}
 
+	void activate_reflect_color_color() noexcept
+	{
+		material_.p_tex_reflect_color_srv = p_tex_reflect_color_color_srv_;
+	}
+
+	void activate_reflect_color_texture() noexcept
+	{
+		material_.p_tex_reflect_color_srv = p_tex_reflect_color_texture_srv_;
+	}
+
 	void activate_properties_color() noexcept
 	{
 		material_.p_tex_properties_srv = p_tex_properties_color_srv_;
@@ -230,13 +241,17 @@ public:
 		material_.p_tex_properties_srv = p_tex_properties_texture_srv_;
 	}
 
-	void reload_base_color_input_texture(const char* p_filename);
+	void reload_base_color_texture(const char* p_filename);
+
+	void reload_reflect_color_texture(const char* p_filename);
 
 	void reload_property_mask_texture(const char* p_filename);
 
 	void reset_property_mask_texture();
 
-	void update_base_color_color(const ubyte4& value);
+	void update_base_color_color(const ubyte4& rgba);
+
+	void update_reflect_color_color(const ubyte4& rgba);
 
 	void update_properties_color();
 

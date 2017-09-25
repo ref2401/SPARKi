@@ -462,8 +462,7 @@ void unique_color_miner::perform(ID3D11ShaderResourceView* p_tex_image_srv, cons
 
 // ----- material_editor_tool -----
 
-const ubyte4 material_editor_tool::c_default_color = ubyte4(0x7f, 0x7f, 0x7f, 0xff);
-
+const ubyte4 material_editor_tool::c_default_color	= ubyte4(0x7f, 0x7f, 0x7f, 0xff);
 
 material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceContext* p_ctx, 
 	ID3D11Debug* p_debug, ID3D11SamplerState* p_sampler_point)
@@ -512,9 +511,9 @@ void material_editor_tool::init_base_color_textures()
 	assert(hr == S_OK);
 
 	// base_color_texture ---
-	const ubyte4 default_texture(0xff);
+	const ubyte4 btc(0xff);
 	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_data.pSysMem = &default_texture;
+	tex_data.pSysMem = &btc.x;
 	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_base_color_texture_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_base_color_texture_, nullptr, &p_tex_base_color_texture_srv_.ptr);
@@ -534,9 +533,8 @@ void material_editor_tool::init_reflect_color_textures()
 	tex_desc.Usage				= D3D11_USAGE_DEFAULT;
 	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
 
-	const ubyte4 default_color(0x7f, 0x7f, 0x7f, 0xff);
 	D3D11_SUBRESOURCE_DATA tex_data = {};
-	tex_data.pSysMem		= &default_color.x;
+	tex_data.pSysMem		= &c_default_color.x;
 	tex_data.SysMemPitch	= vector_traits<ubyte4>::byte_count;
 
 	// reflect_color_color ---
@@ -546,9 +544,9 @@ void material_editor_tool::init_reflect_color_textures()
 	assert(hr == S_OK);
 
 	// reflect_color_texture ---
-	const ubyte4 default_texture(0xff);
+	const ubyte4 rtc(0xff);
 	tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
-	tex_data.pSysMem = &default_texture;
+	tex_data.pSysMem = &rtc.x;
 	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_texture_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_texture_, nullptr, &p_tex_reflect_color_texture_srv_.ptr);
@@ -580,7 +578,7 @@ void material_editor_tool::init_property_mask_textures()
 	assert(hr == S_OK);
 }
 
-void material_editor_tool::reload_base_color_input_texture(const char* p_filename)
+void material_editor_tool::reload_base_color_texture(const char* p_filename)
 {
 	assert(p_filename);
 
@@ -592,6 +590,21 @@ void material_editor_tool::reload_base_color_input_texture(const char* p_filenam
 		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_texture_, nullptr, 
 		&p_tex_base_color_texture_srv_.ptr);
+	assert(hr == S_OK);
+}
+
+void material_editor_tool::reload_reflect_color_texture(const char* p_filename)
+{
+	assert(p_filename);
+
+	p_tex_reflect_color_texture_srv_.dispose();
+	p_tex_reflect_color_texture_.dispose();
+
+	const texture_data td = load_from_image_file(p_filename, 4);
+	p_tex_reflect_color_texture_ = make_texture_2d(p_device_, td,
+		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_texture_, nullptr,
+		&p_tex_reflect_color_texture_srv_.ptr);
 	assert(hr == S_OK);
 }
 
@@ -656,10 +669,16 @@ void material_editor_tool::reset_property_mask_texture()
 	assert(hr == S_OK);
 }
 
-void material_editor_tool::update_base_color_color(const ubyte4& value)
+void material_editor_tool::update_base_color_color(const ubyte4& rgba)
 {
 	p_ctx_->UpdateSubresource(p_tex_base_color_color_, 0, nullptr,
-		&value.x, vector_traits<ubyte4>::byte_count, 0);
+		&rgba.x, vector_traits<ubyte4>::byte_count, 0);
+}
+
+void material_editor_tool::update_reflect_color_color(const ubyte4& rgba)
+{
+	p_ctx_->UpdateSubresource(p_tex_reflect_color_color_, 0, nullptr,
+		&rgba.x, vector_traits<ubyte4>::byte_count, 0);
 }
 
 void material_editor_tool::update_properties_color()

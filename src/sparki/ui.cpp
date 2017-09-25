@@ -87,10 +87,12 @@ namespace sparki {
 material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_tool& met)
 	: p_hwnd_(p_hwnd),
 	met_(met),
-	name_("My Material #1"),
 	base_color_color_(make_color_float3(core::material_editor_tool::c_default_color)),
 	base_color_color_active_(true),
 	base_color_texture_filename_(512, '\0'),
+	reflect_color_color_(base_color_color_),
+	reflect_color_color_active_(true),
+	reflect_color_texture_filename_(512, '\0'),
 	property_mask_texture_filename_(512, '\0')
 {
 	assert(p_hwnd);
@@ -99,13 +101,22 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 void material_editor_view::show()
 {
 	ImGui::Begin("Material Properties");
-	ImGui::InputText("Name", name_, c_material_name_max_length);
-	ImGui::Spacing(); 
-	ImGui::Spacing();
-	
+
 	// base color ---
-	if (ImGui::CollapsingHeader("Base Color", ImGuiTreeNodeFlags_DefaultOpen)) show_base_color_ui();
-	if (ImGui::CollapsingHeader("Metal & Roughness", ImGuiTreeNodeFlags_DefaultOpen)) show_metal_roughness_ui();
+	if (ImGui::CollapsingHeader("Base Color", ImGuiTreeNodeFlags_DefaultOpen))
+		show_base_color_ui();
+
+	// reflect color ---
+	ImGui::Spacing();
+	ImGui::Spacing();
+	if (ImGui::CollapsingHeader("Reflect Color", ImGuiTreeNodeFlags_DefaultOpen))
+		show_reflect_color_ui();
+
+	// material properties ---
+	ImGui::Spacing();
+	ImGui::Spacing();
+	if (ImGui::CollapsingHeader("Metal & Roughness", ImGuiTreeNodeFlags_DefaultOpen)) 
+		show_material_properties_ui();
 
 	ImGui::End();
 }
@@ -139,7 +150,7 @@ void material_editor_view::show_base_color_ui()
 		if (ImGui::ImageButton(met_.p_tex_base_color_texture_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
 			if (!base_color_color_active_) {
 				if (show_open_file_dialog(p_hwnd_, base_color_texture_filename_))
-					met_.reload_base_color_input_texture(base_color_texture_filename_.c_str());
+					met_.reload_base_color_texture(base_color_texture_filename_.c_str());
 			}
 			base_color_color_active_ = false;
 		}
@@ -152,7 +163,49 @@ void material_editor_view::show_base_color_ui()
 	else met_.activate_base_color_texture();
 }
 
-void material_editor_view::show_metal_roughness_ui()
+void material_editor_view::show_reflect_color_ui()
+{
+	ImVec4 rcc_color(0.2f, 0.85f, 0.2f, 1.0f);
+	ImVec4 rct_color(0.3f, 0.3f, 0.3f, 1.0f);
+	if (!reflect_color_color_active_) std::swap(rcc_color, rct_color);
+
+	ImGui::BeginGroup();
+	// color ---
+	ImGui::BeginGroup();
+	ImGui::TextColored(rcc_color, "Color");
+	if (ImGui::ImageButton(met_.p_tex_reflect_color_color_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (reflect_color_color_active_) ImGui::OpenPopup("rcc_popup");
+		reflect_color_color_active_ = true;
+	}
+	ImGui::EndGroup();
+	if (ImGui::BeginPopup("rcc_popup")) {
+		ImGui::ColorPicker3("##rcc_picker", &reflect_color_color_.x);
+		ImGui::EndPopup();
+		met_.update_reflect_color_color(make_color_ubyte4(reflect_color_color_, 1.0f));
+	}
+
+	ImGui::SameLine();
+
+	// texture ---
+	ImGui::BeginGroup();
+	ImGui::TextColored(rct_color, "Texture");
+	if (ImGui::ImageButton(met_.p_tex_reflect_color_texture_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (!reflect_color_color_active_) {
+			if (show_open_file_dialog(p_hwnd_, reflect_color_texture_filename_))
+				met_.reload_reflect_color_texture(reflect_color_texture_filename_.c_str());
+		}
+		reflect_color_color_active_ = false;
+	}
+	ImGui::EndGroup();
+
+	ImGui::EndGroup();
+	ImGui::Spacing();
+
+	if (reflect_color_color_active_) met_.activate_reflect_color_color();
+	else met_.activate_reflect_color_texture();
+}
+
+void material_editor_view::show_material_properties_ui()
 {
 	bool update_properties_texture = false;
 	if (ImGui::ImageButton(met_.p_tex_property_mask_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
