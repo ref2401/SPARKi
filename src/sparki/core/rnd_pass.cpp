@@ -245,7 +245,7 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 	const UINT rnd_gy = UINT(gbuffer.rnd_viewport.Height) / postproc_pass::postproc_compute_group_y_size
 		+ ((std::fmod(gbuffer.rnd_viewport.Height, postproc_pass::postproc_compute_group_y_size) > 0) ? 1 : 0);
 
-	// ---- tone mapping pass -----
+	// tone mapping pass -----
 	p_ctx_->CSSetShader(tone_mapping_compute_.p_compute_shader, nullptr, 0);
 	p_ctx_->CSSetShaderResources(0, 1, &gbuffer.p_tex_color_srv.ptr);
 	p_ctx_->CSSetUnorderedAccessViews(0, 1, &gbuffer.p_tex_tone_mapping_uav.ptr, nullptr);
@@ -255,7 +255,7 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 #endif
 	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
-	// ---- anti-aliasing pass -----
+	// anti-aliasing pass -----
 	p_ctx_->CSSetShader(fxaa_compute_.p_compute_shader, nullptr, 0);
 	ID3D11SamplerState* sampler_list[2] = { gbuffer.p_sampler_linear, gbuffer.p_sampler_point };
 	p_ctx_->CSSetSamplers(0, 2, sampler_list);
@@ -267,7 +267,7 @@ void postproc_pass::perform(const gbuffer& gbuffer, ID3D11UnorderedAccessView* p
 #endif
 	p_ctx_->Dispatch(rnd_gx, rnd_gy, 1);
 
-	// ---- downsample pass -----
+	// downsample pass -----
 	const UINT wnd_gx = UINT(gbuffer.window_viewport.Width) / postproc_pass::downsample_compute_group_x_size
 		+ ((std::fmod(gbuffer.window_viewport.Width, postproc_pass::downsample_compute_group_x_size) > 0) ? 1 : 0);
 	const UINT wnd_gy = UINT(gbuffer.window_viewport.Height) / postproc_pass::downsample_compute_group_y_size

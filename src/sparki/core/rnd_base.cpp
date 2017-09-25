@@ -186,15 +186,15 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 
 	// update color texture & its views
 	D3D11_TEXTURE2D_DESC color_desc = {};
-	color_desc.Width = width;
-	color_desc.Height = height;
-	color_desc.MipLevels = 1;
-	color_desc.ArraySize = 1;
-	color_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	color_desc.SampleDesc.Count = 1;
-	color_desc.SampleDesc.Quality = 0;
-	color_desc.Usage = D3D11_USAGE_DEFAULT;
-	color_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	color_desc.Width				= width;
+	color_desc.Height				= height;
+	color_desc.MipLevels			= 1;
+	color_desc.ArraySize			= 1;
+	color_desc.Format				= DXGI_FORMAT_R32G32B32A32_FLOAT;
+	color_desc.SampleDesc.Count		= 1;
+	color_desc.SampleDesc.Quality	= 0;
+	color_desc.Usage				= D3D11_USAGE_DEFAULT;
+	color_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	HRESULT hr = p_device->CreateTexture2D(&color_desc, nullptr, &p_tex_color.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateShaderResourceView(p_tex_color, nullptr, &p_tex_color_srv.ptr);
@@ -204,15 +204,15 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 
 	// update postproc textures & its view
 	D3D11_TEXTURE2D_DESC pp_desc = {};
-	pp_desc.Width = width;
-	pp_desc.Height = height;
-	pp_desc.MipLevels = 1;
-	pp_desc.ArraySize = 1;
-	pp_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	pp_desc.SampleDesc.Count = 1;
-	pp_desc.SampleDesc.Quality = 0;
-	pp_desc.Usage = D3D11_USAGE_DEFAULT;
-	pp_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	pp_desc.Width				= width;
+	pp_desc.Height				= height;
+	pp_desc.MipLevels			= 1;
+	pp_desc.ArraySize			= 1;
+	pp_desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	pp_desc.SampleDesc.Count	= 1;
+	pp_desc.SampleDesc.Quality	= 0;
+	pp_desc.Usage				= D3D11_USAGE_DEFAULT;
+	pp_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 	hr = p_device->CreateTexture2D(&pp_desc, nullptr, &p_tex_tone_mapping.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateShaderResourceView(p_tex_tone_mapping, nullptr, &p_tex_tone_mapping_srv.ptr);
@@ -230,15 +230,15 @@ void gbuffer::resize(ID3D11Device* p_device, const uint2 size)
 
 	// update depth texture & its views
 	D3D11_TEXTURE2D_DESC ds_desc = {};
-	ds_desc.Width = width;
-	ds_desc.Height = height;
-	ds_desc.MipLevels = 1;
-	ds_desc.ArraySize = 1;
-	ds_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	ds_desc.SampleDesc.Count = 1;
-	ds_desc.SampleDesc.Quality = 0;
-	ds_desc.Usage = D3D11_USAGE_DEFAULT;
-	ds_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	ds_desc.Width				= width;
+	ds_desc.Height				= height;
+	ds_desc.MipLevels			= 1;
+	ds_desc.ArraySize			= 1;
+	ds_desc.Format				= DXGI_FORMAT_D32_FLOAT;
+	ds_desc.SampleDesc.Count	= 1;
+	ds_desc.SampleDesc.Quality	= 0;
+	ds_desc.Usage				= D3D11_USAGE_DEFAULT;
+	ds_desc.BindFlags			= D3D11_BIND_DEPTH_STENCIL;
 	hr = p_device->CreateTexture2D(&ds_desc, nullptr, &p_tex_depth.ptr);
 	assert(hr == S_OK);
 	hr = p_device->CreateDepthStencilView(p_tex_depth, nullptr, &p_tex_depth_dsv.ptr);

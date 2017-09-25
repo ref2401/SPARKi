@@ -6,10 +6,10 @@ static const float exploration_uv_step_factors[exploration_iteration_count] = {
 	1.0, 1.0, 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 
 };
 
-Texture2D<float4>	g_tex_tone_mapping	: register(t0);
-SamplerState		g_sampler_linear	: register(s0);
-SamplerState		g_sampler_point		: register(s1);
-RWTexture2D<float4> g_tex_aa			: register(u0);
+Texture2D<float4>			g_tex_tone_mapping	: register(t0);
+SamplerState				g_sampler_linear	: register(s0);
+SamplerState				g_sampler_point		: register(s1);
+RWTexture2D<unorm float4>	g_tex_aa			: register(u0);
 
 
 [numthreads(512, 2, 1)]
@@ -25,7 +25,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float2 uv = float2((2.0 * float2(dt_id.xy) + 1) * rcp_tex_size * 0.5);
 	const float3 rgb_c = g_tex_tone_mapping.Load(uint3(dt_id.xy, 0)).rgb;
 	
-	// ----- local contrast test -----
+	// local contrast test -----
 	const float4 luma_4a = g_tex_tone_mapping.GatherAlpha(g_sampler_point, uv);
 	const float4 luma_4b = g_tex_tone_mapping.GatherAlpha(g_sampler_point, uv, int2(-1, -1));
 	const float luma_n	= luma_4b.z;
@@ -47,7 +47,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 		return;
 	}
 
-	// ----- choosing edge direction -----
+	// choosing edge direction -----
 	const float luma_ne = g_tex_tone_mapping.SampleLevel(g_sampler_point, uv, 0, int2(1, -1)).a;
 	const float luma_sw = g_tex_tone_mapping.SampleLevel(g_sampler_point, uv, 0, int2(-1, 1)).a;
 
@@ -67,7 +67,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 		+ abs(luma_swse - 2.0 * luma_s);
 	const bool is_horizontal = (edge_horz >= edge_vert);
 
-	// ----- find edge orientation -----
+	// find edge orientation -----
 	const float luma_0 = (is_horizontal) ? (luma_n) : (luma_w);
 	const float luma_1 = (is_horizontal) ? (luma_s) : (luma_e);
 	const float gradient_0 = abs(luma_0 - luma_c);
@@ -84,7 +84,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const float2 uv_edge = uv + (float2)(0.5 * step_size) 
 		* ((is_horizontal) ? float2(0, 1) : float2(1, 0));
 
-	// ----- edge exploration (the first iteration) -----
+	// edge exploration (the first iteration) -----
 	const float gradient_scaled = 0.25 * max(gradient_0, gradient_1);
 	const float2 uv_step = (is_horizontal) ? float2(rcp_tex_size.x, 0) : float2(0, rcp_tex_size.y);
 	float2 uv_end_0 = uv_edge - uv_step;
@@ -96,7 +96,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	bool reached_end_0 = (abs(luma_end_0) >= gradient_scaled);
 	bool reached_end_1 = (abs(luma_end_1) >= gradient_scaled);
 
-	// ----- edge exploration (iterations [0, exploration_iteration_count]) -----
+	// edge exploration (iterations [0, exploration_iteration_count]) -----
 	if (!(reached_end_0 && reached_end_1)) {
 		for (uint i = 0; i < exploration_iteration_count; ++i) {
 			const float factor = exploration_uv_step_factors[i];
@@ -119,7 +119,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 		}
 	}
 
-	// ----- estimating offsets -----
+	// estimating offsets -----
 	const float dist_0 = (is_horizontal) ? (uv.x - uv_end_0.x) : (uv.y - uv_end_0.y);
 	const float dist_1 = (is_horizontal) ? (uv_end_1.x - uv.x) : (uv_end_1.y - uv.y);
 	const float min_dist = min(dist_0, dist_1);
@@ -131,7 +131,7 @@ void cs_main(uint3 dt_id : SV_DispatchThreadId)
 	const bool good_span_1 = ((luma_end_1 < 0.0) != is_luma_c_smaller);
 	const bool good_span = (dist_0 < dist_1) ? (good_span_0) : (good_span_1);
 
-	// ----- subpixel anti-aliasing -----
+	// subpixel anti-aliasing -----
 	const float luma_avg = (2.0 * (luma_ns + luma_we) + luma_nwsw + luma_nese) / 12.0;
 	const float subpix_offset_0 = saturate(abs(luma_avg - luma_c) / local_contrast);
 	const float subpix_offset_1 = (-2.0 * subpix_offset_0 + 3) * subpix_offset_0 * subpix_offset_0;

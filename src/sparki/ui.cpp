@@ -94,10 +94,6 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	property_mask_texture_filename_(512, '\0')
 {
 	assert(p_hwnd);
-
-	met_.reload_property_mask_texture("../../data/test_unique_color_miner.png");
-	met_.activate_properties_texture();
-	met_.update_properties_texture();
 }
 
 void material_editor_view::show()

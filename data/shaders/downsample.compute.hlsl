@@ -1,7 +1,7 @@
 
-Texture2D<float4>	g_tex_src	: register(t0);
-SamplerState		g_sampler	: register(s0);
-RWTexture2D<float4> g_tex_dest	: register(u0);
+Texture2D<float4>			g_tex_src	: register(t0);
+SamplerState				g_sampler	: register(s0);
+RWTexture2D<unorm float4>	g_tex_dest	: register(u0);
 
 
 [numthreads(32, 32, 1)]

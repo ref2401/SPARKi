@@ -1,6 +1,6 @@
 
-Texture2D<float4>	g_tex_color	: register(t0);
-RWTexture2D<float4>	g_tex_ldr	: register(u0);
+Texture2D<float4>			g_tex_color	: register(t0);
+RWTexture2D<unorm float4>	g_tex_ldr	: register(u0);
 
 
 // Performs tone mapping and computes luminanece.
