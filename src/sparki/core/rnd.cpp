@@ -123,8 +123,9 @@ void render_system::draw_frame(frame& frame)
 	// present frame ---
 	p_swap_chain_->Present(1, 0);
 
-	constexpr UINT c_srv_count = 6;
-	ID3D11ShaderResourceView* srv_list[c_srv_count] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+	constexpr UINT c_srv_count = 7;
+	ID3D11ShaderResourceView* srv_list[c_srv_count] = { nullptr, nullptr, nullptr, 
+		nullptr, nullptr, nullptr, nullptr };
 	p_ctx_->VSSetShaderResources(0, c_srv_count, srv_list);
 	p_ctx_->PSSetShaderResources(0, c_srv_count, srv_list);
 }

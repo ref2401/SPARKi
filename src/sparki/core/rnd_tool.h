@@ -268,6 +268,8 @@ private:
 
 	void init_reflect_color_textures();
 
+	void init_normal_map_textures();
+
 	void init_property_mask_textures();
 
 
@@ -288,6 +290,9 @@ private:
 	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_color_srv_;
 	com_ptr<ID3D11Texture2D>			p_tex_reflect_color_texture_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_reflect_color_texture_srv_;
+	// normal map ---
+	com_ptr<ID3D11Texture2D>			p_tex_normal_map_;
+	com_ptr<ID3D11ShaderResourceView>	p_tex_normal_map_srv_;
 	// parameter mask ---
 	com_ptr<ID3D11Texture2D>			p_tex_property_mask_;
 	com_ptr<ID3D11ShaderResourceView>	p_tex_property_mask_srv_;

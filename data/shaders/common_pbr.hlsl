@@ -152,10 +152,10 @@ float4 importance_sample_ggx(float2 xi, float linear_roughness)
 	return float4(h, ggx * cos_theta);
 }
 
-float3 specular_dominant_dir(float3 n_ms, float3 rv_ms, float linear_roughness)
+float3 specular_dominant_dir(float3 n, float3 v, float linear_roughness)
 {
 	// see Moving Frostbite to Physically Based Rendering 3.0
 	const float s = saturate(1 - linear_roughness);
 	const float factor = s * (sqrt(s) + linear_roughness);
-	return lerp(n_ms, rv_ms, factor);
+	return lerp(n, v, factor);
 }

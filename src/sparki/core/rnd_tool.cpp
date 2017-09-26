@@ -476,6 +476,7 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 	init_base_color_textures();
 	init_reflect_color_textures();
+	init_normal_map_textures();
 	init_property_mask_textures();
 
 	property_colors_.reserve(material_properties_composer::c_property_max_count);
@@ -484,6 +485,7 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 	material_.p_tex_base_color_srv		= p_tex_base_color_color_srv_;
 	material_.p_tex_reflect_color_srv	= p_tex_reflect_color_color_srv_;
+	material_.p_tex_normal_map_srv		= p_tex_normal_map_srv_;
 	material_.p_tex_properties_srv		= p_tex_properties_color_srv_;
 }
 
@@ -550,6 +552,15 @@ void material_editor_tool::init_reflect_color_textures()
 	hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_reflect_color_texture_.ptr);
 	assert(hr == S_OK);
 	hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_texture_, nullptr, &p_tex_reflect_color_texture_srv_.ptr);
+	assert(hr == S_OK);
+}
+
+void material_editor_tool::init_normal_map_textures()
+{
+	const texture_data td = load_from_image_file("../../data/material_normal_map.png", 4, true);
+	p_tex_normal_map_ = make_texture_2d(p_device_, td,
+		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_normal_map_, nullptr, &p_tex_normal_map_srv_.ptr);
 	assert(hr == S_OK);
 }
 

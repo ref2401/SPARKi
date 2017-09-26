@@ -21,34 +21,30 @@ struct vertex {
 
 struct vs_output {
 	float4 position_cs			: SV_Position;
-	float3 n_ms					: PIXEL_N_MS;
-	float3 refleced_view_ms		: PIXEL_REFLEC_VIEW_MS;
 	float3 v_ts					: PIXEL_V_TS;
 	float2 uv					: PIXEL_UV;
+	float3x3 model_to_tangent	: PIXEL_MODEL_TO_TANGENT;
 };
 
 vs_output vs_main(vertex vertex)
 {
 	// tangent space matrix
 	const float4 ts_ms				= vertex.tangent_space_ms * 2.0f - 1.0f;
-	const float3 normal_ws			= (mul(g_normal_matrix, float4(vertex.normal_ms, 1.0f))).xyz;
-	const float3 tangent_ws			= (mul(g_normal_matrix, float4(ts_ms.xyz, 1.0f))).xyz;
-	const float3 bitangent_ws		= ts_ms.w * cross(normal_ws, tangent_ws);
-	const float3x3 world_to_tangent = float3x3(tangent_ws, bitangent_ws, normal_ws);
+	const float3 bitangent_ms		= ts_ms.w * cross(vertex.normal_ms, ts_ms.xyz);
+	const float3x3 model_to_tangent = float3x3(ts_ms.xyz, bitangent_ms, vertex.normal_ms);
+	const float3x3 world_to_tangent = mul(model_to_tangent, float3x3(
+		g_model_matrix._m00_m10_m20,
+		g_model_matrix._m01_m11_m21,
+		g_model_matrix._m02_m12_m22));
 
 	const float3 p_ws = mul(g_model_matrix, float4(vertex.position_ms, 1)).xyz;
 	const float3 v_ws = (g_view_position_ws - p_ws);
-	// reflected view vector, model space
-	const float3 v_ms = normalize(vertex.position_ms - g_view_position_ms); // direction is reversed by purpose.
-	const float3 r_ms = reflect(v_ms, vertex.normal_ms);
 
 	vs_output o;
 	o.position_cs		= mul(g_pv_matrix, float4(p_ws, 1.0));
-	o.n_ms				= vertex.normal_ms;
-	o.refleced_view_ms	= r_ms;
 	o.v_ts				= mul(world_to_tangent, v_ws);
 	o.uv				= vertex.uv;
-
+	o.model_to_tangent	= model_to_tangent;
 	return o;
 }
 
@@ -59,7 +55,8 @@ TextureCube<float4>	g_tex_specular_envmap	: register(t1);
 Texture2D<float2>	g_tex_specular_brdf		: register(t2);
 Texture2D<float4>	g_tex_base_color		: register(t3);
 Texture2D<float4>	g_tex_reflect_color		: register(t4);
-Texture2D<float2>	g_tex_properties		: register(t5);
+Texture2D<float4>	g_tex_normal_map		: register(t5);
+Texture2D<float2>	g_tex_properties		: register(t6);
 SamplerState		g_sampler				: register(s0);
 
 
@@ -82,24 +79,26 @@ float3 eval_ibl(float3 cube_dir_ms, float dot_nv, float linear_roughness, float3
 
 ps_output ps_main(vs_output pixel)
 {
-	const float3 n_ts	= float3(0, 0, 1); // sample normal from a normal map.
+	const float3 n_ts = normalize(g_tex_normal_map.Sample(g_sampler, pixel.uv).xyz * 2.0f - 1.0f); // sample normal from a normal map.
 	const float3 v_ts	= normalize(pixel.v_ts);
 	const float	dot_nv	= saturate(dot(n_ts, v_ts));
-	const float3 n_ms	= normalize(pixel.n_ms);
-	const float3 rv_ms	= normalize(pixel.refleced_view_ms);
 
-	// material properties
-	const float4	base_color			= g_tex_base_color.Sample(g_sampler, pixel.uv);
+	// material properties ---
+	const float3	base_color			= g_tex_base_color.Sample(g_sampler, pixel.uv).rgb;
 	const float3	reflect_color		= 0.16 * pow(g_tex_reflect_color.Sample(g_sampler, pixel.uv).rgb, 2);
 	const float2	props				= g_tex_properties.Sample(g_sampler, pixel.uv);
 	const float		metallic_mask		= props.x;
 	const float		linear_roughness	= props.y;
 
-	// eval brdf
-	const float3 cube_dir_ms	= specular_dominant_dir(n_ms, rv_ms, linear_roughness);
-	const float3 f0				= lerp(reflect_color, base_color, metallic_mask);
+	// cube sample direction ---
+	const float3 rv_ts = reflect(-v_ts, n_ts);
+	const float3 cube_dir_ts = specular_dominant_dir(n_ts, rv_ts, linear_roughness);
+	const float3 cube_dir_ms = mul(cube_dir_ts, pixel.model_to_tangent); // == mul(transpose(model_to_tangent), cube_dir_ts);
+
+	// eval brdf ---
+	const float3 f0				= lerp(reflect_color, base_color.xyz, metallic_mask);
 	const float3 fresnel		= fresnel_schlick(f0, dot_nv);
-	const float3 diffuse_color	= base_color * (1.0 - fresnel) * (1 - metallic_mask);
+	const float3 diffuse_color	= base_color * ((float3)1.0 - fresnel) * (1 - metallic_mask);
 
 	float3 color = 0;
 	color += eval_ibl(cube_dir_ms, dot_nv, linear_roughness, f0, diffuse_color);

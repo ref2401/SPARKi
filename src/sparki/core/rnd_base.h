@@ -155,6 +155,7 @@ private:
 struct material final {
 	ID3D11ShaderResourceView*	p_tex_base_color_srv = nullptr;
 	ID3D11ShaderResourceView*	p_tex_reflect_color_srv = nullptr;
+	ID3D11ShaderResourceView*	p_tex_normal_map_srv = nullptr;
 	ID3D11ShaderResourceView*	p_tex_properties_srv = nullptr;
 };
 
