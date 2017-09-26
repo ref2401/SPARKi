@@ -205,6 +205,11 @@ public:
 		return p_tex_reflect_color_texture_srv_;
 	}
 
+	ID3D11ShaderResourceView* p_tex_normal_map_srv() noexcept
+	{
+		return p_tex_normal_map_srv_;
+	}
+
 	ID3D11ShaderResourceView* p_tex_property_mask_srv() noexcept
 	{
 		return p_tex_property_mask_srv_;
@@ -245,7 +250,11 @@ public:
 
 	void reload_reflect_color_texture(const char* p_filename);
 
+	void reload_normal_map_texture(const char* p_filename);
+
 	void reload_property_mask_texture(const char* p_filename);
+
+	void reset_normal_map_texture();
 
 	void reset_property_mask_texture();
 
@@ -267,8 +276,6 @@ private:
 	void init_base_color_textures();
 
 	void init_reflect_color_textures();
-
-	void init_normal_map_textures();
 
 	void init_property_mask_textures();
 

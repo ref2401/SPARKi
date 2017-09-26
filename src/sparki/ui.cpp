@@ -93,6 +93,7 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 	reflect_color_color_(base_color_color_),
 	reflect_color_color_active_(true),
 	reflect_color_texture_filename_(512, '\0'),
+	normal_map_filename_(512, '\0'),
 	property_mask_texture_filename_(512, '\0')
 {
 	assert(p_hwnd);
@@ -112,6 +113,10 @@ void material_editor_view::show()
 	ImGui::Spacing();
 	if (ImGui::CollapsingHeader("Reflect Color", ImGuiTreeNodeFlags_DefaultOpen))
 		show_reflect_color_ui();
+
+	// normal map ---
+	if (ImGui::CollapsingHeader("Normal Map"), ImGuiTreeNodeFlags_DefaultOpen)
+		show_normal_map_ui();
 
 	// material properties ---
 	ImGui::Spacing();
@@ -204,6 +209,21 @@ void material_editor_view::show_reflect_color_ui()
 
 	if (reflect_color_color_active_) met_.activate_reflect_color_color();
 	else met_.activate_reflect_color_texture();
+}
+
+void material_editor_view::show_normal_map_ui()
+{
+	if (ImGui::ImageButton(met_.p_tex_normal_map_srv(), ImVec2(64, 64), ImVec2(0, 0), ImVec2(1, 1), 0)) {
+		if (show_open_file_dialog(p_hwnd_, property_mask_texture_filename_)) {
+			met_.reload_normal_map_texture(property_mask_texture_filename_.c_str());
+		}
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("Reset")) {
+		property_mask_texture_filename_[0] = '\0';
+		met_.reset_normal_map_texture();
+	}
 }
 
 void material_editor_view::show_material_properties_ui()

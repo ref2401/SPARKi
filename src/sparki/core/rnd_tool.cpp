@@ -476,7 +476,7 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 	init_base_color_textures();
 	init_reflect_color_textures();
-	init_normal_map_textures();
+	reset_normal_map_texture();
 	init_property_mask_textures();
 
 	property_colors_.reserve(material_properties_composer::c_property_max_count);
@@ -485,7 +485,6 @@ material_editor_tool::material_editor_tool(ID3D11Device* p_device, ID3D11DeviceC
 
 	material_.p_tex_base_color_srv		= p_tex_base_color_color_srv_;
 	material_.p_tex_reflect_color_srv	= p_tex_reflect_color_color_srv_;
-	material_.p_tex_normal_map_srv		= p_tex_normal_map_srv_;
 	material_.p_tex_properties_srv		= p_tex_properties_color_srv_;
 }
 
@@ -555,15 +554,6 @@ void material_editor_tool::init_reflect_color_textures()
 	assert(hr == S_OK);
 }
 
-void material_editor_tool::init_normal_map_textures()
-{
-	const texture_data td = load_from_image_file("../../data/material_normal_map.png", 4, true);
-	p_tex_normal_map_ = make_texture_2d(p_device_, td,
-		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
-	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_normal_map_, nullptr, &p_tex_normal_map_srv_.ptr);
-	assert(hr == S_OK);
-}
-
 void material_editor_tool::init_property_mask_textures()
 {
 	reset_property_mask_texture();
@@ -619,6 +609,22 @@ void material_editor_tool::reload_reflect_color_texture(const char* p_filename)
 	assert(hr == S_OK);
 }
 
+void material_editor_tool::reload_normal_map_texture(const char* p_filename)
+{
+	assert(p_filename);
+
+	p_tex_normal_map_srv_.dispose();
+	p_tex_normal_map_.dispose();
+
+	const texture_data td = load_from_image_file(p_filename, 4, true);
+	p_tex_normal_map_ = make_texture_2d(p_device_, td,
+		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
+	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_normal_map_, nullptr, &p_tex_normal_map_srv_.ptr);
+	assert(hr == S_OK);
+
+	material_.p_tex_normal_map_srv = p_tex_normal_map_srv_;
+}
+
 void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 {
 	assert(p_filename);
@@ -651,6 +657,35 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 	assert(hr == S_OK);
 	hr = p_device_->CreateUnorderedAccessView(p_tex_properties_texture_, nullptr, &p_tex_properties_texture_uav_.ptr);
 	assert(hr == S_OK);
+}
+
+void material_editor_tool::reset_normal_map_texture()
+{
+	p_tex_normal_map_srv_.dispose();
+	p_tex_normal_map_.dispose();
+
+	D3D11_TEXTURE2D_DESC tex_desc = {};
+	tex_desc.Width				= 1;
+	tex_desc.Height				= 1;
+	tex_desc.MipLevels			= 1;
+	tex_desc.ArraySize			= 1;
+	tex_desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	tex_desc.SampleDesc.Count	= 1;
+	tex_desc.SampleDesc.Quality = 0;
+	tex_desc.Usage				= D3D11_USAGE_IMMUTABLE;
+	tex_desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+
+	const ubyte4 default_normal(0x80, 0x80, 0xff, 0xff);
+	D3D11_SUBRESOURCE_DATA tex_data = {};
+	tex_data.pSysMem = &default_normal.x;
+	tex_data.SysMemPitch = vector_traits<ubyte4>::byte_count;
+
+	HRESULT hr = p_device_->CreateTexture2D(&tex_desc, &tex_data, &p_tex_normal_map_.ptr);
+	assert(hr == S_OK);
+	hr = p_device_->CreateShaderResourceView(p_tex_normal_map_, nullptr, &p_tex_normal_map_srv_.ptr);
+	assert(hr == S_OK);
+
+	material_.p_tex_normal_map_srv = p_tex_normal_map_srv_;
 }
 
 void material_editor_tool::reset_property_mask_texture()

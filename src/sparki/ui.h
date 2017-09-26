@@ -23,6 +23,8 @@ private:
 
 	void show_reflect_color_ui();
 
+	void show_normal_map_ui();
+
 	void show_material_properties_ui();
 
 	// core stuff ---
@@ -35,6 +37,7 @@ private:
 	float3							reflect_color_color_;
 	bool							reflect_color_color_active_;
 	std::string						reflect_color_texture_filename_;
+	std::string						normal_map_filename_;
 	std::string						property_mask_texture_filename_;
 };
 
