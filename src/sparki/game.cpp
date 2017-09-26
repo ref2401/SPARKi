@@ -28,8 +28,6 @@ void game_system::draw_frame(float interpolation_factor)
 	ImGui::NewFrame();
 	p_material_editor_view_->show();
 
-	ImGui::ShowTestWindow();
-
 	frame_.material = render_system_.material_editor_tool().current_material(); // NOTE(ref2401): this crap is temporary.
 	frame_.camera_position = lerp(camera_.position, camera_.prev_position, interpolation_factor);
 	frame_.camera_target = lerp(camera_.target, camera_.prev_target, interpolation_factor);

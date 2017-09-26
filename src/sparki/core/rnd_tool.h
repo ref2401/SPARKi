@@ -229,7 +229,7 @@ public:
 	void activate_reflect_color_texture() noexcept
 	{
 		material_.p_tex_reflect_color_srv = p_tex_reflect_color_texture_srv_;
-	}
+	} 
 
 	void activate_properties_color() noexcept
 	{

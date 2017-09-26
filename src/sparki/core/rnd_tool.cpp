@@ -585,7 +585,7 @@ void material_editor_tool::reload_base_color_texture(const char* p_filename)
 	p_tex_base_color_texture_srv_.dispose();
 	p_tex_base_color_texture_.dispose();
 
-	const texture_data td = load_from_image_file(p_filename, 4);
+	const texture_data td = load_from_image_file(p_filename, 4, true);
 	p_tex_base_color_texture_ = make_texture_2d(p_device_, td, 
 		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_base_color_texture_, nullptr, 
@@ -600,7 +600,7 @@ void material_editor_tool::reload_reflect_color_texture(const char* p_filename)
 	p_tex_reflect_color_texture_srv_.dispose();
 	p_tex_reflect_color_texture_.dispose();
 
-	const texture_data td = load_from_image_file(p_filename, 4);
+	const texture_data td = load_from_image_file(p_filename, 4, true);
 	p_tex_reflect_color_texture_ = make_texture_2d(p_device_, td,
 		D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_reflect_color_texture_, nullptr,
@@ -617,7 +617,7 @@ void material_editor_tool::reload_property_mask_texture(const char* p_filename)
 	p_tex_properties_texture_srv_.dispose();
 	p_tex_properties_texture_.dispose();
 
-	const texture_data td = load_from_image_file(p_filename, 4);
+	const texture_data td = load_from_image_file(p_filename, 4, true);
 	p_tex_property_mask_ = make_texture_2d(p_device_, td, D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE);
 	HRESULT hr = p_device_->CreateShaderResourceView(p_tex_property_mask_, nullptr, &p_tex_property_mask_srv_.ptr);
 	assert(hr == S_OK);

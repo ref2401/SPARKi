@@ -100,7 +100,8 @@ material_editor_view::material_editor_view(HWND p_hwnd, core::material_editor_to
 
 void material_editor_view::show()
 {
-	ImGui::Begin("Material Properties");
+	bool open = true;
+	ImGui::Begin("Material Properties", &open, ImVec2(227, 603), -1.0f, ImGuiWindowFlags_NoCollapse);
 
 	// base color ---
 	if (ImGui::CollapsingHeader("Base Color", ImGuiTreeNodeFlags_DefaultOpen))
