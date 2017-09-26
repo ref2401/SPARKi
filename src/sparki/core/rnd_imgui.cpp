@@ -34,20 +34,32 @@ void imgui_pass::init_font_texture()
 {
 	// Build texture atlas
 	ImGuiIO& io = ImGui::GetIO();
-	unsigned char* p_data;
+	uint8_t* p_data;
 	int w, h;
 	io.Fonts->GetTexDataAsRGBA32(&p_data, &w, &h);
 
+	// flip vertically the font texture
+	const size_t line_bc = w * 4;
+	const size_t half_height = h / 2;
+	std::vector<uint8_t> tmp_line(line_bc);
+	for (size_t i = 0; i < half_height; ++i) {
+		uint8_t* p_first = p_data + i * line_bc;
+		uint8_t* p_second = p_data + (h - i - 1) * line_bc;
+		std::memcpy(tmp_line.data(), p_first, line_bc);
+		std::memcpy(p_first, p_second, line_bc);
+		std::memcpy(p_second, tmp_line.data(), line_bc);
+	}
+
 	D3D11_TEXTURE2D_DESC desc = {};
-	desc.Width = w;
-	desc.Height = h;
-	desc.MipLevels = 1;
-	desc.ArraySize = 1;
-	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	desc.SampleDesc.Count = 1;
+	desc.Width				= w;
+	desc.Height				= h;
+	desc.MipLevels			= 1;
+	desc.ArraySize			= 1;
+	desc.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count	= 1;
 	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_IMMUTABLE;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.Usage				= D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
 	D3D11_SUBRESOURCE_DATA data = {};
 	data.pSysMem = p_data;
 	data.SysMemPitch = w * 4;
@@ -110,7 +122,7 @@ PS_INPUT vs_main(VS_INPUT input)
 	PS_INPUT output;
 	output.pos = mul(g_projection_matrix, float4(input.pos.xy, 0.0f, 1.0f));
 	output.col = input.col;
-	output.uv  = input.uv;
+	output.uv  = float2(input.uv.x, 1.0f - input.uv.y);
 	return output;
 }
 
