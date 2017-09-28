@@ -1,6 +1,12 @@
 # SPARKi
 [![demo video](https://user-images.githubusercontent.com/10673999/30955755-69b6c7f2-a43d-11e7-86bd-150a9512f3ee.png)](https://youtu.be/q0ZhWul9hFs)
 
+[![base_color](https://user-images.githubusercontent.com/10673999/30958084-bcc119f0-a444-11e7-9104-42ee6a52cca3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_base_color.png)|
+[![reflect_color](https://user-images.githubusercontent.com/10673999/30958099-cbf2d10c-a444-11e7-887f-c597ee021eb3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_reflect_color.png)|
+[![normal_map](https://user-images.githubusercontent.com/10673999/30958088-bdf336b4-a444-11e7-9ec1-8fdf109542ff.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_normal_map.png)|
+[![property_mask](https://user-images.githubusercontent.com/10673999/30958134-e28dca66-a444-11e7-84e6-686e96a7ea7b.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_property_mask.png)|
+| --- | --- | --- | --- |
+
 ```.geo``` & ```.tex``` are SPARKi internal geometry & texture formats respectively.
 
 ## Dependencies & Build
