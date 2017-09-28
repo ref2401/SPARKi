@@ -1,6 +1,13 @@
 # SPARKi
 [![demo video](https://user-images.githubusercontent.com/10673999/30955755-69b6c7f2-a43d-11e7-86bd-150a9512f3ee.png)](https://youtu.be/q0ZhWul9hFs)
 
+The main goals of the project are self-education and experiments. The demo shows a simple scene (an object and an environment light source) and material ui that allows to edit object’s material parameters in runtime. The challenge with complex objects is that they might be composed of several unique materials. So the requirement is to be able to generate a single texture that will contain parameters for each material. 
+
+One possible solution is to provide a mask texture with ```N``` unique rgb-colors (each color represents a single material). The demo takes such a mask texture, retrieves all the unique colors from it and generates the material property texture according to the color mask. Then the renderer gets the generated texture and uses it to draw the object. It is possible to alter material properties for any unique color in runtime. 
+
+The textures used in video are below.
+
+
 [![base_color](https://user-images.githubusercontent.com/10673999/30958084-bcc119f0-a444-11e7-9104-42ee6a52cca3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_base_color.png)|
 [![reflect_color](https://user-images.githubusercontent.com/10673999/30958099-cbf2d10c-a444-11e7-887f-c597ee021eb3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_reflect_color.png)|
 [![normal_map](https://user-images.githubusercontent.com/10673999/30958088-bdf336b4-a444-11e7-9ec1-8fdf109542ff.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_normal_map.png)|
