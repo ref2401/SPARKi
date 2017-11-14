@@ -1,12 +1,20 @@
 # SPARKi
+[![demo video](https://user-images.githubusercontent.com/10673999/30955755-69b6c7f2-a43d-11e7-86bd-150a9512f3ee.png)](https://youtu.be/q0ZhWul9hFs)
 
-The main goal of SPARKi is education and experiments. Currently the demo represents a simple scene with one object & environment light source. The demo allows to edit object’s material params in runtime.
+The main goals of the project are self-education and experiments. The demo shows a simple scene (an object and an environment light source) and material ui that allows to edit object’s material parameters in runtime. The challenge with complex objects is that they might be composed of several unique materials. So the requirement is to be able to generate a single texture that will contain parameters for each material. 
+
+One possible solution is to provide a mask texture with ```N``` unique rgb-colors (each color represents a single material). The demo takes such a mask texture, retrieves all the unique colors from it and generates the material property texture according to the color mask. Then the renderer gets the generated texture and uses it to draw the object. It is possible to alter material properties for any unique color in runtime. 
+
+The textures used in video are below.
+
+
+[![base_color](https://user-images.githubusercontent.com/10673999/30958084-bcc119f0-a444-11e7-9104-42ee6a52cca3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_base_color.png)|
+[![reflect_color](https://user-images.githubusercontent.com/10673999/30958099-cbf2d10c-a444-11e7-887f-c597ee021eb3.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_reflect_color.png)|
+[![normal_map](https://user-images.githubusercontent.com/10673999/30958088-bdf336b4-a444-11e7-9ec1-8fdf109542ff.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_normal_map.png)|
+[![property_mask](https://user-images.githubusercontent.com/10673999/30958134-e28dca66-a444-11e7-84e6-686e96a7ea7b.png) ](https://raw.githubusercontent.com/ref2401/SPARKi/master/data/material_property_mask.png)|
+| --- | --- | --- | --- |
 
 ```.geo``` & ```.tex``` are SPARKi internal geometry & texture formats respectively.
-
-## Print screens
- [ ![r01m0](https://user-images.githubusercontent.com/10673999/30104334-00c54f0c-92fe-11e7-835e-f111043df981.png) ](https://user-images.githubusercontent.com/10673999/30104323-f953a2dc-92fd-11e7-9cd4-3b5c36193feb.png) | [ ![r041m0](https://user-images.githubusercontent.com/10673999/30104337-0502d03a-92fe-11e7-8b64-44559049f660.png) ](https://user-images.githubusercontent.com/10673999/30104340-06664b6e-92fe-11e7-96bf-d8da0be54ca2.png) | [ ![r1m0](https://user-images.githubusercontent.com/10673999/30104346-0853e9cc-92fe-11e7-8aa0-d24bcb5c4c55.png) ](https://user-images.githubusercontent.com/10673999/30104350-094038a4-92fe-11e7-9a69-8103310e75d4.png) |  [ ![gold_like](https://user-images.githubusercontent.com/10673999/30104352-0b58c07a-92fe-11e7-9573-6e2bc20baadc.png) ](https://user-images.githubusercontent.com/10673999/30104358-0d524522-92fe-11e7-957c-c31b4c7a123f.png) |
-| --- | --- | --- | --- |
 
 ## Dependencies & Build
 1) DirectX SDK
