@@ -18,7 +18,9 @@ void accumulate_exception_message_impl(std::string& dest, const std::exception& 
 		accumulate_exception_message_impl(dest, nested_exc);
 	}
 	catch (...) {
-		assert(false); // hell no!
+		// https://www.youtube.com/watch?v=umDr0mPuyQc
+		// do not throw non descendants of 
+		assert(false);
 	}
 }
 

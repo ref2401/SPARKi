@@ -47,7 +47,7 @@ inline ubyte4 make_color_ubyte4(const float3& rgb, float alpha = 1.0f)
 
 inline ImVec4 make_color_imvec4(uint32_t v)
 {
-	const float4 c4 = unpack_8_8_8_8_into_unorm(v);
+	const float4 c4 = unpack_unorm_8_8_8_8(v);
 	return ImVec4(c4.x, c4.y, c4.z, c4.w);
 }
 
